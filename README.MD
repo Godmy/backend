@@ -517,7 +517,7 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## Лицензия
 
-MIT License - см. [LICENSE](LICENSE)
+GNU GENERAL PUBLIC LICENSE V3 - см. [LICENSE](LICENSE)
 
 ## Ключевые возможности
 
