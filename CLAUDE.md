@@ -784,3 +784,13 @@ docker run --rm -v $(pwd)/nginx/nginx.conf:/etc/nginx/nginx.conf:ro nginx nginx 
 ```bash
 docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 ```
+
+---
+
+Issue to solve: undefined
+Your prepared branch: issue-1-1ae97023
+Your prepared working directory: /tmp/gh-issue-solver-1760786079777
+Your forked repository: konard/backend
+Original repository (upstream): Godmy/backend
+
+Proceed.
