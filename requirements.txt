@@ -1,0 +1,39 @@
+starlette
+graphql-core
+strawberry-graphql[cli]
+
+sqlalchemy
+alembic
+
+uvicorn
+
+python-multipart
+python-dotenv
+psycopg2-binary
+bcrypt
+PyJWT
+
+# Email
+jinja2
+
+# Redis
+redis
+
+# OAuth
+google-auth
+google-auth-oauthlib
+
+# File handling
+Pillow
+
+# Testing
+pytest
+pytest-asyncio
+httpx
+
+# Code quality
+black
+isort
+flake8
+mypy
+pre-commit

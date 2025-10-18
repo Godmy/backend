@@ -205,3 +205,29 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Project specific
+schema.graphql
+init.sql
+
+# Email testing
+# Uncomment if you create temporary email files for testing
+# templates/emails/*.tmp.html
+# templates/emails/test_*.html

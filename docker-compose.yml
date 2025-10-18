@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: templates_db
+    environment:
+      POSTGRES_DB: templates
+      POSTGRES_USER: template_user
+      POSTGRES_PASSWORD: template_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - templates_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U template_user -d templates"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: templates_app
+    environment:
+      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: templates
+      DB_USER: template_user
+      DB_PASSWORD: template_password
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - templates_network
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  templates_network:
+    driver: bridge

@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: templates_db_dev
+    environment:
+      POSTGRES_DB: templates
+      POSTGRES_USER: template_user
+      POSTGRES_PASSWORD: template_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - templates_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U template_user -d templates"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: templates_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - templates_network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: templates_mailpit
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - mailpit_data:/data
+    networks:
+      - templates_network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q --spider http://localhost:8025 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  app:
+    build: .
+    container_name: templates_app_dev
+    environment:
+      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: templates
+      DB_USER: template_user
+      DB_PASSWORD: template_password
+      DEBUG: "True"
+      # Redis configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      # Email configuration
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_USE_TLS: "False"
+      FROM_EMAIL: "noreply@multipult.dev"
+      FRONTEND_URL: "http://localhost:5173"
+      # File upload configuration
+      UPLOAD_DIR: "uploads"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    networks:
+      - templates_network
+    volumes:
+      - .:/app
+      - /app/__pycache__
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    command: python app.py
+
+volumes:
+  postgres_data_dev:
+  redis_data:
+  mailpit_data:
+
+networks:
+  templates_network:
+    driver: bridge

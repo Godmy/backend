@@ -1,0 +1,45 @@
+Generic single-database configuration.
+
+# Создаем начальную миграцию
+alembic revision --autogenerate -m "Initial migration"
+
+# Применяем миграцию
+alembic upgrade head
+
+
+alembic revision --autogenerate -m "Add authors table"
+alembic upgrade head
+
+# Сборка и запуск
+docker-compose up --build
+
+# Запуск в фоновом режиме
+docker-compose up -d
+
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
+
+# Остановка с удалением volumes
+docker-compose down -v
+
+
+# Проверка контейнеров
+docker ps
+
+# Проверка логов БД
+docker-compose logs db
+
+# Проверка логов приложения
+docker-compose logs app
+
+# Тестирование подключения к БД
+docker exec -it attractors_db psql -U attractor_user -d attractors -c "SELECT version();"
+
+
+
+# Удалим том базы данных и перезапустим:
+docker-compose down -v
+docker-compose up --build
