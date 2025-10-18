@@ -1,18 +1,18 @@
-from .auth import AuthMutation, AuthPayload, UserRegistrationInput, UserLoginInput
-from .user import UserQuery, UserMutation, User, UserProfile
-from .role import RoleQuery, RoleMutation, Role, Permission
+from .auth import AuthMutation, AuthPayload, UserLoginInput, UserRegistrationInput
+from .role import Permission, Role, RoleMutation, RoleQuery
+from .user import User, UserMutation, UserProfile, UserQuery
 
 __all__ = [
     "AuthMutation",
-    "AuthPayload", 
+    "AuthPayload",
     "UserRegistrationInput",
     "UserLoginInput",
     "UserQuery",
-    "UserMutation", 
+    "UserMutation",
     "User",
     "UserProfile",
     "RoleQuery",
     "RoleMutation",
-    "Role", 
-    "Permission"
+    "Role",
+    "Permission",
 ]

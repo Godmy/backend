@@ -4,13 +4,14 @@ OAuth Service for Google and Telegram authentication
 Handles OAuth flow for multiple providers
 """
 
-import os
 import hashlib
 import hmac
 import logging
-from typing import Optional, Dict, Any, Tuple
-from sqlalchemy.orm import Session
+import os
+from typing import Any, Dict, Optional, Tuple
+
 import httpx
+from sqlalchemy.orm import Session
 
 from auth.models.oauth import OAuthConnectionModel
 from auth.models.user import UserModel
@@ -55,8 +56,8 @@ class OAuthService:
             User info dict if valid, None otherwise
         """
         try:
-            from google.oauth2 import id_token as google_id_token
             from google.auth.transport import requests
+            from google.oauth2 import id_token as google_id_token
 
             client_id = OAuthService.get_google_client_id()
             if not client_id:
@@ -64,11 +65,7 @@ class OAuthService:
                 return None
 
             # Verify token
-            idinfo = google_id_token.verify_oauth2_token(
-                id_token,
-                requests.Request(),
-                client_id
-            )
+            idinfo = google_id_token.verify_oauth2_token(id_token, requests.Request(), client_id)
 
             # Token is valid
             return {
@@ -121,9 +118,7 @@ class OAuthService:
 
             # Calculate hash
             calculated_hash = hmac.new(
-                secret_key,
-                data_check_string.encode(),
-                hashlib.sha256
+                secret_key, data_check_string.encode(), hashlib.sha256
             ).hexdigest()
 
             # Verify hash
@@ -150,7 +145,7 @@ class OAuthService:
         user_id: int,
         provider: str,
         provider_user_id: str,
-        provider_data: Dict[str, Any]
+        provider_data: Dict[str, Any],
     ) -> OAuthConnectionModel:
         """
         Find existing OAuth connection or create new one
@@ -166,11 +161,15 @@ class OAuthService:
             OAuth connection model
         """
         # Try to find existing connection
-        connection = db.query(OAuthConnectionModel).filter(
-            OAuthConnectionModel.user_id == user_id,
-            OAuthConnectionModel.provider == provider,
-            OAuthConnectionModel.provider_user_id == provider_user_id
-        ).first()
+        connection = (
+            db.query(OAuthConnectionModel)
+            .filter(
+                OAuthConnectionModel.user_id == user_id,
+                OAuthConnectionModel.provider == provider,
+                OAuthConnectionModel.provider_user_id == provider_user_id,
+            )
+            .first()
+        )
 
         if connection:
             # Update existing connection
@@ -187,7 +186,7 @@ class OAuthService:
                 provider_user_id=provider_user_id,
                 provider_username=provider_data.get("username"),
                 provider_email=provider_data.get("email"),
-                extra_data=provider_data
+                extra_data=provider_data,
             )
             db.add(connection)
             db.commit()
@@ -198,8 +197,7 @@ class OAuthService:
 
     @staticmethod
     async def authenticate_with_google(
-        db: Session,
-        id_token: str
+        db: Session, id_token: str
     ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Authenticate user with Google OAuth
@@ -220,10 +218,14 @@ class OAuthService:
         email = google_data.get("email")
 
         # Check if OAuth connection exists
-        oauth_conn = db.query(OAuthConnectionModel).filter(
-            OAuthConnectionModel.provider == OAuthService.GOOGLE,
-            OAuthConnectionModel.provider_user_id == provider_user_id
-        ).first()
+        oauth_conn = (
+            db.query(OAuthConnectionModel)
+            .filter(
+                OAuthConnectionModel.provider == OAuthService.GOOGLE,
+                OAuthConnectionModel.provider_user_id == provider_user_id,
+            )
+            .first()
+        )
 
         if oauth_conn:
             # Existing user with Google connection
@@ -238,8 +240,7 @@ class OAuthService:
             if user:
                 # Link Google to existing user
                 OAuthService.find_or_create_oauth_connection(
-                    db, user.id, OAuthService.GOOGLE,
-                    provider_user_id, google_data
+                    db, user.id, OAuthService.GOOGLE, provider_user_id, google_data
                 )
             else:
                 # Create new user
@@ -253,6 +254,7 @@ class OAuthService:
 
                 # Create user with random password (won't be used)
                 import secrets
+
                 random_password = secrets.token_urlsafe(32)
                 password_hash = hash_password(random_password)
 
@@ -260,7 +262,9 @@ class OAuthService:
                     username=username,
                     email=email or f"{provider_user_id}@google.oauth",
                     password_hash=password_hash,
-                    is_verified=google_data.get("email_verified", True)  # Trust Google verification
+                    is_verified=google_data.get(
+                        "email_verified", True
+                    ),  # Trust Google verification
                 )
                 db.add(user)
                 db.commit()
@@ -268,8 +272,7 @@ class OAuthService:
 
                 # Create OAuth connection
                 OAuthService.find_or_create_oauth_connection(
-                    db, user.id, OAuthService.GOOGLE,
-                    provider_user_id, google_data
+                    db, user.id, OAuthService.GOOGLE, provider_user_id, google_data
                 )
 
                 logger.info(f"Created new user via Google OAuth: {username}")
@@ -283,13 +286,12 @@ class OAuthService:
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
-            "user": user
+            "user": user,
         }, None
 
     @staticmethod
     def authenticate_with_telegram(
-        db: Session,
-        telegram_data: Dict[str, str]
+        db: Session, telegram_data: Dict[str, str]
     ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Authenticate user with Telegram
@@ -312,10 +314,14 @@ class OAuthService:
         last_name = telegram_data.get("last_name", "")
 
         # Check if OAuth connection exists
-        oauth_conn = db.query(OAuthConnectionModel).filter(
-            OAuthConnectionModel.provider == OAuthService.TELEGRAM,
-            OAuthConnectionModel.provider_user_id == provider_user_id
-        ).first()
+        oauth_conn = (
+            db.query(OAuthConnectionModel)
+            .filter(
+                OAuthConnectionModel.provider == OAuthService.TELEGRAM,
+                OAuthConnectionModel.provider_user_id == provider_user_id,
+            )
+            .first()
+        )
 
         if oauth_conn:
             # Existing user with Telegram connection
@@ -331,6 +337,7 @@ class OAuthService:
 
             # Create user with random password (won't be used)
             import secrets
+
             random_password = secrets.token_urlsafe(32)
             password_hash = hash_password(random_password)
 
@@ -338,7 +345,7 @@ class OAuthService:
                 username=username,
                 email=f"{provider_user_id}@telegram.oauth",  # Telegram doesn't provide email
                 password_hash=password_hash,
-                is_verified=True  # Trust Telegram
+                is_verified=True,  # Trust Telegram
             )
             db.add(user)
             db.commit()
@@ -346,8 +353,7 @@ class OAuthService:
 
             # Create OAuth connection
             OAuthService.find_or_create_oauth_connection(
-                db, user.id, OAuthService.TELEGRAM,
-                provider_user_id, telegram_data
+                db, user.id, OAuthService.TELEGRAM, provider_user_id, telegram_data
             )
 
             logger.info(f"Created new user via Telegram OAuth: {username}")
@@ -361,7 +367,7 @@ class OAuthService:
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
-            "user": user
+            "user": user,
         }, None
 
     @staticmethod
@@ -376,15 +382,11 @@ class OAuthService:
         Returns:
             List of OAuth connections
         """
-        return db.query(OAuthConnectionModel).filter(
-            OAuthConnectionModel.user_id == user_id
-        ).all()
+        return db.query(OAuthConnectionModel).filter(OAuthConnectionModel.user_id == user_id).all()
 
     @staticmethod
     def unlink_oauth_connection(
-        db: Session,
-        user_id: int,
-        provider: str
+        db: Session, user_id: int, provider: str
     ) -> Tuple[bool, Optional[str]]:
         """
         Unlink OAuth provider from user
@@ -397,10 +399,13 @@ class OAuthService:
         Returns:
             Tuple of (success, error_message)
         """
-        connection = db.query(OAuthConnectionModel).filter(
-            OAuthConnectionModel.user_id == user_id,
-            OAuthConnectionModel.provider == provider
-        ).first()
+        connection = (
+            db.query(OAuthConnectionModel)
+            .filter(
+                OAuthConnectionModel.user_id == user_id, OAuthConnectionModel.provider == provider
+            )
+            .first()
+        )
 
         if not connection:
             return False, f"No {provider} connection found"
@@ -419,5 +424,5 @@ def get_user_by_username(db: Session, username: str) -> Optional[UserModel]:
 
 
 # Add to UserService if not exists
-if not hasattr(UserService, 'get_user_by_username'):
+if not hasattr(UserService, "get_user_by_username"):
     UserService.get_user_by_username = staticmethod(get_user_by_username)

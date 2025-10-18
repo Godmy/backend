@@ -1,14 +1,16 @@
 """
 Сервис для работы с файловым хранилищем
 """
+
+import hashlib
+import io
 import os
 import uuid
-import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple, BinaryIO
+from typing import BinaryIO, Optional, Tuple
+
 from PIL import Image
-import io
 
 # Конфигурация
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
@@ -48,9 +50,7 @@ class FileStorageService:
         filename = os.path.basename(filename)
         # Удаляем опасные символы
         safe_chars = "-_.() "
-        filename = "".join(
-            c for c in filename if c.isalnum() or c in safe_chars
-        ).rstrip()
+        filename = "".join(c for c in filename if c.isalnum() or c in safe_chars).rstrip()
         return filename[:255]  # Ограничение длины
 
     def validate_file_size(
@@ -75,9 +75,7 @@ class FileStorageService:
             return False, f"File type {mime_type} not allowed"
         return True, None
 
-    def save_file(
-        self, file_content: bytes, filename: str
-    ) -> Tuple[str, str]:
+    def save_file(self, file_content: bytes, filename: str) -> Tuple[str, str]:
         """
         Сохранение файла на диск
 
@@ -92,9 +90,7 @@ class FileStorageService:
 
         return stored_filename, str(filepath)
 
-    def get_image_dimensions(
-        self, file_content: bytes
-    ) -> Tuple[Optional[int], Optional[int]]:
+    def get_image_dimensions(self, file_content: bytes) -> Tuple[Optional[int], Optional[int]]:
         """Получение размеров изображения"""
         try:
             image = Image.open(io.BytesIO(file_content))

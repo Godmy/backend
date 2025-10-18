@@ -4,9 +4,11 @@ Tests for email service
 Tests email sending functionality with MailPit integration
 """
 
-import pytest
-import httpx
 import time
+
+import httpx
+import pytest
+
 from core.email_service import email_service
 
 
@@ -20,7 +22,7 @@ class TestEmailService:
             to_email="test@example.com",
             subject="Test Email",
             html_content="<h1>Test Email</h1><p>This is a test email.</p>",
-            text_content="Test Email\n\nThis is a test email."
+            text_content="Test Email\n\nThis is a test email.",
         )
 
         assert result is True
@@ -31,7 +33,7 @@ class TestEmailService:
         result = email_service.send_email(
             to_email=["user1@example.com", "user2@example.com"],
             subject="Multiple Recipients Test",
-            html_content="<p>Testing multiple recipients</p>"
+            html_content="<p>Testing multiple recipients</p>",
         )
 
         assert result is True
@@ -40,9 +42,7 @@ class TestEmailService:
     async def test_send_verification_email(self):
         """Test sending verification email"""
         result = email_service.send_verification_email(
-            to_email="newuser@example.com",
-            username="testuser",
-            token="test-verification-token-123"
+            to_email="newuser@example.com", username="testuser", token="test-verification-token-123"
         )
 
         assert result is True
@@ -51,9 +51,7 @@ class TestEmailService:
     async def test_send_password_reset_email(self):
         """Test sending password reset email"""
         result = email_service.send_password_reset_email(
-            to_email="user@example.com",
-            username="testuser",
-            token="test-reset-token-456"
+            to_email="user@example.com", username="testuser", token="test-reset-token-456"
         )
 
         assert result is True
@@ -62,8 +60,7 @@ class TestEmailService:
     async def test_send_welcome_email(self):
         """Test sending welcome email"""
         result = email_service.send_welcome_email(
-            to_email="newuser@example.com",
-            username="newuser"
+            to_email="newuser@example.com", username="newuser"
         )
 
         assert result is True
@@ -74,7 +71,7 @@ class TestEmailService:
         html = email_service.render_template(
             "verification.html",
             username="testuser",
-            verification_url="http://example.com/verify?token=abc123"
+            verification_url="http://example.com/verify?token=abc123",
         )
 
         assert html is not None
@@ -97,7 +94,7 @@ class TestEmailServiceWithMailPit:
             to_email="integration@example.com",
             subject=test_subject,
             html_content="<p>Integration test email</p>",
-            text_content="Integration test email"
+            text_content="Integration test email",
         )
 
         assert result is True
@@ -136,9 +133,7 @@ class TestEmailServiceWithMailPit:
 
         # Send verification email
         result = email_service.send_verification_email(
-            to_email="verify@example.com",
-            username="verifyuser",
-            token=token
+            to_email="verify@example.com", username="verifyuser", token=token
         )
 
         assert result is True
@@ -182,9 +177,7 @@ class TestEmailServiceWithMailPit:
 
         # Send password reset email
         result = email_service.send_password_reset_email(
-            to_email="reset@example.com",
-            username="resetuser",
-            token=token
+            to_email="reset@example.com", username="resetuser", token=token
         )
 
         assert result is True
@@ -225,6 +218,7 @@ class TestEmailServiceWithMailPit:
     async def _wait_for_email(seconds: float = 1.0):
         """Wait for email to be processed by MailPit"""
         import asyncio
+
         await asyncio.sleep(seconds)
 
 

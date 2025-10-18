@@ -1,27 +1,37 @@
 import strawberry
+
+# Импортируем схемы из модуля auth
+from auth.schemas import AuthMutation, RoleMutation, RoleQuery, UserMutation, UserQuery
+from core.schemas.audit import AuditLogQuery
+
+# Импортируем схемы для файлов и аудита
+from core.schemas.file import FileMutation, FileQuery
+
 # Импортируем схемы из модуля languages
 from languages.schemas import (
-    LanguageQuery, LanguageMutation,
-    ConceptQuery, ConceptMutation,
-    DictionaryQuery, DictionaryMutation
+    ConceptMutation,
+    ConceptQuery,
+    DictionaryMutation,
+    DictionaryQuery,
+    LanguageMutation,
+    LanguageQuery,
+    SearchQuery,
 )
-# Импортируем схемы из модуля auth
-from auth.schemas import UserQuery, UserMutation, AuthMutation, RoleQuery, RoleMutation
-# Импортируем схемы для файлов и аудита
-from core.schemas.file import FileQuery, FileMutation
-from core.schemas.audit import AuditLogQuery
+
 
 @strawberry.type
 class Query(
     LanguageQuery,
     ConceptQuery,
     DictionaryQuery,
+    SearchQuery,
     UserQuery,
     RoleQuery,
     FileQuery,
-    AuditLogQuery
+    AuditLogQuery,
 ):
     pass
+
 
 @strawberry.type
 class Mutation(
@@ -31,8 +41,9 @@ class Mutation(
     UserMutation,
     AuthMutation,
     RoleMutation,
-    FileMutation
+    FileMutation,
 ):
     pass
+
 
 schema = strawberry.Schema(Query, Mutation)

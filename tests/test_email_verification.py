@@ -3,6 +3,7 @@ Tests for email verification and password reset flow
 """
 
 import pytest
+
 from auth.services.token_service import token_service
 from core.redis_client import redis_client
 
@@ -140,8 +141,8 @@ class TestEmailVerificationFlow:
     @pytest.mark.asyncio
     async def test_registration_sends_verification_email(self):
         """Test that registration sends verification email"""
-        from core.email_service import email_service
         from auth.services.token_service import token_service
+        from core.email_service import email_service
 
         # Simulate registration
         user_id = 1001
@@ -153,9 +154,7 @@ class TestEmailVerificationFlow:
 
         # Send verification email
         result = email_service.send_verification_email(
-            to_email=email,
-            username=username,
-            token=token
+            to_email=email, username=username, token=token
         )
 
         assert result is True
@@ -163,8 +162,8 @@ class TestEmailVerificationFlow:
     @pytest.mark.asyncio
     async def test_password_reset_sends_email(self):
         """Test that password reset request sends email"""
-        from core.email_service import email_service
         from auth.services.token_service import token_service
+        from core.email_service import email_service
 
         # Simulate password reset request
         user_id = 1002
@@ -176,9 +175,7 @@ class TestEmailVerificationFlow:
 
         # Send reset email
         result = email_service.send_password_reset_email(
-            to_email=email,
-            username=username,
-            token=token
+            to_email=email, username=username, token=token
         )
 
         assert result is True
@@ -240,6 +237,7 @@ class TestRedisClient:
 
         # Wait for expiration
         import time
+
         time.sleep(3)
 
         # Should not exist after expiration

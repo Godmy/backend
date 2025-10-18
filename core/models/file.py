@@ -1,9 +1,12 @@
 """
 Модель для хранения информации о загруженных файлах
 """
+
 from typing import TYPE_CHECKING
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, BigInteger
+
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from core.models.base import BaseModel
 
 if TYPE_CHECKING:
