@@ -689,16 +689,16 @@ mutation MarkAsRead {
 > Как DevOps инженер, я хочу автоматически отслеживать все ошибки в production, чтобы быстро реагировать на проблемы.
 
 **Acceptance Criteria:**
-- [ ] Интеграция с Sentry (или аналог)
-- [ ] Автоматическая отправка всех uncaught exceptions
-- [ ] Контекст ошибок: user_id, request_id, endpoint, environment
-- [ ] Source maps для stack traces
-- [ ] Email/Slack уведомления при критических ошибках
-- [ ] Группировка похожих ошибок
-- [ ] Performance monitoring (transaction traces)
-- [ ] Release tracking для связи с деплоями
-- [ ] Breadcrumbs для отслеживания действий пользователя
-- [ ] Фильтрация чувствительных данных (пароли, токены)
+- [✅] Интеграция с Sentry (или аналог)
+- [✅] Автоматическая отправка всех uncaught exceptions
+- [✅] Контекст ошибок: user_id, request_id, endpoint, environment
+- [✅] Source maps для stack traces
+- [✅] Email/Slack уведомления при критических ошибках (настраивается в Sentry UI)
+- [✅] Группировка похожих ошибок (автоматически в Sentry)
+- [✅] Performance monitoring (transaction traces)
+- [✅] Release tracking для связи с деплоями
+- [✅] Breadcrumbs для отслеживания действий пользователя
+- [✅] Фильтрация чувствительных данных (пароли, токены)
 
 **Implementation:**
 ```python
@@ -724,11 +724,29 @@ from core.sentry import init_sentry
 init_sentry()
 ```
 
-**Dependencies:** `sentry-sdk[starlette]`
+**Dependencies:** `sentry-sdk[starlette,sqlalchemy]`, `psutil`
+
+**Implementation Details:**
+- `core/sentry.py` - Sentry initialization with integrations (Starlette, SQLAlchemy, Logging)
+- `app.py` - Automatic initialization on startup
+- Environment variables: SENTRY_DSN, ENVIRONMENT, SENTRY_ENABLE_TRACING, SENTRY_TRACES_SAMPLE_RATE
+- Automatic user context tracking for authenticated requests
+- Comprehensive tests in `tests/test_sentry.py`
+- Documentation in CLAUDE.md with setup instructions and usage examples
+- Production checklist updated with Sentry configuration steps
+
+**Key Features Implemented:**
+- `before_send` filter for automatic sensitive data removal
+- User context tracking with username and email
+- Breadcrumbs for authenticated requests
+- Configurable sample rates (1.0 for dev, 0.1 for production)
+- Manual error capture: `capture_exception()`, `capture_message()`
+- Performance monitoring: `start_transaction()`
+- Helper functions: `set_user_context()`, `add_breadcrumb()`, `set_context()`
 
 **Estimated Effort:** 5 story points
 
-**Status:** 📋 Backlog
+**Status:** ✅ **Done** (2025-01-19)
 
 ---
 
