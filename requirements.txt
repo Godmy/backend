@@ -37,3 +37,7 @@ isort
 flake8
 mypy
 pre-commit
+
+# Error Tracking & Monitoring
+sentry-sdk[starlette,sqlalchemy]
+psutil

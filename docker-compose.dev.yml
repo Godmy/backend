@@ -82,6 +82,12 @@ services:
       FRONTEND_URL: "http://localhost:5173"
       # File upload configuration
       UPLOAD_DIR: "uploads"
+      # Sentry configuration (leave empty to disable)
+      SENTRY_DSN: ""
+      ENVIRONMENT: "development"
+      SENTRY_ENABLE_TRACING: "true"
+      SENTRY_TRACES_SAMPLE_RATE: "1.0"
+      SENTRY_DEBUG: "false"
     ports:
       - "8000:8000"
     depends_on:

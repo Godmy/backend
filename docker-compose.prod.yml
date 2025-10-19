@@ -41,6 +41,12 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - SEED_DATABASE=false
+      - SENTRY_DSN=${SENTRY_DSN}
+      - ENVIRONMENT=production
+      - SENTRY_ENABLE_TRACING=true
+      - SENTRY_TRACES_SAMPLE_RATE=0.1
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-}
+      - SENTRY_DEBUG=false
     depends_on:
       db:
         condition: service_healthy

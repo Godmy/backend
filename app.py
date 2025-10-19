@@ -14,10 +14,14 @@ from auth.utils.jwt_handler import jwt_handler
 from core.database import engine, get_db
 from core.init_db import init_database
 from core.schemas.schema import schema
+from core.sentry import add_breadcrumb, init_sentry, set_user_context
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Инициализация Sentry для error tracking и monitoring
+init_sentry()
 
 # Инициализация базы данных
 # Проверяем переменную окружения SEED_DATABASE
@@ -45,6 +49,16 @@ class GraphQLWithContext(GraphQL):
                     user = UserService.get_user_by_id(db, user_id)
                     if user and user.is_active:
                         context["user"] = user
+                        # Set Sentry user context for error tracking
+                        set_user_context(
+                            user_id=user.id, username=user.username, email=user.email
+                        )
+                        # Add breadcrumb for authenticated request
+                        add_breadcrumb(
+                            f"Authenticated request from user {user.username}",
+                            category="auth",
+                            level="info",
+                        )
             except Exception as e:
                 logger.debug(f"Token verification failed: {e}")
 
