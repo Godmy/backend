@@ -52,7 +52,7 @@ def import_all_models():
     Это необходимо для корректного создания таблиц
     """
     # Импортируем модели из модуля auth (ПЕРВЫМИ, т.к. на них ссылаются другие модели)
-    from auth.models import user, role, permission, profile
+    from auth.models import user, role, permission, profile, oauth
 
     # Импортируем модели из core
     from core.models import file, audit_log

@@ -1,8 +1,10 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
-from core.models.base import BaseModel  # Изменяем импорт
+from core.models.base import BaseModel
+
 
 class UserProfileModel(BaseModel):
+    """User profile with additional information"""
     __tablename__ = "user_profiles"
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -17,15 +19,3 @@ class UserProfileModel(BaseModel):
     # Связи
     user = relationship("UserModel", back_populates="profile")
     avatar_file = relationship("File", foreign_keys=[avatar_file_id])
-
-class OAuthConnectionModel(BaseModel):
-    __tablename__ = "oauth_connections"
-    
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    provider = Column(String(20), nullable=False)
-    provider_user_id = Column(String(100), nullable=False)
-    access_token = Column(String(500))
-    refresh_token = Column(String(500))
-    
-    # Связь
-    user = relationship("UserModel", back_populates="oauth_connections")
