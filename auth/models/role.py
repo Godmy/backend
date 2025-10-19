@@ -1,6 +1,5 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table
+from sqlalchemy import Column, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 
 from core.models.base import BaseModel
 from core.database import Base
@@ -26,12 +25,11 @@ class RoleModel(BaseModel):
 
 
 class UserRoleModel(Base):
-    """Association table for many-to-many User-Role relationship with timestamps"""
+    """Association table for many-to-many User-Role relationship"""
     __tablename__ = "user_roles_association"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     role_id = Column(Integer, ForeignKey("roles.id"), primary_key=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи
     user = relationship("UserModel", back_populates="roles")
