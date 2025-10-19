@@ -1,5 +1,5 @@
 from .permission import PermissionModel
-from .profile import OAuthConnectionModel, UserProfileModel
+from .profile import UserProfileModel
 from .role import RoleModel, UserRoleModel
 from .oauth import OAuthConnectionModel
 from .user import UserModel

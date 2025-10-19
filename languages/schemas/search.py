@@ -3,6 +3,7 @@ GraphQL схемы для поиска концепций и переводов
 """
 
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional
 
 import strawberry
@@ -12,7 +13,7 @@ from languages.schemas.dictionary import Dictionary
 
 
 @strawberry.enum
-class SearchSortEnum:
+class SearchSortEnum(str, Enum):
     """Варианты сортировки результатов поиска"""
 
     RELEVANCE = "relevance"
