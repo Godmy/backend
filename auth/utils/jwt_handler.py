@@ -1,10 +1,12 @@
-import jwt
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
 import os
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+
+import jwt
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 class JWTHandler:
     def __init__(self):
@@ -13,14 +15,16 @@ class JWTHandler:
         self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
         self.refresh_token_expire_days = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
-    def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(
+        self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+    ) -> str:
         """Создание access token"""
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
             expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
-        
+
         to_encode.update({"exp": expire, "type": "access"})
         encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
         return encoded_jwt
@@ -49,6 +53,7 @@ class JWTHandler:
             user_data = {k: v for k, v in payload.items() if k not in ["exp", "iat", "type"]}
             return self.create_access_token(user_data)
         return None
+
 
 # Создаем экземпляр для использования в приложении
 jwt_handler = JWTHandler()

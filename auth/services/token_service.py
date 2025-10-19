@@ -4,9 +4,10 @@ Token service for email verification and password reset
 Manages temporary tokens stored in Redis with TTL
 """
 
-import secrets
 import logging
+import secrets
 from typing import Optional
+
 from core.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
@@ -50,9 +51,7 @@ class TokenService:
         key = f"{TokenService.VERIFICATION_PREFIX}{token}"
 
         success = redis_client.set(
-            key,
-            str(user_id),
-            expire_seconds=TokenService.VERIFICATION_TOKEN_TTL
+            key, str(user_id), expire_seconds=TokenService.VERIFICATION_TOKEN_TTL
         )
 
         if success:
@@ -99,11 +98,7 @@ class TokenService:
         token = TokenService.generate_token()
         key = f"{TokenService.RESET_PREFIX}{token}"
 
-        success = redis_client.set(
-            key,
-            str(user_id),
-            expire_seconds=TokenService.RESET_TOKEN_TTL
-        )
+        success = redis_client.set(key, str(user_id), expire_seconds=TokenService.RESET_TOKEN_TTL)
 
         if success:
             logger.info(f"Reset token created for user {user_id}")

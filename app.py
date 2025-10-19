@@ -1,17 +1,19 @@
-import strawberry
-from strawberry.asgi import GraphQL
-import uvicorn
+import logging
 import os
-from core.schemas.schema import schema
+
+import strawberry
+import uvicorn
+from sqlalchemy import text
+from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
+from strawberry.asgi import GraphQL
+
+from auth.services.user_service import UserService
+from auth.utils.jwt_handler import jwt_handler
 from core.database import engine, get_db
 from core.init_db import init_database
-from starlette.middleware.cors import CORSMiddleware
-from starlette.applications import Starlette
-from starlette.responses import JSONResponse
-import logging
-from sqlalchemy import text
-from auth.utils.jwt_handler import jwt_handler
-from auth.services.user_service import UserService
+from core.schemas.schema import schema
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -64,6 +66,7 @@ app.add_middleware(
 # Подключаем GraphQL
 app.mount("/graphql", graphql_app)
 
+
 # Health check endpoint
 @app.route("/health")
 async def health_check(request):
@@ -72,21 +75,26 @@ async def health_check(request):
             conn.execute(text("SELECT 1"))
         return JSONResponse({"status": "healthy", "database": "connected"})
     except Exception as e:
-        return JSONResponse({"status": "unhealthy", "database": "disconnected", "error": str(e)}, status_code=503)
+        return JSONResponse(
+            {"status": "unhealthy", "database": "disconnected", "error": str(e)}, status_code=503
+        )
+
 
 # Для корневого пути можно сделать редирект
 @app.route("/")
 async def homepage(request):
     from starlette.responses import RedirectResponse
+
     return RedirectResponse(url="/graphql")
 
 
 # Endpoint для получения загруженных файлов
 @app.route("/uploads/{filename:path}")
 async def serve_file(request):
-    from starlette.responses import FileResponse
-    from pathlib import Path
     import os
+    from pathlib import Path
+
+    from starlette.responses import FileResponse
 
     filename = request.path_params["filename"]
     upload_dir = Path(os.getenv("UPLOAD_DIR", "uploads"))
@@ -101,10 +109,6 @@ async def serve_file(request):
 
     return FileResponse(file_path)
 
+
 if __name__ == "__main__":
-    uvicorn.run(
-        "app:app", 
-        host="0.0.0.0",
-        port=8000, 
-        reload=False
-    )
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)

@@ -1,13 +1,13 @@
-from .user import UserModel
-from .role import RoleModel, UserRoleModel
 from .permission import PermissionModel
-from .profile import UserProfileModel, OAuthConnectionModel
+from .profile import OAuthConnectionModel, UserProfileModel
+from .role import RoleModel, UserRoleModel
+from .user import UserModel
 
 __all__ = [
     "UserModel",
-    "RoleModel", 
+    "RoleModel",
     "UserRoleModel",
     "PermissionModel",
     "UserProfileModel",
-    "OAuthConnectionModel"
+    "OAuthConnectionModel",
 ]

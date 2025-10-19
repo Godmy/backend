@@ -1,10 +1,13 @@
 """
 Бизнес-логика для работы с файлами
 """
+
+from typing import Any, Dict, Optional
+
 from sqlalchemy.orm import Session
-from typing import Optional, Dict, Any
+
+from core.file_storage import ALLOWED_IMAGE_TYPES, MAX_AVATAR_SIZE, file_storage_service
 from core.models.file import File
-from core.file_storage import file_storage_service, ALLOWED_IMAGE_TYPES, MAX_AVATAR_SIZE
 
 
 class FileService:
@@ -112,9 +115,7 @@ class FileService:
 
     def get_file_by_stored_filename(self, stored_filename: str) -> Optional[File]:
         """Получение файла по имени в хранилище"""
-        return (
-            self.db.query(File).filter(File.stored_filename == stored_filename).first()
-        )
+        return self.db.query(File).filter(File.stored_filename == stored_filename).first()
 
     def get_user_files(
         self, user_id: int, file_type: Optional[str] = None, limit: int = 50
@@ -167,9 +168,7 @@ class FileService:
 
         # Обновление профиля
         profile = (
-            self.db.query(UserProfileModel)
-            .filter(UserProfileModel.user_id == user_id)
-            .first()
+            self.db.query(UserProfileModel).filter(UserProfileModel.user_id == user_id).first()
         )
 
         if not profile:

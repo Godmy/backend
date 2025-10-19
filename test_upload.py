@@ -2,12 +2,14 @@
 """
 Тестовый скрипт для проверки File Upload и Audit Logging
 """
-import requests
-import json
 import io
+import json
+
+import requests
 from PIL import Image
 
 BASE_URL = "http://localhost:8000"
+
 
 def test_login():
     """Тест авторизации"""
@@ -24,13 +26,7 @@ def test_login():
 
     response = requests.post(
         f"{BASE_URL}/graphql",
-        json={
-            "query": query,
-            "variables": {
-                "username": "admin",
-                "password": "Admin123!"
-            }
-        }
+        json={"query": query, "variables": {"username": "admin", "password": "Admin123!"}},
     )
 
     print(f"Status: {response.status_code}")
@@ -44,6 +40,7 @@ def test_login():
     else:
         print("✗ Login failed!")
         return None
+
 
 def test_audit_logs(token):
     """Тест просмотра audit logs"""
@@ -65,9 +62,7 @@ def test_audit_logs(token):
     """
 
     response = requests.post(
-        f"{BASE_URL}/graphql",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"query": query}
+        f"{BASE_URL}/graphql", headers={"Authorization": f"Bearer {token}"}, json={"query": query}
     )
 
     print(f"Status: {response.status_code}")
@@ -81,13 +76,15 @@ def test_audit_logs(token):
         print("✗ Audit logs query failed!")
         return False
 
+
 def create_test_image():
     """Создает тестовое изображение"""
-    img = Image.new('RGB', (500, 500), color='blue')
+    img = Image.new("RGB", (500, 500), color="blue")
     img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format='PNG')
+    img.save(img_byte_arr, format="PNG")
     img_byte_arr.seek(0)
     return img_byte_arr
+
 
 def test_file_upload(token):
     """Тест загрузки файла"""
@@ -111,23 +108,19 @@ def test_file_upload(token):
             }
         }
         """,
-        "variables": {"file": None}
+        "variables": {"file": None},
     }
 
-    map_data = {
-        "0": ["variables.file"]
-    }
+    map_data = {"0": ["variables.file"]}
 
     files = {
-        'operations': (None, json.dumps(operations), 'application/json'),
-        'map': (None, json.dumps(map_data), 'application/json'),
-        '0': ('test_image.png', test_image, 'image/png')
+        "operations": (None, json.dumps(operations), "application/json"),
+        "map": (None, json.dumps(map_data), "application/json"),
+        "0": ("test_image.png", test_image, "image/png"),
     }
 
     response = requests.post(
-        f"{BASE_URL}/graphql",
-        headers={"Authorization": f"Bearer {token}"},
-        files=files
+        f"{BASE_URL}/graphql", headers={"Authorization": f"Bearer {token}"}, files=files
     )
 
     print(f"Status: {response.status_code}")
@@ -140,10 +133,11 @@ def test_file_upload(token):
         print(f"  - ID: {file_data['id']}")
         print(f"  - URL: {file_data['url']}")
         print(f"  - Has thumbnail: {file_data['hasThumbnail']}")
-        return file_data['id']
+        return file_data["id"]
     else:
         print("✗ File upload failed!")
         return None
+
 
 def test_my_files(token):
     """Тест получения списка файлов"""
@@ -165,9 +159,7 @@ def test_my_files(token):
     """
 
     response = requests.post(
-        f"{BASE_URL}/graphql",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"query": query}
+        f"{BASE_URL}/graphql", headers={"Authorization": f"Bearer {token}"}, json={"query": query}
     )
 
     print(f"Status: {response.status_code}")
@@ -181,6 +173,7 @@ def test_my_files(token):
     else:
         print("✗ myFiles query failed!")
         return False
+
 
 def main():
     """Главная функция"""
@@ -206,6 +199,7 @@ def main():
     print("\n" + "=" * 60)
     print("Testing completed!")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

@@ -1,10 +1,7 @@
 """
 Authentication and Authorization Module
 """
-from . import models
-from . import schemas
-from . import services
-from . import dependencies
-from . import utils
+
+from . import dependencies, models, schemas, services, utils
 
 __all__ = ["models", "schemas", "services", "dependencies", "utils"]

@@ -6,13 +6,14 @@ Supports multiple backends:
 - Production: SendGrid/AWS SES/any SMTP with auth
 """
 
+import logging
 import os
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Optional, List, Union
-import logging
+from email.mime.text import MIMEText
 from pathlib import Path
+from typing import List, Optional, Union
+
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 logger = logging.getLogger(__name__)
@@ -45,12 +46,11 @@ class EmailService:
 
         self.template_env = Environment(
             loader=FileSystemLoader(str(templates_path)),
-            autoescape=select_autoescape(['html', 'xml'])
+            autoescape=select_autoescape(["html", "xml"]),
         )
 
         logger.info(
-            f"EmailService initialized: {self.smtp_host}:{self.smtp_port} "
-            f"(TLS: {self.use_tls})"
+            f"EmailService initialized: {self.smtp_host}:{self.smtp_port} " f"(TLS: {self.use_tls})"
         )
 
     def send_email(
@@ -59,7 +59,7 @@ class EmailService:
         subject: str,
         html_content: str,
         text_content: Optional[str] = None,
-        reply_to: Optional[str] = None
+        reply_to: Optional[str] = None,
     ) -> bool:
         """
         Send an email
@@ -76,28 +76,28 @@ class EmailService:
         """
         try:
             # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = self.from_email
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = self.from_email
 
             # Handle multiple recipients
             if isinstance(to_email, list):
-                msg['To'] = ", ".join(to_email)
+                msg["To"] = ", ".join(to_email)
                 recipients = to_email
             else:
-                msg['To'] = to_email
+                msg["To"] = to_email
                 recipients = [to_email]
 
             if reply_to:
-                msg['Reply-To'] = reply_to
+                msg["Reply-To"] = reply_to
 
             # Add plain text version
             if text_content:
-                part1 = MIMEText(text_content, 'plain', 'utf-8')
+                part1 = MIMEText(text_content, "plain", "utf-8")
                 msg.attach(part1)
 
             # Add HTML version
-            part2 = MIMEText(html_content, 'html', 'utf-8')
+            part2 = MIMEText(html_content, "html", "utf-8")
             msg.attach(part2)
 
             # Send email
@@ -154,9 +154,7 @@ class EmailService:
 
         try:
             html_content = self.render_template(
-                "verification.html",
-                username=username,
-                verification_url=verification_url
+                "verification.html", username=username, verification_url=verification_url
             )
 
             text_content = f"""
@@ -177,7 +175,7 @@ class EmailService:
                 to_email=to_email,
                 subject="Подтвердите ваш email - МультиПУЛЬТ",
                 html_content=html_content,
-                text_content=text_content
+                text_content=text_content,
             )
         except Exception as e:
             logger.error(f"Failed to send verification email: {e}")
@@ -199,9 +197,7 @@ class EmailService:
 
         try:
             html_content = self.render_template(
-                "password_reset.html",
-                username=username,
-                reset_url=reset_url
+                "password_reset.html", username=username, reset_url=reset_url
             )
 
             text_content = f"""
@@ -224,7 +220,7 @@ class EmailService:
                 to_email=to_email,
                 subject="Восстановление пароля - МультиПУЛЬТ",
                 html_content=html_content,
-                text_content=text_content
+                text_content=text_content,
             )
         except Exception as e:
             logger.error(f"Failed to send password reset email: {e}")
@@ -297,7 +293,7 @@ class EmailService:
                 to_email=to_email,
                 subject="Добро пожаловать в МультиПУЛЬТ!",
                 html_content=html_content,
-                text_content=text_content
+                text_content=text_content,
             )
         except Exception as e:
             logger.error(f"Failed to send welcome email: {e}")

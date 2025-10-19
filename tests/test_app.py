@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+
 from app import app
 
 
@@ -28,10 +29,7 @@ async def test_graphql_endpoint_exists():
             }
         }
         """
-        response = await client.post(
-            "/graphql",
-            json={"query": query}
-        )
+        response = await client.post("/graphql", json={"query": query})
         assert response.status_code == 200
         data = response.json()
         assert "data" in data
