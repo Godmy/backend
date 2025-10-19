@@ -2,9 +2,10 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from core.models.base import BaseModel
+from core.models.mixins.soft_delete import SoftDeleteMixin
 
 
-class DictionaryModel(BaseModel):
+class DictionaryModel(SoftDeleteMixin, BaseModel):
     """Модель словаря - связь концепции с языком"""
 
     __tablename__ = "dictionaries"

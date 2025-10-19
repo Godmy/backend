@@ -67,9 +67,10 @@ app.add_middleware(
 app.mount("/graphql", graphql_app)
 
 
-# Health check endpoint
+# Health check endpoints
 @app.route("/health")
 async def health_check(request):
+    """Simple health check endpoint (backward compatible)"""
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -78,6 +79,23 @@ async def health_check(request):
         return JSONResponse(
             {"status": "unhealthy", "database": "disconnected", "error": str(e)}, status_code=503
         )
+
+
+@app.route("/health/detailed")
+async def detailed_health_check(request):
+    """Detailed health check endpoint with all system components"""
+    from core.services.health_service import HealthCheckService
+
+    health_status = HealthCheckService.get_full_health_status()
+
+    # Set appropriate HTTP status code
+    status_code = 200
+    if health_status["status"] == "unhealthy":
+        status_code = 503
+    elif health_status["status"] == "degraded":
+        status_code = 200  # Still operational but with warnings
+
+    return JSONResponse(health_status, status_code=status_code)
 
 
 # Для корневого пути можно сделать редирект

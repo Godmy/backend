@@ -1,10 +1,11 @@
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import relationship
 
-from core.models.base import BaseModel  # Изменяем импорт
+from core.models.base import BaseModel
+from core.models.mixins.soft_delete import SoftDeleteMixin
 
 
-class UserModel(BaseModel):
+class UserModel(SoftDeleteMixin, BaseModel):
     __tablename__ = "users"
 
     username = Column(String(50), unique=True, index=True, nullable=False)

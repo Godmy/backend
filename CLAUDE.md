@@ -32,7 +32,8 @@ python app.py
 
 Application will be available at:
 - GraphQL Playground: http://localhost:8000/graphql
-- Health Check: http://localhost:8000/health
+- Health Check (simple): http://localhost:8000/health
+- Health Check (detailed): http://localhost:8000/health/detailed
 
 ### Testing
 
@@ -55,6 +56,74 @@ pytest -m integration
 # Run with coverage (uncomment in pytest.ini)
 pytest --cov=. --cov-report=html
 ```
+
+### Health Checks
+
+The application provides two health check endpoints for monitoring system status:
+
+**Simple Health Check (Backward Compatible):**
+```bash
+curl http://localhost:8000/health
+
+# Response:
+{
+  "status": "healthy",
+  "database": "connected"
+}
+```
+
+**Detailed Health Check (Comprehensive Monitoring):**
+```bash
+curl http://localhost:8000/health/detailed
+
+# Response:
+{
+  "status": "healthy",
+  "timestamp": 1737000000.123,
+  "components": {
+    "database": {
+      "status": "healthy",
+      "response_time_ms": 12.34,
+      "message": "Database connection successful"
+    },
+    "redis": {
+      "status": "healthy",
+      "response_time_ms": 5.67,
+      "message": "Redis connection successful"
+    },
+    "disk": {
+      "status": "healthy",
+      "percent_used": 45.2,
+      "total_gb": 100.0,
+      "used_gb": 45.2,
+      "free_gb": 54.8,
+      "message": "Disk usage at 45.2%"
+    },
+    "memory": {
+      "status": "healthy",
+      "percent_used": 65.5,
+      "total_gb": 16.0,
+      "used_gb": 10.5,
+      "available_gb": 5.5,
+      "message": "Memory usage at 65.5%"
+    }
+  }
+}
+```
+
+**Status levels:**
+- `healthy` - All components operating normally (HTTP 200)
+- `degraded` - Some components have warnings but system is operational (HTTP 200)
+- `unhealthy` - One or more critical components failed (HTTP 503)
+
+**Monitoring thresholds:**
+- Disk usage warning: 90%
+- Memory usage warning: 90%
+
+**Implementation:**
+- `core/services/health_service.py` - HealthCheckService with component checks
+- Uses `psutil` for system metrics (disk, memory)
+- Measures response times for database and Redis
 
 ### Email Service
 
@@ -588,7 +657,10 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR to main/dev
 - **Database migrations**: Use Alembic for schema changes, never modify database directly
 - **Seed data**: Automatically populated on first run (8 languages, 5 roles, 5 test users, ~80 concepts, ~150 translations)
 - **CORS**: Configured in `app.py` for frontend origins (localhost:5173 by default)
-- **Health checks**: `/health` endpoint checks database connectivity
+- **Health checks**: Two endpoints available:
+  - `/health` - Simple database connectivity check (backward compatible)
+  - `/health/detailed` - Comprehensive system monitoring (database, Redis, disk, memory)
+- **Soft delete**: Core models (User, Concept, Dictionary, Language) support soft delete via `SoftDeleteMixin`
 - **Concept hierarchy**: Uses materialized path pattern (stored in `path` field like `/root/parent/child/`)
 - **Error handling**: Services should raise exceptions, schemas should catch and return appropriate GraphQL errors
 

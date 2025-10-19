@@ -7,11 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Soft Delete Functionality** - Applied SoftDeleteMixin to core models
+  - `UserModel`, `ConceptModel`, `DictionaryModel`, `LanguageModel` now support soft delete
+  - Records marked with `deleted_at` timestamp instead of hard deletion
+  - Automatic filtering of deleted records via default query scopes
+  - `restore()` method to undelete records
+  - Mixins available at `core/models/mixins/soft_delete.py`
+
+- **Enhanced Health Checks** - Comprehensive system monitoring
+  - `core/services/health_service.py` - HealthCheckService for component monitoring
+  - New `/health/detailed` endpoint with comprehensive status checks:
+    - Database connectivity and response time
+    - Redis connectivity and response time
+    - Disk space usage monitoring (warning at 90%)
+    - Memory usage monitoring (warning at 90%)
+  - Overall status: `healthy`, `degraded`, or `unhealthy`
+  - Backward-compatible `/health` endpoint maintained
+  - Appropriate HTTP status codes (200, 503)
+
+### Changed
+- `auth/models/user.py` - Now inherits from `SoftDeleteMixin`
+- `languages/models/concept.py` - Now inherits from `SoftDeleteMixin`
+- `languages/models/dictionary.py` - Now inherits from `SoftDeleteMixin`
+- `languages/models/language.py` - Now inherits from `SoftDeleteMixin`
+- `app.py` - Added `/health/detailed` endpoint
+
 ### Planned
 - Advanced Search & Filtering (P1)
 - User Profile Management enhancements (P1)
 - API Rate Limiting (P1)
-- Soft Delete for all models (P2)
 - Import/Export System (P1)
 
 ## [0.3.0] - 2025-01-16

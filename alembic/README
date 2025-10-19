@@ -38,7 +38,8 @@ docker-compose logs app
 # Тестирование подключения к БД
 docker exec -it attractors_db psql -U attractor_user -d attractors -c "SELECT version();"
 
-
+# Установка клода в терминал
+npm install -g @anthropic-ai/claude-code
 
 # Удалим том базы данных и перезапустим:
 docker-compose down -v

@@ -2,9 +2,10 @@ from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from core.models.base import BaseModel
+from core.models.mixins.soft_delete import SoftDeleteMixin
 
 
-class ConceptModel(BaseModel):
+class ConceptModel(SoftDeleteMixin, BaseModel):
     """Модель концепции (иерархическая структура)"""
 
     __tablename__ = "concepts"
