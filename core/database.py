@@ -1,8 +1,9 @@
+import logging
 import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -24,21 +25,14 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_recycle=300,
     echo=False,
-    connect_args={
-        "connect_timeout": 10,
-        "application_name": "attractors_app"
-    }
+    connect_args={"connect_timeout": 10, "application_name": "attractors_app"},
 )
 
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-    expire_on_commit=False
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
 
 # Создаем базовый класс для моделей
 Base = declarative_base()
+
 
 # Dependency для получения сессии БД
 def get_db():

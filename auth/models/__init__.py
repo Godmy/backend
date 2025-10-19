@@ -1,8 +1,8 @@
-from .user import UserModel
-from .role import RoleModel, UserRoleModel
 from .permission import PermissionModel
-from .profile import UserProfileModel
+from .profile import OAuthConnectionModel, UserProfileModel
+from .role import RoleModel, UserRoleModel
 from .oauth import OAuthConnectionModel
+from .user import UserModel
 
 __all__ = [
     "UserModel",
@@ -10,5 +10,5 @@ __all__ = [
     "UserRoleModel",
     "PermissionModel",
     "UserProfileModel",
-    "OAuthConnectionModel"
+    "OAuthConnectionModel",
 ]

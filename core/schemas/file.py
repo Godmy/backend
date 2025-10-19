@@ -1,13 +1,16 @@
 """
 GraphQL схемы для работы с файлами
 """
-import strawberry
+
 from typing import Optional
+
+import strawberry
+from sqlalchemy.orm import Session
 from strawberry.file_uploads import Upload
 from strawberry.types import Info
-from sqlalchemy.orm import Session
-from core.services.file_service import FileService
+
 from core.models.file import File as FileModel
+from core.services.file_service import FileService
 
 
 @strawberry.type
@@ -102,9 +105,7 @@ class FileMutation:
     """GraphQL mutations для файлов"""
 
     @strawberry.mutation
-    async def upload_avatar(
-        self, info: Info, file: Upload
-    ) -> FileType:
+    async def upload_avatar(self, info: Info, file: Upload) -> FileType:
         """Загрузка аватара"""
         user = info.context.get("user")
         if not user:
@@ -141,9 +142,7 @@ class FileMutation:
             raise Exception(str(e))
 
     @strawberry.mutation
-    async def upload_file(
-        self, info: Info, input: UploadFileInput
-    ) -> FileType:
+    async def upload_file(self, info: Info, input: UploadFileInput) -> FileType:
         """Загрузка файла"""
         user = info.context.get("user")
         if not user:

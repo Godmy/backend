@@ -12,6 +12,7 @@ from typing import Optional, Dict, Any
 from core.database import Base
 
 
+
 class BaseModel(Base):
     """
     Base model for all database models.

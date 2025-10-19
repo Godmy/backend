@@ -8,10 +8,11 @@ Used for:
 - Rate limiting
 """
 
-import os
-import redis
 import logging
+import os
 from typing import Optional
+
+import redis
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class RedisClient:
                 password=self.password,
                 decode_responses=True,  # Automatically decode bytes to strings
                 socket_connect_timeout=5,
-                socket_timeout=5
+                socket_timeout=5,
             )
             # Test connection
             self.client.ping()

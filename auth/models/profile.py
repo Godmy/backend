@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from core.models.base import BaseModel
 
@@ -13,8 +13,8 @@ class UserProfileModel(BaseModel):
     bio = Column(String(500))
     avatar = Column(String(255))
     avatar_file_id = Column(Integer, ForeignKey("files.id"), nullable=True)  # Связь с файлом
-    language = Column(String(5), default='en')
-    timezone = Column(String(50), default='UTC')
+    language = Column(String(5), default="en")
+    timezone = Column(String(50), default="UTC")
 
     # Связи
     user = relationship("UserModel", back_populates="profile")

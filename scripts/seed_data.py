@@ -2,19 +2,21 @@
 Скрипт для инициализации тестовых данных в базе
 Создает полноценный набор данных для тестирования и демонстрации функциональности
 """
-import sys
+
 import os
+import sys
 from datetime import datetime
 
 # Добавляем корневую директорию в путь
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.database import SessionLocal
-from languages.models import LanguageModel, ConceptModel, DictionaryModel
-from auth.models import RoleModel, PermissionModel, UserModel, UserRoleModel
+import logging
+
+from auth.models import PermissionModel, RoleModel, UserModel, UserRoleModel
 from auth.models.profile import UserProfileModel
 from auth.utils.security import hash_password
-import logging
+from core.database import SessionLocal
+from languages.models import ConceptModel, DictionaryModel, LanguageModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,26 +56,11 @@ def seed_permissions_and_roles(db):
 
     # Создаем роли
     roles = [
-        RoleModel(
-            name="guest",
-            description="Guest user - read-only access to public content"
-        ),
-        RoleModel(
-            name="user",
-            description="Regular user - can view and create own content"
-        ),
-        RoleModel(
-            name="editor",
-            description="Editor - can manage content and translations"
-        ),
-        RoleModel(
-            name="moderator",
-            description="Moderator - can manage users and review content"
-        ),
-        RoleModel(
-            name="admin",
-            description="Administrator - full system access"
-        ),
+        RoleModel(name="guest", description="Guest user - read-only access to public content"),
+        RoleModel(name="user", description="Regular user - can view and create own content"),
+        RoleModel(name="editor", description="Editor - can manage content and translations"),
+        RoleModel(name="moderator", description="Moderator - can manage users and review content"),
+        RoleModel(name="admin", description="Administrator - full system access"),
     ]
 
     db.add_all(roles)
@@ -89,43 +76,87 @@ def seed_permissions_and_roles(db):
 
     # Guest - только чтение
     guest_permissions = [
-        PermissionModel(role_id=role_dict["guest"].id, resource="concepts", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["guest"].id, resource="dictionaries", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["guest"].id, resource="languages", action="read", scope="all"),
+        PermissionModel(
+            role_id=role_dict["guest"].id, resource="concepts", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["guest"].id, resource="dictionaries", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["guest"].id, resource="languages", action="read", scope="all"
+        ),
     ]
     permissions.extend(guest_permissions)
 
     # User - чтение + создание своего контента
     user_permissions = [
-        PermissionModel(role_id=role_dict["user"].id, resource="concepts", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["user"].id, resource="concepts", action="create", scope="own"),
-        PermissionModel(role_id=role_dict["user"].id, resource="dictionaries", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["user"].id, resource="dictionaries", action="create", scope="own"),
-        PermissionModel(role_id=role_dict["user"].id, resource="languages", action="read", scope="all"),
+        PermissionModel(
+            role_id=role_dict["user"].id, resource="concepts", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["user"].id, resource="concepts", action="create", scope="own"
+        ),
+        PermissionModel(
+            role_id=role_dict["user"].id, resource="dictionaries", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["user"].id, resource="dictionaries", action="create", scope="own"
+        ),
+        PermissionModel(
+            role_id=role_dict["user"].id, resource="languages", action="read", scope="all"
+        ),
     ]
     permissions.extend(user_permissions)
 
     # Editor - управление всем контентом
     editor_permissions = [
-        PermissionModel(role_id=role_dict["editor"].id, resource="concepts", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="concepts", action="create", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="concepts", action="update", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="concepts", action="delete", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="dictionaries", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="dictionaries", action="create", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="dictionaries", action="update", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="dictionaries", action="delete", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="languages", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="languages", action="create", scope="all"),
-        PermissionModel(role_id=role_dict["editor"].id, resource="languages", action="update", scope="all"),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="concepts", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="concepts", action="create", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="concepts", action="update", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="concepts", action="delete", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="dictionaries", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="dictionaries", action="create", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="dictionaries", action="update", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="dictionaries", action="delete", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="languages", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="languages", action="create", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["editor"].id, resource="languages", action="update", scope="all"
+        ),
     ]
     permissions.extend(editor_permissions)
 
     # Moderator - + управление пользователями
     moderator_permissions = editor_permissions + [
-        PermissionModel(role_id=role_dict["moderator"].id, resource="users", action="read", scope="all"),
-        PermissionModel(role_id=role_dict["moderator"].id, resource="users", action="update", scope="all"),
-        PermissionModel(role_id=role_dict["moderator"].id, resource="users", action="delete", scope="all"),
+        PermissionModel(
+            role_id=role_dict["moderator"].id, resource="users", action="read", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["moderator"].id, resource="users", action="update", scope="all"
+        ),
+        PermissionModel(
+            role_id=role_dict["moderator"].id, resource="users", action="delete", scope="all"
+        ),
     ]
     permissions.extend(moderator_permissions)
 
@@ -164,8 +195,8 @@ def seed_users(db):
             "profile": {
                 "first_name": "Администратор",
                 "last_name": "Системы",
-                "bio": "Главный администратор системы МультиПУЛЬТ"
-            }
+                "bio": "Главный администратор системы МультиПУЛЬТ",
+            },
         },
         {
             "username": "moderator",
@@ -177,8 +208,8 @@ def seed_users(db):
             "profile": {
                 "first_name": "Модератор",
                 "last_name": "Контента",
-                "bio": "Модератор и проверяющий контент"
-            }
+                "bio": "Модератор и проверяющий контент",
+            },
         },
         {
             "username": "editor",
@@ -190,8 +221,8 @@ def seed_users(db):
             "profile": {
                 "first_name": "Редактор",
                 "last_name": "Словарей",
-                "bio": "Редактор переводов и концепций"
-            }
+                "bio": "Редактор переводов и концепций",
+            },
         },
         {
             "username": "testuser",
@@ -203,8 +234,8 @@ def seed_users(db):
             "profile": {
                 "first_name": "Тестовый",
                 "last_name": "Пользователь",
-                "bio": "Обычный пользователь системы"
-            }
+                "bio": "Обычный пользователь системы",
+            },
         },
         {
             "username": "john_doe",
@@ -216,8 +247,8 @@ def seed_users(db):
             "profile": {
                 "first_name": "John",
                 "last_name": "Doe",
-                "bio": "Learning multiple languages"
-            }
+                "bio": "Learning multiple languages",
+            },
         },
     ]
 
@@ -228,7 +259,7 @@ def seed_users(db):
             email=user_data["email"],
             password_hash=hash_password(user_data["password"]),
             is_active=user_data["is_active"],
-            is_verified=user_data["is_verified"]
+            is_verified=user_data["is_verified"],
         )
         db.add(user)
         db.flush()
@@ -238,7 +269,7 @@ def seed_users(db):
             user_id=user.id,
             first_name=user_data["profile"]["first_name"],
             last_name=user_data["profile"]["last_name"],
-            bio=user_data["profile"]["bio"]
+            bio=user_data["profile"]["bio"],
         )
         db.add(profile)
 
@@ -277,9 +308,7 @@ def seed_concepts(db):
     concepts = []
     for concept_data in root_concepts:
         concept = ConceptModel(
-            path=concept_data["path"],
-            depth=concept_data["depth"],
-            parent_id=None
+            path=concept_data["path"], depth=concept_data["depth"], parent_id=None
         )
         db.add(concept)
         concepts.append(concept)
@@ -291,22 +320,14 @@ def seed_concepts(db):
     colors_parent = next(c for c in concepts if c.path == "colors")
     color_names = ["red", "blue", "green", "yellow", "black", "white", "orange", "purple"]
     for color in color_names:
-        concept = ConceptModel(
-            path=f"colors.{color}",
-            depth=1,
-            parent_id=colors_parent.id
-        )
+        concept = ConceptModel(path=f"colors.{color}", depth=1, parent_id=colors_parent.id)
         db.add(concept)
 
     # Животные
     animals_parent = next(c for c in concepts if c.path == "animals")
     animal_categories = ["mammals", "birds", "fish", "insects", "reptiles"]
     for category in animal_categories:
-        concept = ConceptModel(
-            path=f"animals.{category}",
-            depth=1,
-            parent_id=animals_parent.id
-        )
+        concept = ConceptModel(path=f"animals.{category}", depth=1, parent_id=animals_parent.id)
         db.add(concept)
 
     db.flush()
@@ -315,22 +336,14 @@ def seed_concepts(db):
     mammals = db.query(ConceptModel).filter_by(path="animals.mammals").first()
     mammal_names = ["cat", "dog", "elephant", "lion", "bear", "horse"]
     for mammal in mammal_names:
-        concept = ConceptModel(
-            path=f"animals.mammals.{mammal}",
-            depth=2,
-            parent_id=mammals.id
-        )
+        concept = ConceptModel(path=f"animals.mammals.{mammal}", depth=2, parent_id=mammals.id)
         db.add(concept)
 
     # Еда
     food_parent = next(c for c in concepts if c.path == "food")
     food_categories = ["fruits", "vegetables", "meat", "dairy", "grains"]
     for category in food_categories:
-        concept = ConceptModel(
-            path=f"food.{category}",
-            depth=1,
-            parent_id=food_parent.id
-        )
+        concept = ConceptModel(path=f"food.{category}", depth=1, parent_id=food_parent.id)
         db.add(concept)
 
     db.flush()
@@ -339,44 +352,38 @@ def seed_concepts(db):
     fruits = db.query(ConceptModel).filter_by(path="food.fruits").first()
     fruit_names = ["apple", "banana", "orange", "grape", "strawberry"]
     for fruit in fruit_names:
-        concept = ConceptModel(
-            path=f"food.fruits.{fruit}",
-            depth=2,
-            parent_id=fruits.id
-        )
+        concept = ConceptModel(path=f"food.fruits.{fruit}", depth=2, parent_id=fruits.id)
         db.add(concept)
 
     # Эмоции
     emotions_parent = next(c for c in concepts if c.path == "emotions")
     emotion_names = ["happy", "sad", "angry", "afraid", "surprised", "love"]
     for emotion in emotion_names:
-        concept = ConceptModel(
-            path=f"emotions.{emotion}",
-            depth=1,
-            parent_id=emotions_parent.id
-        )
+        concept = ConceptModel(path=f"emotions.{emotion}", depth=1, parent_id=emotions_parent.id)
         db.add(concept)
 
     # Числа
     numbers_parent = next(c for c in concepts if c.path == "numbers")
     for i in range(1, 11):
-        concept = ConceptModel(
-            path=f"numbers.{i}",
-            depth=1,
-            parent_id=numbers_parent.id
-        )
+        concept = ConceptModel(path=f"numbers.{i}", depth=1, parent_id=numbers_parent.id)
         db.add(concept)
 
     # Семья
     family_parent = next(c for c in concepts if c.path == "family")
-    family_members = ["father", "mother", "brother", "sister", "son", "daughter",
-                     "grandfather", "grandmother", "uncle", "aunt"]
+    family_members = [
+        "father",
+        "mother",
+        "brother",
+        "sister",
+        "son",
+        "daughter",
+        "grandfather",
+        "grandmother",
+        "uncle",
+        "aunt",
+    ]
     for member in family_members:
-        concept = ConceptModel(
-            path=f"family.{member}",
-            depth=1,
-            parent_id=family_parent.id
-        )
+        concept = ConceptModel(path=f"family.{member}", depth=1, parent_id=family_parent.id)
         db.add(concept)
 
     db.commit()
@@ -399,50 +406,177 @@ def seed_dictionaries(db):
     # Словарь переводов (концепция -> {язык: перевод})
     translations = {
         # Цвета
-        "colors": {"ru": "Цвета", "en": "Colors", "es": "Colores", "de": "Farben", "fr": "Couleurs"},
+        "colors": {
+            "ru": "Цвета",
+            "en": "Colors",
+            "es": "Colores",
+            "de": "Farben",
+            "fr": "Couleurs",
+        },
         "colors.red": {"ru": "Красный", "en": "Red", "es": "Rojo", "de": "Rot", "fr": "Rouge"},
         "colors.blue": {"ru": "Синий", "en": "Blue", "es": "Azul", "de": "Blau", "fr": "Bleu"},
         "colors.green": {"ru": "Зелёный", "en": "Green", "es": "Verde", "de": "Grün", "fr": "Vert"},
-        "colors.yellow": {"ru": "Жёлтый", "en": "Yellow", "es": "Amarillo", "de": "Gelb", "fr": "Jaune"},
-        "colors.black": {"ru": "Чёрный", "en": "Black", "es": "Negro", "de": "Schwarz", "fr": "Noir"},
+        "colors.yellow": {
+            "ru": "Жёлтый",
+            "en": "Yellow",
+            "es": "Amarillo",
+            "de": "Gelb",
+            "fr": "Jaune",
+        },
+        "colors.black": {
+            "ru": "Чёрный",
+            "en": "Black",
+            "es": "Negro",
+            "de": "Schwarz",
+            "fr": "Noir",
+        },
         "colors.white": {"ru": "Белый", "en": "White", "es": "Blanco", "de": "Weiß", "fr": "Blanc"},
-
         # Животные
-        "animals": {"ru": "Животные", "en": "Animals", "es": "Animales", "de": "Tiere", "fr": "Animaux"},
-        "animals.mammals": {"ru": "Млекопитающие", "en": "Mammals", "es": "Mamíferos", "de": "Säugetiere", "fr": "Mammifères"},
-        "animals.mammals.cat": {"ru": "Кошка", "en": "Cat", "es": "Gato", "de": "Katze", "fr": "Chat"},
-        "animals.mammals.dog": {"ru": "Собака", "en": "Dog", "es": "Perro", "de": "Hund", "fr": "Chien"},
-        "animals.mammals.elephant": {"ru": "Слон", "en": "Elephant", "es": "Elefante", "de": "Elefant", "fr": "Éléphant"},
-        "animals.mammals.lion": {"ru": "Лев", "en": "Lion", "es": "León", "de": "Löwe", "fr": "Lion"},
-
+        "animals": {
+            "ru": "Животные",
+            "en": "Animals",
+            "es": "Animales",
+            "de": "Tiere",
+            "fr": "Animaux",
+        },
+        "animals.mammals": {
+            "ru": "Млекопитающие",
+            "en": "Mammals",
+            "es": "Mamíferos",
+            "de": "Säugetiere",
+            "fr": "Mammifères",
+        },
+        "animals.mammals.cat": {
+            "ru": "Кошка",
+            "en": "Cat",
+            "es": "Gato",
+            "de": "Katze",
+            "fr": "Chat",
+        },
+        "animals.mammals.dog": {
+            "ru": "Собака",
+            "en": "Dog",
+            "es": "Perro",
+            "de": "Hund",
+            "fr": "Chien",
+        },
+        "animals.mammals.elephant": {
+            "ru": "Слон",
+            "en": "Elephant",
+            "es": "Elefante",
+            "de": "Elefant",
+            "fr": "Éléphant",
+        },
+        "animals.mammals.lion": {
+            "ru": "Лев",
+            "en": "Lion",
+            "es": "León",
+            "de": "Löwe",
+            "fr": "Lion",
+        },
         # Еда
         "food": {"ru": "Еда", "en": "Food", "es": "Comida", "de": "Essen", "fr": "Nourriture"},
-        "food.fruits": {"ru": "Фрукты", "en": "Fruits", "es": "Frutas", "de": "Früchte", "fr": "Fruits"},
-        "food.fruits.apple": {"ru": "Яблоко", "en": "Apple", "es": "Manzana", "de": "Apfel", "fr": "Pomme"},
-        "food.fruits.banana": {"ru": "Банан", "en": "Banana", "es": "Plátano", "de": "Banane", "fr": "Banane"},
-        "food.fruits.orange": {"ru": "Апельсин", "en": "Orange", "es": "Naranja", "de": "Orange", "fr": "Orange"},
-
+        "food.fruits": {
+            "ru": "Фрукты",
+            "en": "Fruits",
+            "es": "Frutas",
+            "de": "Früchte",
+            "fr": "Fruits",
+        },
+        "food.fruits.apple": {
+            "ru": "Яблоко",
+            "en": "Apple",
+            "es": "Manzana",
+            "de": "Apfel",
+            "fr": "Pomme",
+        },
+        "food.fruits.banana": {
+            "ru": "Банан",
+            "en": "Banana",
+            "es": "Plátano",
+            "de": "Banane",
+            "fr": "Banane",
+        },
+        "food.fruits.orange": {
+            "ru": "Апельсин",
+            "en": "Orange",
+            "es": "Naranja",
+            "de": "Orange",
+            "fr": "Orange",
+        },
         # Эмоции
-        "emotions": {"ru": "Эмоции", "en": "Emotions", "es": "Emociones", "de": "Emotionen", "fr": "Émotions"},
-        "emotions.happy": {"ru": "Счастливый", "en": "Happy", "es": "Feliz", "de": "Glücklich", "fr": "Heureux"},
-        "emotions.sad": {"ru": "Грустный", "en": "Sad", "es": "Triste", "de": "Traurig", "fr": "Triste"},
-        "emotions.angry": {"ru": "Злой", "en": "Angry", "es": "Enfadado", "de": "Wütend", "fr": "En colère"},
+        "emotions": {
+            "ru": "Эмоции",
+            "en": "Emotions",
+            "es": "Emociones",
+            "de": "Emotionen",
+            "fr": "Émotions",
+        },
+        "emotions.happy": {
+            "ru": "Счастливый",
+            "en": "Happy",
+            "es": "Feliz",
+            "de": "Glücklich",
+            "fr": "Heureux",
+        },
+        "emotions.sad": {
+            "ru": "Грустный",
+            "en": "Sad",
+            "es": "Triste",
+            "de": "Traurig",
+            "fr": "Triste",
+        },
+        "emotions.angry": {
+            "ru": "Злой",
+            "en": "Angry",
+            "es": "Enfadado",
+            "de": "Wütend",
+            "fr": "En colère",
+        },
         "emotions.love": {"ru": "Любовь", "en": "Love", "es": "Amor", "de": "Liebe", "fr": "Amour"},
-
         # Числа
-        "numbers": {"ru": "Числа", "en": "Numbers", "es": "Números", "de": "Zahlen", "fr": "Nombres"},
+        "numbers": {
+            "ru": "Числа",
+            "en": "Numbers",
+            "es": "Números",
+            "de": "Zahlen",
+            "fr": "Nombres",
+        },
         "numbers.1": {"ru": "Один", "en": "One", "es": "Uno", "de": "Eins", "fr": "Un"},
         "numbers.2": {"ru": "Два", "en": "Two", "es": "Dos", "de": "Zwei", "fr": "Deux"},
         "numbers.3": {"ru": "Три", "en": "Three", "es": "Tres", "de": "Drei", "fr": "Trois"},
         "numbers.5": {"ru": "Пять", "en": "Five", "es": "Cinco", "de": "Fünf", "fr": "Cinq"},
         "numbers.10": {"ru": "Десять", "en": "Ten", "es": "Diez", "de": "Zehn", "fr": "Dix"},
-
         # Семья
-        "family": {"ru": "Семья", "en": "Family", "es": "Familia", "de": "Familie", "fr": "Famille"},
+        "family": {
+            "ru": "Семья",
+            "en": "Family",
+            "es": "Familia",
+            "de": "Familie",
+            "fr": "Famille",
+        },
         "family.father": {"ru": "Отец", "en": "Father", "es": "Padre", "de": "Vater", "fr": "Père"},
-        "family.mother": {"ru": "Мать", "en": "Mother", "es": "Madre", "de": "Mutter", "fr": "Mère"},
-        "family.brother": {"ru": "Брат", "en": "Brother", "es": "Hermano", "de": "Bruder", "fr": "Frère"},
-        "family.sister": {"ru": "Сестра", "en": "Sister", "es": "Hermana", "de": "Schwester", "fr": "Sœur"},
+        "family.mother": {
+            "ru": "Мать",
+            "en": "Mother",
+            "es": "Madre",
+            "de": "Mutter",
+            "fr": "Mère",
+        },
+        "family.brother": {
+            "ru": "Брат",
+            "en": "Brother",
+            "es": "Hermano",
+            "de": "Bruder",
+            "fr": "Frère",
+        },
+        "family.sister": {
+            "ru": "Сестра",
+            "en": "Sister",
+            "es": "Hermana",
+            "de": "Schwester",
+            "fr": "Sœur",
+        },
     }
 
     # Создаем словарные записи
@@ -460,7 +594,7 @@ def seed_dictionaries(db):
                     concept_id=concept.id,
                     language_id=languages[lang_code].id,
                     name=translation,
-                    description=f"Translation of '{concept_path}' to {lang_code}"
+                    description=f"Translation of '{concept_path}' to {lang_code}",
                 )
                 db.add(dictionary)
                 count += 1

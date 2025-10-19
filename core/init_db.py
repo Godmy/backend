@@ -2,11 +2,13 @@
 Модуль инициализации базы данных
 Отвечает за ожидание подключения к БД, создание таблиц и регистрацию всех моделей
 """
-import time
-import logging
-from sqlalchemy import text, exc
 
-from core.database import engine, Base
+import logging
+import time
+
+from sqlalchemy import exc, text
+
+from core.database import Base, engine
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +36,11 @@ def wait_for_db(max_retries: int = 30, delay: int = 2) -> bool:
         except exc.OperationalError as e:
             if i < max_retries - 1:
                 logger.warning(
-                    f"Database not ready, retrying in {delay}s... "
-                    f"({i+1}/{max_retries})"
+                    f"Database not ready, retrying in {delay}s... " f"({i+1}/{max_retries})"
                 )
                 time.sleep(delay)
             else:
-                logger.error(
-                    f"Could not connect to database after {max_retries} retries: {e}"
-                )
+                logger.error(f"Could not connect to database after {max_retries} retries: {e}")
                 raise
     return False
 
@@ -52,13 +51,13 @@ def import_all_models():
     Это необходимо для корректного создания таблиц
     """
     # Импортируем модели из модуля auth (ПЕРВЫМИ, т.к. на них ссылаются другие модели)
-    from auth.models import user, role, permission, profile, oauth
+    from auth.models import permission, profile, role, oauth, user
 
     # Импортируем модели из core
-    from core.models import file, audit_log
+    from core.models import audit_log, file
 
     # Импортируем модели из модуля languages
-    from languages.models import language, concept, dictionary
+    from languages.models import concept, dictionary, language
 
     logger.info("All models imported successfully")
 
@@ -102,6 +101,7 @@ def init_database(seed: bool = True):
         try:
             logger.info("Seeding database with test data...")
             from scripts.seed_data import main as seed_main
+
             seed_main()
         except Exception as e:
             logger.warning(f"Seeding failed (this is OK if data already exists): {e}")

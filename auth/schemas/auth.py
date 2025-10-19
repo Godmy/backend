@@ -1,6 +1,9 @@
-import strawberry
 from typing import Optional
+
+import strawberry
+
 from auth.dependencies.auth import get_required_user
+
 
 @strawberry.input
 class UserRegistrationInput:
@@ -10,31 +13,38 @@ class UserRegistrationInput:
     first_name: Optional[str] = None
     last_name: Optional[str] = None
 
+
 @strawberry.input
 class UserLoginInput:
     username: str
     password: str
 
+
 @strawberry.input
 class RefreshTokenInput:
     refresh_token: str
+
 
 @strawberry.input
 class EmailVerificationInput:
     token: str
 
+
 @strawberry.input
 class PasswordResetRequestInput:
     email: str
+
 
 @strawberry.input
 class PasswordResetInput:
     token: str
     new_password: str
 
+
 @strawberry.input
 class GoogleAuthInput:
     id_token: str
+
 
 @strawberry.input
 class TelegramAuthInput:
@@ -46,34 +56,32 @@ class TelegramAuthInput:
     username: Optional[str] = None
     photo_url: Optional[str] = None
 
+
 @strawberry.type
 class AuthPayload:
     access_token: str
     refresh_token: str
     token_type: str
 
+
 @strawberry.type
 class MessageResponse:
     success: bool
     message: str
 
+
 @strawberry.type
 class AuthMutation:
     @strawberry.mutation
     def register(self, info, input: UserRegistrationInput) -> AuthPayload:
-        from core.database import get_db
         from auth.services.auth_service import AuthService
         from auth.services.token_service import token_service
+        from core.database import get_db
         from core.email_service import email_service
 
         db = next(get_db())
         result, error = AuthService.register_user(
-            db,
-            input.username,
-            input.email,
-            input.password,
-            input.first_name,
-            input.last_name
+            db, input.username, input.email, input.password, input.first_name, input.last_name
         )
 
         if error:
@@ -85,68 +93,55 @@ class AuthMutation:
 
         # Send verification email (non-blocking, just log if fails)
         email_sent = email_service.send_verification_email(
-            to_email=input.email,
-            username=input.username,
-            token=verification_token
+            to_email=input.email, username=input.username, token=verification_token
         )
 
         if not email_sent:
             import logging
+
             logging.warning(f"Failed to send verification email to {input.email}")
 
         return AuthPayload(
             access_token=result["access_token"],
             refresh_token=result["refresh_token"],
-            token_type=result["token_type"]
+            token_type=result["token_type"],
         )
 
     @strawberry.mutation
     def verify_email(self, info, input: EmailVerificationInput) -> MessageResponse:
         """Verify email address with token"""
-        from core.database import get_db
-        from auth.services.user_service import UserService
         from auth.services.token_service import token_service
+        from auth.services.user_service import UserService
+        from core.database import get_db
 
         # Verify token and get user ID
         user_id = token_service.verify_verification_token(input.token)
 
         if not user_id:
-            return MessageResponse(
-                success=False,
-                message="Invalid or expired verification token"
-            )
+            return MessageResponse(success=False, message="Invalid or expired verification token")
 
         # Mark user as verified
         db = next(get_db())
         user = UserService.get_user_by_id(db, user_id)
 
         if not user:
-            return MessageResponse(
-                success=False,
-                message="User not found"
-            )
+            return MessageResponse(success=False, message="User not found")
 
         if user.is_verified:
-            return MessageResponse(
-                success=True,
-                message="Email already verified"
-            )
+            return MessageResponse(success=True, message="Email already verified")
 
         # Update user verification status
         user.is_verified = True
         db.commit()
 
-        return MessageResponse(
-            success=True,
-            message="Email verified successfully"
-        )
+        return MessageResponse(success=True, message="Email verified successfully")
 
     @strawberry.mutation
     def resend_verification_email(self, info, email: str) -> MessageResponse:
         """Resend verification email"""
-        from core.database import get_db
-        from auth.services.user_service import UserService
         from auth.services.token_service import token_service
+        from auth.services.user_service import UserService
+        from core.database import get_db
         from core.email_service import email_service
 
         # Check rate limit
@@ -154,8 +149,7 @@ class AuthMutation:
             remaining_time = token_service.get_rate_limit_remaining(email)
             minutes = remaining_time // 60
             return MessageResponse(
-                success=False,
-                message=f"Too many requests. Please try again in {minutes} minutes"
+                success=False, message=f"Too many requests. Please try again in {minutes} minutes"
             )
 
         # Find user by email
@@ -166,40 +160,31 @@ class AuthMutation:
             # Don't reveal if email exists
             return MessageResponse(
                 success=True,
-                message="If this email is registered, you will receive a verification link"
+                message="If this email is registered, you will receive a verification link",
             )
 
         if user.is_verified:
-            return MessageResponse(
-                success=False,
-                message="Email already verified"
-            )
+            return MessageResponse(success=False, message="Email already verified")
 
         # Create new token and send email
         verification_token = token_service.create_verification_token(user.id)
         email_sent = email_service.send_verification_email(
-            to_email=email,
-            username=user.username,
-            token=verification_token
+            to_email=email, username=user.username, token=verification_token
         )
 
         if not email_sent:
             return MessageResponse(
-                success=False,
-                message="Failed to send email. Please try again later"
+                success=False, message="Failed to send email. Please try again later"
             )
 
-        return MessageResponse(
-            success=True,
-            message="Verification email sent"
-        )
+        return MessageResponse(success=True, message="Verification email sent")
 
     @strawberry.mutation
     def request_password_reset(self, info, input: PasswordResetRequestInput) -> MessageResponse:
         """Request password reset link"""
-        from core.database import get_db
-        from auth.services.user_service import UserService
         from auth.services.token_service import token_service
+        from auth.services.user_service import UserService
+        from core.database import get_db
         from core.email_service import email_service
 
         # Check rate limit
@@ -207,8 +192,7 @@ class AuthMutation:
             remaining_time = token_service.get_rate_limit_remaining(input.email)
             minutes = remaining_time // 60
             return MessageResponse(
-                success=False,
-                message=f"Too many requests. Please try again in {minutes} minutes"
+                success=False, message=f"Too many requests. Please try again in {minutes} minutes"
             )
 
         # Find user by email
@@ -219,60 +203,47 @@ class AuthMutation:
             # Don't reveal if email exists (security best practice)
             return MessageResponse(
                 success=True,
-                message="If this email is registered, you will receive a password reset link"
+                message="If this email is registered, you will receive a password reset link",
             )
 
         # Create reset token and send email
         reset_token = token_service.create_reset_token(user.id)
         email_sent = email_service.send_password_reset_email(
-            to_email=input.email,
-            username=user.username,
-            token=reset_token
+            to_email=input.email, username=user.username, token=reset_token
         )
 
         if not email_sent:
             return MessageResponse(
-                success=False,
-                message="Failed to send email. Please try again later"
+                success=False, message="Failed to send email. Please try again later"
             )
 
-        return MessageResponse(
-            success=True,
-            message="Password reset link sent to your email"
-        )
+        return MessageResponse(success=True, message="Password reset link sent to your email")
 
     @strawberry.mutation
     def reset_password(self, info, input: PasswordResetInput) -> MessageResponse:
         """Reset password with token"""
-        from core.database import get_db
-        from auth.services.user_service import UserService
         from auth.services.token_service import token_service
+        from auth.services.user_service import UserService
         from auth.utils.security import hash_password
+        from core.database import get_db
 
         # Verify token and get user ID
         user_id = token_service.verify_reset_token(input.token)
 
         if not user_id:
-            return MessageResponse(
-                success=False,
-                message="Invalid or expired reset token"
-            )
+            return MessageResponse(success=False, message="Invalid or expired reset token")
 
         # Get user
         db = next(get_db())
         user = UserService.get_user_by_id(db, user_id)
 
         if not user:
-            return MessageResponse(
-                success=False,
-                message="User not found"
-            )
+            return MessageResponse(success=False, message="User not found")
 
         # Validate password (basic validation, add more as needed)
         if len(input.new_password) < 8:
             return MessageResponse(
-                success=False,
-                message="Password must be at least 8 characters long"
+                success=False, message="Password must be at least 8 characters long"
             )
 
         # Update password
@@ -282,15 +253,12 @@ class AuthMutation:
         # Invalidate all existing tokens for this user
         token_service.invalidate_all_user_tokens(user_id)
 
-        return MessageResponse(
-            success=True,
-            message="Password reset successfully"
-        )
+        return MessageResponse(success=True, message="Password reset successfully")
 
     @strawberry.mutation
     def login(self, info, input: UserLoginInput) -> AuthPayload:
-        from core.database import get_db
         from auth.services.auth_service import AuthService
+        from core.database import get_db
 
         db = next(get_db())
         result, error = AuthService.login_user(db, input.username, input.password)
@@ -301,7 +269,7 @@ class AuthMutation:
         return AuthPayload(
             access_token=result["access_token"],
             refresh_token=result["refresh_token"],
-            token_type=result["token_type"]
+            token_type=result["token_type"],
         )
 
     @strawberry.mutation
@@ -316,14 +284,14 @@ class AuthMutation:
         return AuthPayload(
             access_token=result["access_token"],
             refresh_token=input.refresh_token,  # Refresh token остается тем же
-            token_type=result["token_type"]
+            token_type=result["token_type"],
         )
 
     @strawberry.mutation
     async def login_with_google(self, info, input: GoogleAuthInput) -> AuthPayload:
         """Authenticate with Google OAuth"""
-        from core.database import get_db
         from auth.services.oauth_service import OAuthService
+        from core.database import get_db
 
         db = next(get_db())
         result, error = await OAuthService.authenticate_with_google(db, input.id_token)
@@ -334,14 +302,14 @@ class AuthMutation:
         return AuthPayload(
             access_token=result["access_token"],
             refresh_token=result["refresh_token"],
-            token_type=result["token_type"]
+            token_type=result["token_type"],
         )
 
     @strawberry.mutation
     def login_with_telegram(self, info, input: TelegramAuthInput) -> AuthPayload:
         """Authenticate with Telegram"""
-        from core.database import get_db
         from auth.services.oauth_service import OAuthService
+        from core.database import get_db
 
         # Convert input to dict
         telegram_data = {
@@ -367,5 +335,5 @@ class AuthMutation:
         return AuthPayload(
             access_token=result["access_token"],
             refresh_token=result["refresh_token"],
-            token_type=result["token_type"]
+            token_type=result["token_type"],
         )

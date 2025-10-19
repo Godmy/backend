@@ -6,19 +6,19 @@
     python scripts/test_email.py
 """
 
-import sys
 import os
+import sys
 
 # Добавляем корневую директорию в путь
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.email_service import email_service
 import logging
+
+from core.email_service import email_service
 
 # Настройка логирования
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,7 @@ def test_verification_email():
     logger.info("Testing verification email...")
 
     result = email_service.send_verification_email(
-        to_email="testuser@example.com",
-        username="testuser",
-        token="test-verification-token-abc123"
+        to_email="testuser@example.com", username="testuser", token="test-verification-token-abc123"
     )
 
     if result:
@@ -46,9 +44,7 @@ def test_password_reset_email():
     logger.info("Testing password reset email...")
 
     result = email_service.send_password_reset_email(
-        to_email="testuser@example.com",
-        username="testuser",
-        token="test-reset-token-xyz789"
+        to_email="testuser@example.com", username="testuser", token="test-reset-token-xyz789"
     )
 
     if result:
@@ -63,10 +59,7 @@ def test_welcome_email():
     """Тест отправки приветственного письма"""
     logger.info("Testing welcome email...")
 
-    result = email_service.send_welcome_email(
-        to_email="newuser@example.com",
-        username="newuser"
-    )
+    result = email_service.send_welcome_email(to_email="newuser@example.com", username="newuser")
 
     if result:
         logger.info("✅ Welcome email sent successfully")
@@ -119,7 +112,7 @@ def test_custom_email():
         to_email="custom@example.com",
         subject="Тестовое кастомное письмо",
         html_content=html_content,
-        text_content=text_content
+        text_content=text_content,
     )
 
     if result:
@@ -138,7 +131,7 @@ def test_multiple_recipients():
         to_email=["user1@example.com", "user2@example.com", "user3@example.com"],
         subject="Тест множественной отправки",
         html_content="<h1>Привет!</h1><p>Это письмо отправлено нескольким получателям.</p>",
-        text_content="Привет!\n\nЭто письмо отправлено нескольким получателям."
+        text_content="Привет!\n\nЭто письмо отправлено нескольким получателям.",
     )
 
     if result:

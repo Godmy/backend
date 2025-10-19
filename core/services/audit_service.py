@@ -1,9 +1,12 @@
 """
 Сервис для аудит логирования
 """
-from sqlalchemy.orm import Session
-from typing import Optional, Dict, Any, List
+
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.orm import Session
+
 from core.models.audit_log import AuditLog
 
 
@@ -218,9 +221,7 @@ class AuditService:
         total = query.count()
 
         # Сортировка и пагинация
-        logs = (
-            query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
-        )
+        logs = query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
 
         return logs, total
 
@@ -245,9 +246,7 @@ class AuditService:
         self.db.commit()
         return deleted
 
-    def get_user_activity(
-        self, user_id: int, days: int = 30
-    ) -> List[Dict[str, Any]]:
+    def get_user_activity(self, user_id: int, days: int = 30) -> List[Dict[str, Any]]:
         """
         Получение статистики активности пользователя
 

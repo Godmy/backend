@@ -1,13 +1,16 @@
 """
 GraphQL схемы для аудит логов
 """
-import strawberry
-from typing import Optional, List
+
 from datetime import datetime
-from strawberry.types import Info
+from typing import List, Optional
+
+import strawberry
 from sqlalchemy.orm import Session
-from core.services.audit_service import AuditService
+from strawberry.types import Info
+
 from core.models.audit_log import AuditLog as AuditLogModel
+from core.services.audit_service import AuditService
 
 
 @strawberry.type
@@ -149,9 +152,7 @@ class AuditLogQuery:
         db: Session = info.context["db"]
         service = AuditService(db)
 
-        logs, total = service.get_logs(
-            user_id=user.id, action=action, limit=limit, offset=offset
-        )
+        logs, total = service.get_logs(user_id=user.id, action=action, limit=limit, offset=offset)
 
         return AuditLogsPaginated(
             logs=[AuditLogType.from_model(log) for log in logs],
@@ -183,10 +184,7 @@ class AuditLogQuery:
 
         activity = service.get_user_activity(target_user_id, days)
 
-        return [
-            UserActivityType(action=item["action"], count=item["count"])
-            for item in activity
-        ]
+        return [UserActivityType(action=item["action"], count=item["count"]) for item in activity]
 
     def _is_admin(self, user) -> bool:
         """Проверка является ли пользователь админом"""
