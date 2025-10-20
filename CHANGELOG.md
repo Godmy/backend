@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Prometheus Metrics Collection** - Comprehensive application monitoring
+  - `core/metrics.py` - All metrics definitions (HTTP, GraphQL, DB, Redis, business logic, system)
+  - `core/middleware/metrics.py` - PrometheusMiddleware for automatic HTTP metrics collection
+  - New `/metrics` endpoint for Prometheus scraping
+  - Automatic tracking: requests (count, duration, in-progress), CPU, memory, file descriptors
+  - Ready-to-use metrics for business logic: user registrations, emails sent, file uploads
+  - Path normalization for better metric grouping (e.g., `/users/123` → `/users/{id}`)
+  - `tests/test_metrics.py` - Comprehensive test suite
+  - Dependency: `prometheus-client`
+
 - **Soft Delete Functionality** - Applied SoftDeleteMixin to core models
   - `UserModel`, `ConceptModel`, `DictionaryModel`, `LanguageModel` now support soft delete
   - Records marked with `deleted_at` timestamp instead of hard deletion

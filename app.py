@@ -15,6 +15,7 @@ from core.database import engine, get_db
 from core.init_db import init_database
 from core.schemas.schema import schema
 from core.sentry import add_breadcrumb, init_sentry, set_user_context
+from core.middleware import PrometheusMiddleware
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -69,6 +70,11 @@ graphql_app = GraphQLWithContext(schema)
 
 # Создаем Starlette приложение с CORS
 app = Starlette()
+
+# Add Prometheus metrics middleware
+app.add_middleware(PrometheusMiddleware)
+
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://frontend:5173"],
@@ -112,6 +118,21 @@ async def detailed_health_check(request):
     return JSONResponse(health_status, status_code=status_code)
 
 
+@app.route("/metrics")
+async def metrics_endpoint(request):
+    """
+    Prometheus metrics endpoint.
+
+    Returns metrics in Prometheus exposition format for scraping.
+    Includes HTTP, GraphQL, database, Redis, business logic, and system metrics.
+    """
+    from starlette.responses import Response
+    from core.metrics import get_metrics
+
+    metrics_data, content_type = get_metrics()
+    return Response(content=metrics_data, media_type=content_type)
+
+
 # Для корневого пути можно сделать редирект
 @app.route("/")
 async def homepage(request):
@@ -134,6 +155,28 @@ async def serve_file(request):
     # Проверка на path traversal атаки
     file_path = (upload_dir / filename).resolve()
     if not str(file_path).startswith(str(upload_dir.resolve())):
+        return JSONResponse({"error": "Invalid file path"}, status_code=400)
+
+    if not file_path.exists():
+        return JSONResponse({"error": "File not found"}, status_code=404)
+
+    return FileResponse(file_path)
+
+
+# Endpoint для получения экспортированных файлов
+@app.route("/exports/{filename:path}")
+async def serve_export(request):
+    import os
+    from pathlib import Path
+
+    from starlette.responses import FileResponse
+
+    filename = request.path_params["filename"]
+    export_dir = Path(os.getenv("EXPORT_DIR", "exports"))
+
+    # Проверка на path traversal атаки
+    file_path = (export_dir / filename).resolve()
+    if not str(file_path).startswith(str(export_dir.resolve())):
         return JSONResponse({"error": "Invalid file path"}, status_code=400)
 
     if not file_path.exists():

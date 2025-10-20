@@ -34,6 +34,7 @@ Application will be available at:
 - GraphQL Playground: http://localhost:8000/graphql
 - Health Check (simple): http://localhost:8000/health
 - Health Check (detailed): http://localhost:8000/health/detailed
+- Prometheus Metrics: http://localhost:8000/metrics
 
 ### Testing
 
@@ -427,6 +428,156 @@ The following data is automatically filtered before sending to Sentry:
 - Configure alerts in Sentry UI for critical errors
 - Set up Slack/email notifications
 - Review error grouping and ignore non-critical errors
+
+### Prometheus Metrics Collection
+
+Comprehensive metrics collection for monitoring application performance, resource usage, and business logic.
+
+**Features:**
+- Automatic HTTP request tracking (count, duration, in-progress)
+- System metrics (CPU, memory, file descriptors)
+- Ready-to-use metrics for GraphQL, database, Redis
+- Business logic metrics (registrations, emails, file uploads)
+- Prometheus-compatible exposition format
+- Path normalization for better grouping
+
+**Access metrics:**
+```bash
+curl http://localhost:8000/metrics
+```
+
+**Available metrics:**
+
+*HTTP Metrics (auto-collected):*
+- `http_requests_total` - Total HTTP requests by method, endpoint, status
+- `http_request_duration_seconds` - Request duration histogram
+- `http_requests_in_progress` - Current in-flight requests
+
+*System Metrics (auto-collected):*
+- `process_cpu_usage_percent` - CPU usage
+- `process_memory_bytes` - Memory consumption
+- `process_open_fds` - Open file descriptors
+
+*GraphQL Metrics (ready to use):*
+- `graphql_query_duration_seconds` - Query execution time
+- `graphql_query_errors_total` - Query errors by type
+
+*Database Metrics (ready to use):*
+- `db_connections_active` - Active database connections
+- `db_query_duration_seconds` - Query execution time
+- `db_errors_total` - Database errors
+
+*Business Logic Metrics (ready to use):*
+- `users_registered_total` - User registrations by method
+- `emails_sent_total` - Emails sent by type and status
+- `files_uploaded_total` - Files uploaded by type
+
+**Usage in services:**
+```python
+from core.metrics import users_registered_total, emails_sent_total
+
+# Track user registration
+users_registered_total.labels(method='google').inc()
+
+# Track email sending
+emails_sent_total.labels(email_type='verification', status='success').inc()
+
+# Track file upload
+from core.metrics import files_uploaded_total
+files_uploaded_total.labels(file_type='avatar').inc()
+```
+
+**Implementation:**
+- `core/metrics.py` - All metrics definitions
+- `core/middleware/metrics.py` - Automatic HTTP metrics collection
+- `app.py` - Metrics endpoint registration
+- `tests/test_metrics.py` - Comprehensive test suite
+
+**Prometheus scrape configuration:**
+```yaml
+scrape_configs:
+  - job_name: 'multipult-backend'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:8000']
+```
+
+**Grafana dashboard:**
+Import metrics into Grafana for visualization and alerting. Key panels to create:
+- Request rate (req/sec)
+- Error rate (%)
+- Latency percentiles (p50, p95, p99)
+- Memory and CPU usage
+- Database connection pool status
+
+### Import/Export System
+
+Comprehensive data import/export system supporting JSON, CSV, and XLSX formats.
+
+**Features:**
+- Export/import concepts, dictionaries, users, and languages
+- Multiple formats: JSON, CSV, XLSX
+- Filtering and validation
+- Duplicate handling strategies (skip, update, fail)
+- Validation-only mode (dry run)
+- Automatic cleanup of old exports (24 hours)
+- Job status tracking
+
+**GraphQL mutations:**
+```graphql
+# Export data
+mutation ExportConcepts {
+  exportData(
+    entityType: CONCEPTS
+    format: JSON
+    filters: { language: "en" }
+  ) {
+    jobId
+    url
+    expiresAt
+    status
+  }
+}
+
+# Import data
+mutation ImportConcepts($file: Upload!) {
+  importData(
+    file: $file
+    entityType: CONCEPTS
+    options: {
+      onDuplicate: UPDATE
+      validateOnly: false
+    }
+  ) {
+    jobId
+    status
+    message
+  }
+}
+
+# Check job status
+query ImportJobStatus {
+  importJob(jobId: 123) {
+    status
+    totalCount
+    processedCount
+    errorCount
+    errors
+    progressPercent
+  }
+}
+```
+
+**Implementation:**
+- `core/models/import_export_job.py` - Job tracking model
+- `core/services/export_service.py` - Export logic (JSON, CSV, XLSX)
+- `core/services/import_service.py` - Import logic with validation
+- `core/schemas/import_export.py` - GraphQL API
+- `app.py` - `/exports/{filename}` endpoint for downloading files
+
+**See full documentation:** [docs/IMPORT_EXPORT.md](docs/IMPORT_EXPORT.md)
+
+---
 
 ### Audit Logging System
 
@@ -939,6 +1090,12 @@ Before deploying to production:
   - [ ] Set `SENTRY_TRACES_SAMPLE_RATE=0.1` (10%)
   - [ ] Configure `SENTRY_RELEASE` for deploy tracking
   - [ ] Setup alerts and notifications in Sentry UI
+- [ ] **Configure Prometheus metrics monitoring:**
+  - [ ] Setup Prometheus server to scrape `/metrics` endpoint
+  - [ ] Configure scrape interval (15s recommended)
+  - [ ] Setup Grafana for visualization
+  - [ ] Create dashboards for key metrics
+  - [ ] Configure alerts for critical thresholds (error rate, latency, memory)
 - [ ] Test OAuth flows in production
 - [ ] Setup SSL auto-renewal (cron job for certbot)
 

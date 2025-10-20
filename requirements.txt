@@ -26,6 +26,10 @@ google-auth-oauthlib
 # File handling
 Pillow
 
+# Import/Export
+openpyxl
+pandas
+
 # Testing
 pytest
 pytest-asyncio
@@ -41,3 +45,4 @@ pre-commit
 # Error Tracking & Monitoring
 sentry-sdk[starlette,sqlalchemy]
 psutil
+prometheus-client

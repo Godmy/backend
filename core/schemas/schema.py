@@ -7,6 +7,9 @@ from core.schemas.audit import AuditLogQuery
 # Импортируем схемы для файлов и аудита
 from core.schemas.file import FileMutation, FileQuery
 
+# Импортируем схемы для импорта/экспорта
+from core.schemas.import_export import ImportExportMutation, ImportExportQuery
+
 # Импортируем схемы из модуля languages
 from languages.schemas import (
     ConceptMutation,
@@ -29,6 +32,7 @@ class Query(
     RoleQuery,
     FileQuery,
     AuditLogQuery,
+    ImportExportQuery,
 ):
     pass
 
@@ -42,6 +46,7 @@ class Mutation(
     AuthMutation,
     RoleMutation,
     FileMutation,
+    ImportExportMutation,
 ):
     pass
 
