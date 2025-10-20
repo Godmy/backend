@@ -226,6 +226,89 @@ class EmailService:
             logger.error(f"Failed to send password reset email: {e}")
             return False
 
+    def send_email_change_verification(self, to_email: str, username: str, token: str) -> bool:
+        """
+        Send email change verification email
+
+        Args:
+            to_email: New email address
+            username: User's username
+            token: Verification token
+
+        Returns:
+            True if sent successfully
+        """
+        try:
+            verification_url = f"{self.frontend_url}/verify-email-change?token={token}"
+
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        h1 {{ color: #4CAF50; }}
+        .button {{
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 20px 0;
+        }}
+        .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }}
+        .warning {{ color: #ff6b6b; margin-top: 20px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Подтверждение смены email</h1>
+        <p>Здравствуйте, <strong>{username}</strong>!</p>
+        <p>Вы запросили смену email адреса на <strong>{to_email}</strong>.</p>
+        <p>Для подтверждения нажмите кнопку ниже:</p>
+        <a href="{verification_url}" class="button">Подтвердить новый email</a>
+        <p>Или скопируйте ссылку в браузер:</p>
+        <p><a href="{verification_url}">{verification_url}</a></p>
+        <p class="warning"><strong>Важно:</strong> Ссылка действительна 24 часа. Если вы не запрашивали смену email, просто проигнорируйте это письмо.</p>
+        <div class="footer">
+            <p>С уважением,<br>Команда МультиПУЛЬТ</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+            text_content = f"""
+Подтверждение смены email
+
+Здравствуйте, {username}!
+
+Вы запросили смену email адреса на {to_email}.
+
+Для подтверждения перейдите по ссылке:
+{verification_url}
+
+Ссылка действительна 24 часа.
+
+Если вы не запрашивали смену email, просто проигнорируйте это письмо.
+
+С уважением,
+Команда МультиПУЛЬТ
+"""
+
+            return self.send_email(
+                to_email=to_email,
+                subject="Подтверждение смены email - МультиПУЛЬТ",
+                html_content=html_content,
+                text_content=text_content,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send email change verification: {e}")
+            return False
+
     def send_welcome_email(self, to_email: str, username: str) -> bool:
         """
         Send welcome email to new user

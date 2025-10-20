@@ -237,6 +237,130 @@ mutation {
 
 **See full documentation:** [docs/EMAIL_VERIFICATION_FLOW.md](docs/EMAIL_VERIFICATION_FLOW.md)
 
+---
+
+### User Profile Management
+
+Complete user profile management with password change, email change, and account deletion.
+
+**Features:**
+- Update profile fields (firstName, lastName, bio, language, timezone)
+- Change password with current password verification
+- Change email address with verification
+- Soft delete account with password confirmation
+- Field validation (bio max 500 chars, names max 50 chars)
+- Email notifications for profile changes
+- Redis-based token storage for email changes
+
+**GraphQL mutations:**
+```graphql
+# Update profile
+mutation UpdateProfile {
+  updateProfile(
+    firstName: "John"
+    lastName: "Doe"
+    bio: "Software engineer passionate about GraphQL"
+    language: "en"
+    timezone: "UTC"
+  ) {
+    id
+    profile {
+      firstName
+      lastName
+      bio
+      language
+      timezone
+    }
+  }
+}
+
+# Change password
+mutation ChangePassword {
+  changePassword(
+    currentPassword: "OldPass123!"
+    newPassword: "NewPass123!"
+  ) {
+    success
+    message
+  }
+}
+
+# Request email change (sends verification email)
+mutation RequestEmailChange {
+  requestEmailChange(
+    newEmail: "newemail@example.com"
+    currentPassword: "MyPass123!"
+  ) {
+    success
+    message
+  }
+}
+
+# Confirm email change (after clicking link in email)
+mutation ConfirmEmailChange {
+  confirmEmailChange(token: "token_from_email") {
+    success
+    message
+  }
+}
+
+# Delete account (soft delete)
+mutation DeleteAccount {
+  deleteAccount(password: "MyPass123!") {
+    success
+    message
+  }
+}
+
+# Query current user profile
+query Me {
+  me {
+    id
+    username
+    email
+    isVerified
+    profile {
+      firstName
+      lastName
+      bio
+      avatar
+      language
+      timezone
+    }
+  }
+}
+```
+
+**Profile fields:**
+- `firstName` - First name (max 50 characters)
+- `lastName` - Last name (max 50 characters)
+- `bio` - Biography/description (max 500 characters)
+- `avatar` - Avatar URL (managed via file upload system)
+- `language` - Preferred language code (e.g., "en", "ru")
+- `timezone` - Timezone string (e.g., "UTC", "Europe/Moscow")
+
+**Security features:**
+- Password verification required for sensitive operations
+- Email change requires confirmation via email link
+- Account deletion uses soft delete (can be restored by admin)
+- All tokens stored in Redis with expiration
+- Email change tokens valid for 24 hours
+
+**Implementation:**
+- `auth/services/profile_service.py` - ProfileService with all business logic
+- `auth/schemas/user.py` - GraphQL mutations and queries
+- `auth/models/profile.py` - UserProfileModel (one-to-one with User)
+- `core/email_service.py` - Email templates for profile changes
+
+**Validation rules:**
+- First name: max 50 characters
+- Last name: max 50 characters
+- Bio: max 500 characters
+- New password: min 8 characters
+- Email: must be unique and valid format
+
+---
+
 ### File Upload System
 
 The application supports secure file uploads with automatic thumbnail generation and validation.
@@ -576,6 +700,442 @@ query ImportJobStatus {
 - `app.py` - `/exports/{filename}` endpoint for downloading files
 
 **See full documentation:** [docs/IMPORT_EXPORT.md](docs/IMPORT_EXPORT.md)
+
+---
+
+### Soft Delete System
+
+Complete soft delete implementation with GraphQL API for managing deleted records.
+
+**Features:**
+- Soft delete mixin for all models (User, Concept, Dictionary, Language)
+- Records marked as deleted instead of permanently removed
+- Track who deleted the record and when
+- Admin-only restore and permanent delete operations
+- Query builders for active/deleted/all records
+- Automatic filtering of deleted records in queries
+
+**GraphQL API:**
+```graphql
+# Get list of deleted records (admin only)
+query DeletedRecords {
+  deletedRecords(entityType: CONCEPT, limit: 20, offset: 0) {
+    entityType
+    entityId
+    deletedAt
+    deletedByUsername
+  }
+}
+
+# Restore a deleted record (admin only)
+mutation RestoreRecord {
+  restoreRecord(entityType: CONCEPT, entityId: 123)
+}
+
+# Permanently delete (admin only, irreversible!)
+mutation PermanentDelete {
+  permanentDelete(entityType: CONCEPT, entityId: 123)
+}
+```
+
+**Available entity types:**
+- `USER` - Users
+- `CONCEPT` - Concepts
+- `DICTIONARY` - Translations
+- `LANGUAGE` - Languages
+
+**Programmatic usage:**
+```python
+from auth.models.user import UserModel
+
+# Soft delete
+user.soft_delete(db, deleted_by_user_id=admin.id)
+
+# Query only active
+active_users = UserModel.active(db).all()
+
+# Query deleted
+deleted_users = UserModel.deleted(db).all()
+
+# Query all (including deleted)
+all_users = UserModel.with_deleted(db).all()
+
+# Restore
+user.restore(db)
+
+# Check if deleted
+if user.is_deleted():
+    print("User is deleted")
+```
+
+**Implementation:**
+- `core/models/mixins/soft_delete.py` - SoftDeleteMixin with all methods
+- `core/schemas/soft_delete.py` - GraphQL queries and mutations
+- Applied to: UserModel, ConceptModel, DictionaryModel, LanguageModel
+- Indexed `deleted_at` column for fast queries
+- Foreign key to `deleted_by` user
+
+**Security:**
+- Only admins can view deleted records
+- Only admins can restore records
+- Only admins can permanently delete
+- Permanent delete requires record to be soft-deleted first
+
+---
+
+### API Request/Response Logging
+
+Comprehensive logging of all API requests and responses for debugging and monitoring.
+
+**Features:**
+- Logs all HTTP requests (method, path, headers, body)
+- Logs all responses (status, duration)
+- Generates unique request ID for tracing
+- Extracts user ID from JWT token
+- Masks sensitive data (passwords, tokens, secrets)
+- Configurable logging levels
+- Request duration tracking
+- X-Request-ID header in responses
+
+**Example log output:**
+```
+INFO: [req-abc123] POST /graphql 200 (125ms) user_id=42
+INFO: [req-abc123] GET /api/users 200 (15ms) user_id=42 body={"username": "john"}
+WARNING: [req-def456] POST /auth/login 401 (89ms)
+ERROR: [req-ghi789] GET /api/orders 500 (2341ms) user_id=42
+```
+
+**Configuration:**
+```python
+# app.py
+app.add_middleware(
+    RequestLoggingMiddleware,
+    log_body=True,        # Log request/response bodies
+    log_headers=False     # Log headers (can expose secrets!)
+)
+```
+
+**Environment variables:**
+```bash
+# .env
+REQUEST_LOGGING_ENABLED=true
+REQUEST_LOGGING_BODY=true
+REQUEST_LOGGING_HEADERS=false  # DON'T enable in production (leaks secrets)
+REQUEST_LOGGING_LEVEL=INFO
+```
+
+**Features:**
+- Automatic user ID extraction from JWT
+- Sensitive data masking (password, token, secret, etc.)
+- Unique request ID per request (for distributed tracing)
+- Request duration in milliseconds
+- Different log levels by status code:
+  - 2xx → INFO
+  - 4xx → WARNING
+  - 5xx → ERROR
+
+**Implementation:**
+- `core/middleware/request_logging.py` - RequestLoggingMiddleware
+- `app.py` - Automatically enabled
+- Masks fields: password, token, secret, authorization, api_key, access_token, refresh_token
+
+**Use cases:**
+- Debugging customer issues
+- API usage analytics
+- Security auditing
+- Performance monitoring
+- Distributed tracing (via X-Request-ID)
+
+---
+
+### Database Connection Pool Monitoring
+
+Prometheus metrics for monitoring SQLAlchemy connection pool health and usage.
+
+**Features:**
+- Real-time connection pool statistics
+- Prometheus-compatible metrics
+- Automatic updates on /metrics endpoint scrape
+- No performance impact (reads existing pool state)
+- Alerts for pool exhaustion
+
+**Available metrics:**
+- `db_pool_size` - Total connection pool size
+- `db_pool_checked_out` - Active connections (in use)
+- `db_pool_checked_in` - Available connections (idle)
+- `db_pool_overflow` - Current overflow connections
+- `db_pool_num_overflow` - Maximum overflow connections allowed
+
+**Prometheus query examples:**
+```promql
+# Connection pool usage percentage
+(db_pool_checked_out / db_pool_size) * 100
+
+# Available connections
+db_pool_checked_in
+
+# Pool exhaustion alert (over 90% usage)
+(db_pool_checked_out / db_pool_size) > 0.9
+```
+
+**Implementation:**
+- `core/metrics.py` - Prometheus metrics and `update_db_pool_metrics()` function
+- `app.py` - Automatic update on /metrics endpoint
+- Metrics updated on every Prometheus scrape (typically every 15s)
+
+**Grafana dashboard panels:**
+1. Connection Pool Usage (%) - Gauge
+2. Active vs Available Connections - Time series
+3. Overflow Connections - Counter
+4. Pool Exhaustion Events - Alert
+
+**Database configuration:**
+```python
+# core/database.py
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=5,           # Base pool size
+    max_overflow=10,       # Additional connections when pool exhausted
+    pool_pre_ping=True,    # Verify connections before use
+    pool_recycle=3600      # Recycle connections after 1 hour
+)
+```
+
+**Monitoring best practices:**
+- Alert when pool usage > 90%
+- Alert when overflow connections > 0 for extended period
+- Track connection acquisition time
+- Monitor for connection leaks (checked_out never decreasing)
+
+---
+
+### Security Headers Middleware
+
+Automatic security headers added to all HTTP responses to protect against common web vulnerabilities.
+
+**Features:**
+- X-Content-Type-Options: nosniff (prevents MIME type sniffing)
+- X-Frame-Options: DENY (prevents clickjacking)
+- X-XSS-Protection: 1; mode=block (enables XSS filter)
+- Strict-Transport-Security (HSTS): Enforces HTTPS in production
+- Content-Security-Policy: Restricts resource loading
+- Referrer-Policy: strict-origin-when-cross-origin
+- Permissions-Policy: Restricts dangerous browser features
+- Configurable via environment variables
+- Can be disabled for development
+
+**Configuration:**
+```bash
+# .env
+SECURITY_HEADERS_ENABLED=true  # Enable/disable (default: true)
+CSP_POLICY=default-src 'self'; script-src 'self' 'unsafe-inline'
+HSTS_MAX_AGE=31536000  # 1 year in seconds
+FRAME_OPTIONS=DENY  # or SAMEORIGIN
+ENVIRONMENT=production  # HSTS only enabled in production
+```
+
+**Implementation:**
+- `core/middleware/security_headers.py` - SecurityHeadersMiddleware
+- `app.py` - Automatically added to all requests
+- `tests/test_security_headers.py` - Comprehensive test suite
+
+**Testing:**
+```bash
+# Check headers in response
+curl -I http://localhost:8000/health
+
+# Expected headers:
+# X-Content-Type-Options: nosniff
+# X-Frame-Options: DENY
+# X-XSS-Protection: 1; mode=block
+# Content-Security-Policy: default-src 'self'...
+# Referrer-Policy: strict-origin-when-cross-origin
+# Permissions-Policy: geolocation=(), microphone=()...
+```
+
+---
+
+### Graceful Shutdown Handling
+
+Ensures the application shuts down gracefully without interrupting active requests.
+
+**Features:**
+- Signal handlers for SIGTERM (Docker, K8s) and SIGINT (Ctrl+C)
+- Waits for active requests to complete (configurable timeout)
+- Rejects new requests during shutdown (returns 503)
+- Closes database connections gracefully
+- Closes Redis connections
+- Flushes logs
+- Health checks return 503 during shutdown
+- Cross-platform support (Unix and Windows)
+
+**Configuration:**
+```bash
+# .env
+SHUTDOWN_TIMEOUT=30  # Maximum seconds to wait for requests (default: 30)
+```
+
+**Implementation:**
+- `core/shutdown.py` - GracefulShutdown handler with signal management
+- `core/middleware/shutdown.py` - ShutdownMiddleware (rejects requests during shutdown)
+- `app.py` - Automatically configured on startup
+
+**How it works:**
+1. Application receives SIGTERM/SIGINT signal
+2. Shutdown handler sets `is_shutting_down` flag
+3. New requests are rejected with 503 status
+4. Active requests complete (up to `SHUTDOWN_TIMEOUT` seconds)
+5. Custom shutdown callbacks run (if configured)
+6. Database connections closed
+7. Redis connections closed
+8. Logs flushed
+9. Application exits cleanly
+
+**Testing shutdown:**
+```bash
+# Start application
+python app.py
+
+# Send SIGTERM signal (in another terminal)
+kill -TERM <pid>
+
+# Or press Ctrl+C
+
+# Check logs:
+# INFO: Received SIGTERM signal, initiating graceful shutdown...
+# INFO: Rejecting new requests...
+# INFO: Waiting up to 30s for active requests to complete...
+# INFO: Closing database connections...
+# INFO: Database connections closed
+# INFO: Closing Redis connections...
+# INFO: Redis connections closed
+# INFO: Flushing logs...
+# INFO: Graceful shutdown completed successfully
+```
+
+**Production deployment:**
+- Docker/Kubernetes automatically send SIGTERM on shutdown
+- Configure probes to check `/health` endpoint
+- Set `terminationGracePeriodSeconds` >= `SHUTDOWN_TIMEOUT` in K8s
+- Uvicorn configured with `timeout_graceful_shutdown` parameter
+
+---
+
+### Advanced Search & Filtering
+
+Powerful full-text search functionality for concepts and translations with filtering, sorting, and pagination.
+
+**Features:**
+- PostgreSQL full-text search (case-insensitive)
+- Multi-language search across translations
+- Filtering by language, category path, date range
+- Multiple sort options (relevance, alphabetical, date)
+- Pagination with total count and "has_more" indicator
+- Autocomplete/suggestions for search input
+- Popular concepts query
+- N+1 query prevention with eager loading
+
+**GraphQL queries:**
+```graphql
+# Full-text search with all filters
+query SearchConcepts {
+  searchConcepts(
+    filters: {
+      query: "пользователь"
+      languageIds: [1, 2]  # Russian and English
+      categoryPath: "/users/"
+      fromDate: "2024-01-01T00:00:00"
+      toDate: "2025-01-31T23:59:59"
+      sortBy: RELEVANCE
+      limit: 20
+      offset: 0
+    }
+  ) {
+    results {
+      concept {
+        id
+        path
+        depth
+      }
+      dictionaries {
+        id
+        name
+        description
+        languageId
+      }
+      relevanceScore
+    }
+    total
+    hasMore
+    limit
+    offset
+  }
+}
+
+# Search suggestions/autocomplete
+query SearchSuggestions {
+  searchSuggestions(query: "user", languageId: 1, limit: 5)
+}
+
+# Get popular concepts
+query PopularConcepts {
+  popularConcepts(limit: 10) {
+    concept { id path }
+    dictionaries {
+      name
+      description
+    }
+    relevanceScore
+  }
+}
+```
+
+**Sort options:**
+- `RELEVANCE` - Best match first (by depth and query match)
+- `ALPHABET` - Alphabetical by concept path
+- `DATE` - Newest concepts first
+
+**Implementation:**
+- `languages/services/search_service.py` - SearchService with all search logic
+- `languages/schemas/search.py` - GraphQL schema with 3 queries
+- Uses PostgreSQL `ILIKE` for case-insensitive search
+- `joinedload` for eager loading to prevent N+1 queries
+- Soft-delete aware (only searches active records)
+
+**Performance tips:**
+- Language filters converted to IDs for efficient DB queries
+- Results limited to max 100 per page
+- Suggestions limited to max 20
+- Indexed columns: `concept.path`, `dictionary.language_id`, `dictionary.concept_id`
+
+**Example frontend usage:**
+```typescript
+// Search with debouncing
+const searchConcepts = async (query: string, languageIds: number[]) => {
+  const result = await graphqlClient.query({
+    query: SEARCH_CONCEPTS_QUERY,
+    variables: {
+      filters: {
+        query,
+        languageIds,
+        limit: 20,
+        offset: 0,
+        sortBy: 'RELEVANCE'
+      }
+    }
+  });
+  return result.data.searchConcepts;
+};
+
+// Autocomplete with debouncing
+const getSuggestions = async (query: string) => {
+  const result = await graphqlClient.query({
+    query: SEARCH_SUGGESTIONS_QUERY,
+    variables: { query, limit: 5 }
+  });
+  return result.data.searchSuggestions;
+};
+```
 
 ---
 

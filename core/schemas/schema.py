@@ -10,6 +10,9 @@ from core.schemas.file import FileMutation, FileQuery
 # Импортируем схемы для импорта/экспорта
 from core.schemas.import_export import ImportExportMutation, ImportExportQuery
 
+# Импортируем схемы для soft delete
+from core.schemas.soft_delete import SoftDeleteMutation, SoftDeleteQuery
+
 # Импортируем схемы из модуля languages
 from languages.schemas import (
     ConceptMutation,
@@ -33,6 +36,7 @@ class Query(
     FileQuery,
     AuditLogQuery,
     ImportExportQuery,
+    SoftDeleteQuery,
 ):
     pass
 
@@ -47,6 +51,7 @@ class Mutation(
     RoleMutation,
     FileMutation,
     ImportExportMutation,
+    SoftDeleteMutation,
 ):
     pass
 

@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import strawberry
 import uvicorn
@@ -15,7 +16,13 @@ from core.database import engine, get_db
 from core.init_db import init_database
 from core.schemas.schema import schema
 from core.sentry import add_breadcrumb, init_sentry, set_user_context
-from core.middleware import PrometheusMiddleware
+from core.middleware import (
+    PrometheusMiddleware,
+    SecurityHeadersMiddleware,
+    ShutdownMiddleware,
+    RequestLoggingMiddleware
+)
+from core.shutdown import setup_graceful_shutdown
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -71,6 +78,15 @@ graphql_app = GraphQLWithContext(schema)
 # Создаем Starlette приложение с CORS
 app = Starlette()
 
+# Add Shutdown middleware (first, to reject requests during shutdown)
+app.add_middleware(ShutdownMiddleware)
+
+# Add Request Logging middleware (before security headers for complete logging)
+app.add_middleware(RequestLoggingMiddleware, log_body=True, log_headers=False)
+
+# Add Security Headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
 # Add Prometheus metrics middleware
 app.add_middleware(PrometheusMiddleware)
 
@@ -91,6 +107,15 @@ app.mount("/graphql", graphql_app)
 @app.route("/health")
 async def health_check(request):
     """Simple health check endpoint (backward compatible)"""
+    from core.shutdown import shutdown_handler
+
+    # Return 503 if shutting down
+    if shutdown_handler.is_shutting_down():
+        return JSONResponse(
+            {"status": "unhealthy", "message": "Application is shutting down"},
+            status_code=503
+        )
+
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -105,6 +130,18 @@ async def health_check(request):
 async def detailed_health_check(request):
     """Detailed health check endpoint with all system components"""
     from core.services.health_service import HealthCheckService
+    from core.shutdown import shutdown_handler
+
+    # Return 503 if shutting down
+    if shutdown_handler.is_shutting_down():
+        return JSONResponse(
+            {
+                "status": "unhealthy",
+                "message": "Application is shutting down",
+                "timestamp": time.time()
+            },
+            status_code=503
+        )
 
     health_status = HealthCheckService.get_full_health_status()
 
@@ -125,9 +162,13 @@ async def metrics_endpoint(request):
 
     Returns metrics in Prometheus exposition format for scraping.
     Includes HTTP, GraphQL, database, Redis, business logic, and system metrics.
+    Also updates database connection pool metrics on each scrape.
     """
     from starlette.responses import Response
-    from core.metrics import get_metrics
+    from core.metrics import get_metrics, update_db_pool_metrics
+
+    # Update DB pool metrics before returning
+    update_db_pool_metrics()
 
     metrics_data, content_type = get_metrics()
     return Response(content=metrics_data, media_type=content_type)
@@ -186,4 +227,16 @@ async def serve_export(request):
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
+    # Setup graceful shutdown handlers
+    shutdown_timeout = int(os.getenv("SHUTDOWN_TIMEOUT", "30"))
+    setup_graceful_shutdown(shutdown_timeout=shutdown_timeout)
+    logger.info(f"Graceful shutdown configured with {shutdown_timeout}s timeout")
+
+    # Run application with graceful shutdown support
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,
+        timeout_graceful_shutdown=shutdown_timeout
+    )

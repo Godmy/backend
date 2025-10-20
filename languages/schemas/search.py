@@ -128,3 +128,129 @@ class SearchQuery:
         return SearchResult(
             results=results, total=total, has_more=has_more, limit=limit, offset=offset
         )
+
+    @strawberry.field
+    def search_suggestions(
+        self, query: str, language_id: Optional[int] = None, limit: int = 5
+    ) -> List[str]:
+        """
+        Get search suggestions/autocomplete based on partial query.
+
+        Returns matching dictionary names that start with the query string.
+        Useful for autocomplete functionality.
+
+        Args:
+            query: Partial search query (e.g., "use")
+            language_id: Optional language filter
+            limit: Maximum number of suggestions (default: 5, max: 20)
+
+        Returns:
+            List of suggested search terms
+
+        Example:
+            query {
+              searchSuggestions(query: "user", languageId: 1, limit: 5)
+            }
+        """
+        from core.database import get_db
+        from languages.models.dictionary import DictionaryModel
+
+        db = next(get_db())
+
+        # Limit max suggestions
+        limit = min(limit, 20)
+
+        search_pattern = f"{query}%"
+        base_query = db.query(DictionaryModel.name).filter(
+            DictionaryModel.name.ilike(search_pattern),
+            DictionaryModel.deleted_at.is_(None),
+        )
+
+        if language_id:
+            base_query = base_query.filter(DictionaryModel.language_id == language_id)
+
+        suggestions = (
+            base_query.distinct()
+            .order_by(DictionaryModel.name)
+            .limit(limit)
+            .all()
+        )
+
+        return [s[0] for s in suggestions]
+
+    @strawberry.field
+    def popular_concepts(self, limit: int = 10) -> List[ConceptSearchResult]:
+        """
+        Get most popular concepts (by translation count).
+
+        Returns concepts that have the most translations across languages,
+        which serves as a proxy for popularity.
+
+        Args:
+            limit: Number of popular concepts to return (default: 10, max: 50)
+
+        Returns:
+            List of popular concepts with their translations
+
+        Example:
+            query {
+              popularConcepts(limit: 10) {
+                concept { id path depth }
+                dictionaries { name description }
+              }
+            }
+        """
+        from sqlalchemy import func, text
+        from core.database import get_db
+        from languages.models.dictionary import DictionaryModel
+        from languages.services.search_service import SearchService
+
+        db = next(get_db())
+
+        # Limit max results
+        limit = min(limit, 50)
+
+        # Get concepts with most translations
+        popular_concept_ids = (
+            db.query(
+                DictionaryModel.concept_id,
+                func.count(DictionaryModel.id).label("translation_count"),
+            )
+            .filter(DictionaryModel.deleted_at.is_(None))
+            .group_by(DictionaryModel.concept_id)
+            .order_by(text("translation_count DESC"))
+            .limit(limit)
+            .all()
+        )
+
+        # Get full concept data
+        service = SearchService(db)
+        results = []
+
+        for concept_id, count in popular_concept_ids:
+            concept = service.get_concept_with_dictionaries(concept_id)
+            if concept:
+                results.append(
+                    ConceptSearchResult(
+                        concept=Concept(
+                            id=concept.id,
+                            parent_id=concept.parent_id,
+                            path=concept.path,
+                            depth=concept.depth,
+                        ),
+                        dictionaries=[
+                            Dictionary(
+                                id=d.id,
+                                concept_id=d.concept_id,
+                                language_id=d.language_id,
+                                name=d.name,
+                                description=d.description,
+                                image=d.image,
+                            )
+                            for d in concept.dictionaries
+                        ],
+                        relevance_score=float(count),  # Use translation count as score
+                    )
+                )
+
+        return results

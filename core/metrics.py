@@ -88,6 +88,81 @@ db_errors_total = Counter(
     ['error_type']
 )
 
+# Database Connection Pool Metrics
+# Implementation for User Story #47 - Database Connection Pool Monitoring (P2)
+db_pool_size = Gauge(
+    "db_pool_size",
+    "Total size of the database connection pool"
+)
+
+db_pool_checked_out = Gauge(
+    "db_pool_checked_out",
+    "Number of connections currently checked out from the pool"
+)
+
+db_pool_checked_in = Gauge(
+    "db_pool_checked_in",
+    "Number of connections currently checked in (available) in the pool"
+)
+
+db_pool_overflow = Gauge(
+    "db_pool_overflow",
+    "Number of connections beyond pool size (overflow connections)"
+)
+
+db_pool_num_overflow = Gauge(
+    "db_pool_num_overflow",
+    "Maximum number of overflow connections allowed"
+)
+
+
+def update_db_pool_metrics():
+    """
+    Update database connection pool metrics.
+
+    Extracts current state from SQLAlchemy connection pool and updates Prometheus gauges.
+    Should be called periodically (e.g., every 15 seconds) for monitoring.
+
+    Metrics updated:
+        - db_pool_size: Total pool size
+        - db_pool_checked_out: Active connections
+        - db_pool_checked_in: Available connections
+        - db_pool_overflow: Current overflow connections
+        - db_pool_num_overflow: Max overflow connections allowed
+
+    Example usage:
+        # In a background task or endpoint
+        from core.metrics import update_db_pool_metrics
+        update_db_pool_metrics()
+    """
+    from core.database import engine
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        pool = engine.pool
+
+        # Get pool statistics
+        size = pool.size()  # Total pool size
+        checked_out = pool.checkedout()  # Currently in use
+        overflow = pool.overflow()  # Current overflow connections
+        num_overflow = pool._max_overflow  # Max overflow allowed
+
+        # Calculate checked in (available)
+        checked_in = size - checked_out
+
+        # Update metrics
+        db_pool_size.set(size)
+        db_pool_checked_out.set(checked_out)
+        db_pool_checked_in.set(checked_in)
+        db_pool_overflow.set(overflow)
+        db_pool_num_overflow.set(num_overflow)
+
+    except Exception as e:
+        # Log error but don't fail
+        logger.error(f"Failed to update DB pool metrics: {e}")
+
 
 # ============================================================================
 # REDIS METRICS
