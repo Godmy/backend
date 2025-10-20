@@ -129,7 +129,9 @@ class RoleQuery:
             raise Exception("User not found")
 
         result = []
-        for role in user.roles:
+        for user_role in user.roles:
+            # user.roles возвращает UserRoleModel объекты, а не RoleModel
+            role = user_role.role
             permissions = [
                 Permission(
                     id=perm.id,
@@ -321,14 +323,22 @@ class RoleMutation:
         if not PermissionService.check_permission(db, current_user["id"], "user", "update"):
             raise Exception("Insufficient permissions")
 
+        from auth.models.role import UserRoleModel
+
         user = db.query(UserModel).filter(UserModel.id == user_id).first()
         role = db.query(RoleModel).filter(RoleModel.name == role_name).first()
 
         if not user or not role:
             return False
 
-        if role in user.roles:
-            user.roles.remove(role)
+        # Находим связь UserRoleModel и удаляем её
+        user_role = db.query(UserRoleModel).filter(
+            UserRoleModel.user_id == user_id,
+            UserRoleModel.role_id == role.id
+        ).first()
+
+        if user_role:
+            db.delete(user_role)
             db.commit()
 
         return True

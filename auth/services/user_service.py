@@ -67,14 +67,23 @@ class UserService:
     @staticmethod
     def assign_role_to_user(db: Session, user_id: int, role_name: str) -> bool:
         """Назначение роли пользователю"""
+        from auth.models.role import UserRoleModel
+
         user = db.query(UserModel).filter(UserModel.id == user_id).first()
         role = db.query(RoleModel).filter(RoleModel.name == role_name).first()
 
         if not user or not role:
             return False
 
-        if role not in user.roles:
-            user.roles.append(role)
+        # Проверяем, есть ли уже эта роль у пользователя
+        existing = db.query(UserRoleModel).filter(
+            UserRoleModel.user_id == user_id,
+            UserRoleModel.role_id == role.id
+        ).first()
+
+        if not existing:
+            user_role = UserRoleModel(user_id=user_id, role_id=role.id)
+            db.add(user_role)
             db.commit()
 
         return True

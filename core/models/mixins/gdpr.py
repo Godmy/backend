@@ -78,7 +78,7 @@ class GDPRMixin:
     def anonymized_by(cls):
         """Relationship to user who anonymized this record."""
         return relationship(
-            "User",
+            "UserModel",
             foreign_keys=[cls.anonymized_by_id],
             uselist=False
         )

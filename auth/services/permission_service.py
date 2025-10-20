@@ -16,12 +16,12 @@ class PermissionService:
             return False
 
         # Администраторы имеют все права
-        if any(role.name == "admin" for role in user.roles):
+        if any(user_role.role.name == "admin" for user_role in user.roles):
             return True
 
         # Проверка прав для каждой роли пользователя
-        for role in user.roles:
-            for permission in role.permissions:
+        for user_role in user.roles:
+            for permission in user_role.role.permissions:
                 if (permission.resource == resource or permission.resource == "*") and (
                     permission.action == action or permission.action == "*"
                 ):
@@ -37,8 +37,8 @@ class PermissionService:
             return []
 
         permissions = []
-        for role in user.roles:
-            for permission in role.permissions:
+        for user_role in user.roles:
+            for permission in user_role.role.permissions:
                 permissions.append(
                     {
                         "resource": permission.resource,

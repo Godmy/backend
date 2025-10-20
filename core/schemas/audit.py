@@ -188,7 +188,7 @@ class AuditLogQuery:
 
     def _is_admin(self, user) -> bool:
         """Проверка является ли пользователь админом"""
-        for role in user.roles:
-            if role.name == "admin":
+        for user_role in user.roles:
+            if user_role.role.name == "admin":
                 return True
         return False

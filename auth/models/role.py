@@ -1,16 +1,8 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Table
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from core.models.base import BaseModel
 from core.database import Base
-
-# Связующая таблица для many-to-many пользователей и ролей
-user_roles = Table(
-    "user_roles",
-    BaseModel.metadata,
-    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE")),
-    Column("role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE")),
-)
 
 
 class RoleModel(BaseModel):
@@ -20,8 +12,8 @@ class RoleModel(BaseModel):
     description = Column(String(255))
 
     # Связи
-    users = relationship("UserModel", secondary=user_roles, backref="role_users")
     permissions = relationship("PermissionModel", back_populates="role")
+    user_roles = relationship("UserRoleModel", back_populates="role")
 
 
 class UserRoleModel(Base):

@@ -72,7 +72,7 @@ class SoftDeleteMixin:
     def deleted_by(cls):
         """Relationship to user who deleted this record."""
         return relationship(
-            "User",
+            "UserModel",
             foreign_keys=[cls.deleted_by_id],
             uselist=False
         )
