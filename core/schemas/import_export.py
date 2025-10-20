@@ -2,12 +2,14 @@
 GraphQL схемы для импорта/экспорта
 """
 
+import enum
 from typing import List, Optional
 from datetime import datetime
 
 import strawberry
 from strawberry.types import Info
 from strawberry.file_uploads import Upload
+from sqlalchemy.orm import Session
 
 from core.models.import_export_job import (
     ImportExportJobModel,
@@ -18,12 +20,13 @@ from core.models.import_export_job import (
 )
 from core.services.export_service import ExportService
 from core.services.import_service import ImportService
-from auth.dependencies.permissions import IsAuthenticated, IsAdmin
 
 
 # Strawberry Enums
+
+
 @strawberry.enum
-class JobStatusEnum(str):
+class JobStatusEnum(enum.Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -31,14 +34,14 @@ class JobStatusEnum(str):
 
 
 @strawberry.enum
-class ExportFormatEnum(str):
+class ExportFormatEnum(enum.Enum):
     JSON = "json"
     CSV = "csv"
     XLSX = "xlsx"
 
 
 @strawberry.enum
-class EntityTypeEnum(str):
+class EntityTypeEnum(enum.Enum):
     CONCEPTS = "concepts"
     DICTIONARIES = "dictionaries"
     USERS = "users"
@@ -46,7 +49,7 @@ class EntityTypeEnum(str):
 
 
 @strawberry.enum
-class DuplicateStrategyEnum(str):
+class DuplicateStrategyEnum(enum.Enum):
     SKIP = "skip"
     UPDATE = "update"
     FAIL = "fail"
@@ -136,21 +139,23 @@ class ImportOptionsInput:
 # Query
 @strawberry.type
 class ImportExportQuery:
-    @strawberry.field(permission_classes=[IsAuthenticated])
+    @strawberry.field
     def import_job(self, info: Info, job_id: int) -> Optional[ImportExportJobType]:
         """Получить статус задания импорта/экспорта"""
-        db = info.context["db"]
         user = info.context.get("user")
+        if not user:
+            raise Exception("Authentication required")
 
+        db: Session = info.context["db"]
         job = db.query(ImportExportJobModel).filter_by(id=job_id).first()
 
         # Проверяем права доступа
-        if job and (job.user_id == user.id or user.is_admin):
+        if job and (job.user_id == user.id or getattr(user, "is_admin", False)):
             return ImportExportJobType.from_model(job)
 
         return None
 
-    @strawberry.field(permission_classes=[IsAuthenticated])
+    @strawberry.field
     def my_import_export_jobs(
         self,
         info: Info,
@@ -159,9 +164,11 @@ class ImportExportQuery:
         offset: int = 0,
     ) -> List[ImportExportJobType]:
         """Получить мои задания импорта/экспорта"""
-        db = info.context["db"]
         user = info.context.get("user")
+        if not user:
+            raise Exception("Authentication required")
 
+        db: Session = info.context["db"]
         query = db.query(ImportExportJobModel).filter_by(user_id=user.id)
 
         if job_type:
@@ -177,7 +184,7 @@ class ImportExportQuery:
 # Mutations
 @strawberry.type
 class ImportExportMutation:
-    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    @strawberry.mutation
     def export_data(
         self,
         info: Info,
@@ -186,13 +193,15 @@ class ImportExportMutation:
         filters: Optional[ExportFiltersInput] = None,
     ) -> ExportDataPayload:
         """Экспортировать данные"""
-        db = info.context["db"]
         user = info.context.get("user")
+        if not user:
+            raise Exception("Authentication required")
 
+        db: Session = info.context["db"]
         export_service = ExportService(db)
 
         # Проверяем права (users могут экспортировать только admin)
-        if entity_type == EntityTypeEnum.USERS and not user.is_admin:
+        if entity_type == EntityTypeEnum.USERS and not getattr(user, "is_admin", False):
             raise Exception("Only admins can export users")
 
         # Создаем задание
@@ -229,7 +238,7 @@ class ImportExportMutation:
                 status=JobStatusEnum.FAILED,
             )
 
-    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    @strawberry.mutation
     async def import_data(
         self,
         info: Info,
@@ -238,13 +247,15 @@ class ImportExportMutation:
         options: Optional[ImportOptionsInput] = None,
     ) -> ImportDataPayload:
         """Импортировать данные"""
-        db = info.context["db"]
         user = info.context.get("user")
+        if not user:
+            raise Exception("Authentication required")
 
+        db: Session = info.context["db"]
         import_service = ImportService(db)
 
         # Проверяем права (users могут импортировать только admin)
-        if entity_type == EntityTypeEnum.USERS and not user.is_admin:
+        if entity_type == EntityTypeEnum.USERS and not getattr(user, "is_admin", False):
             raise Exception("Only admins can import users")
 
         # Читаем файл

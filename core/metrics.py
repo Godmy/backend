@@ -142,10 +142,8 @@ process_memory_bytes = Gauge(
     'Process memory usage in bytes'
 )
 
-process_open_fds = Gauge(
-    'process_open_fds',
-    'Number of open file descriptors'
-)
+# Note: process_open_fds is already provided by prometheus_client's process collector
+# We'll use the existing metric instead of creating a duplicate
 
 
 # ============================================================================
@@ -153,7 +151,7 @@ process_open_fds = Gauge(
 # ============================================================================
 
 def update_system_metrics():
-    """Update system metrics (CPU, memory, file descriptors)."""
+    """Update system metrics (CPU, memory)."""
     try:
         process = psutil.Process()
 
@@ -165,9 +163,7 @@ def update_system_metrics():
         memory_info = process.memory_info()
         process_memory_bytes.set(memory_info.rss)
 
-        # Open file descriptors (Unix-like systems only)
-        if hasattr(process, 'num_fds'):
-            process_open_fds.set(process.num_fds())
+        # Note: File descriptors are already tracked by prometheus_client's process collector
     except Exception:
         # Silently fail if system metrics are not available
         pass
