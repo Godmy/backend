@@ -19,7 +19,7 @@ from prometheus_client.openmetrics.exposition import CONTENT_TYPE_LATEST
 
 app_info = Info('app', 'Application information')
 app_info.info({
-    'version': '0.3.0',
+    'version': '0.4.0',
     'environment': os.getenv('ENVIRONMENT', 'development'),
     'python_version': '3.11'
 })

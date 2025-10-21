@@ -7,47 +7,146 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Prometheus Metrics Collection** - Comprehensive application monitoring
-  - `core/metrics.py` - All metrics definitions (HTTP, GraphQL, DB, Redis, business logic, system)
-  - `core/middleware/metrics.py` - PrometheusMiddleware for automatic HTTP metrics collection
-  - New `/metrics` endpoint for Prometheus scraping
-  - Automatic tracking: requests (count, duration, in-progress), CPU, memory, file descriptors
-  - Ready-to-use metrics for business logic: user registrations, emails sent, file uploads
-  - Path normalization for better metric grouping (e.g., `/users/123` → `/users/{id}`)
-  - `tests/test_metrics.py` - Comprehensive test suite
-  - Dependency: `prometheus-client`
+### Planned
+- API Rate Limiting (P1)
+- GraphQL Query Complexity Analysis (P2)
+- Caching Layer with Redis (P2)
+- WebSocket Support for Real-time Features (P3)
 
-- **Soft Delete Functionality** - Applied SoftDeleteMixin to core models
-  - `UserModel`, `ConceptModel`, `DictionaryModel`, `LanguageModel` now support soft delete
-  - Records marked with `deleted_at` timestamp instead of hard deletion
-  - Automatic filtering of deleted records via default query scopes
-  - `restore()` method to undelete records
-  - Mixins available at `core/models/mixins/soft_delete.py`
+## [0.4.0] - 2025-01-20
 
-- **Enhanced Health Checks** - Comprehensive system monitoring
-  - `core/services/health_service.py` - HealthCheckService for component monitoring
-  - New `/health/detailed` endpoint with comprehensive status checks:
-    - Database connectivity and response time
-    - Redis connectivity and response time
-    - Disk space usage monitoring (warning at 90%)
-    - Memory usage monitoring (warning at 90%)
-  - Overall status: `healthy`, `degraded`, or `unhealthy`
-  - Backward-compatible `/health` endpoint maintained
-  - Appropriate HTTP status codes (200, 503)
+### Added - Monitoring & Observability
+
+- **Prometheus Metrics Collection** (#17, 8 SP)
+  - `core/metrics.py` - Comprehensive metrics definitions
+  - `core/middleware/metrics.py` - PrometheusMiddleware for automatic HTTP tracking
+  - `/metrics` endpoint for Prometheus scraping
+  - HTTP metrics: requests_total, request_duration_seconds, requests_in_progress
+  - System metrics: CPU usage, memory, file descriptors (via psutil)
+  - Ready-to-use metrics: GraphQL queries, database, Redis, business logic
+  - Path normalization for better grouping (e.g., `/users/123` → `/users/{id}`)
+  - Self-excluding (metrics endpoint doesn't track itself)
+  - Tests: `tests/test_metrics.py`
+  - Dependency: `prometheus-client`, `psutil`
+
+- **Database Connection Pool Monitoring** (#47, 5 SP)
+  - 5 Prometheus gauges for pool metrics in `core/metrics.py`
+  - Metrics: pool_size, checked_out, checked_in, overflow, num_overflow
+  - `update_db_pool_metrics()` function extracts SQLAlchemy pool stats
+  - Auto-update on every `/metrics` scrape
+  - Documentation with Prometheus query examples
+
+- **API Request/Response Logging** (#53, 5 SP)
+  - `core/middleware/request_logging.py` - RequestLoggingMiddleware
+  - Unique request ID per request (UUID) via `X-Request-ID` header
+  - Automatic user ID extraction from JWT tokens
+  - Sensitive data masking (passwords, tokens, secrets)
+  - Configurable body/header logging
+  - Log levels by status code (INFO/WARNING/ERROR)
+  - Request duration tracking
+
+- **Sentry Error Tracking Integration** (#16, 5 SP)
+  - `core/sentry.py` - Full Sentry initialization and helpers
+  - Automatic exception capture with context
+  - Performance monitoring with transaction traces
+  - User context tracking for authenticated requests
+  - Breadcrumbs for action tracking
+  - Sensitive data filtering via `before_send` filter
+  - Release tracking for deployments
+  - Environment separation (dev/staging/production)
+  - Integrations: Starlette, SQLAlchemy, Logging
+  - Helper functions: `capture_exception()`, `capture_message()`, `start_transaction()`
+  - Tests: `tests/test_sentry.py`
+  - Dependency: `sentry-sdk[starlette,sqlalchemy]`
+
+### Added - Core Features
+
+- **Advanced Search & Filtering** (#2, 8 SP)
+  - `languages/services/search_service.py` - SearchService with full-text search
+  - `languages/schemas/search.py` - GraphQL queries:
+    - `searchConcepts` - main search with filters (language, category, dates)
+    - `searchSuggestions` - autocomplete for search input
+    - `popularConcepts` - trending/most used concepts
+  - PostgreSQL ILIKE for case-insensitive search
+  - Eager loading (joinedload) to prevent N+1 queries
+  - Pagination (max 100 results), sorting options
+  - Soft-delete aware (only active records)
+
+- **User Profile Management** (#3, 5 SP)
+  - `auth/services/profile_service.py` - ProfileService with 5 methods:
+    - `update_profile()` - update firstName, lastName, bio with validation
+    - `change_password()` - password change with current password verification
+    - `initiate_email_change()` - email change request (Redis token, 24h TTL)
+    - `confirm_email_change()` - email change confirmation
+    - `delete_account()` - soft delete user account
+  - `auth/schemas/user.py` - 5 GraphQL mutations
+  - Added `bio` field to UserProfile (max 500 chars)
+  - Email change verification template
+  - Redis-based tokens for email changes
+  - Field validation (firstName/lastName max 50 chars)
+
+- **Import/Export System** (#7, 13 SP)
+  - `core/models/import_export_job.py` - Job tracking with status, progress, errors
+  - `core/services/export_service.py` - Export to JSON, CSV, XLSX
+  - `core/services/import_service.py` - Import with validation and duplicate handling
+  - `core/schemas/import_export.py` - GraphQL API
+  - `/exports/{filename}` endpoint for file downloads
+  - Support for: concepts, dictionaries, users, languages
+  - Multiple formats: JSON, CSV, XLSX
+  - Duplicate strategies: skip, update, fail
+  - Validation-only mode (dry run)
+  - Auto-cleanup old exports (24 hours)
+  - Job status tracking with progress percentage
+  - Row-level error reporting
+  - Admin-only access for sensitive data
+  - Tests: `tests/test_import_export.py`
+  - Documentation: `docs/IMPORT_EXPORT.md`
+  - Dependencies: `openpyxl`, `pandas`
+
+- **Soft Delete for All Models** (#6, 3 SP)
+  - `core/schemas/soft_delete.py` - GraphQL API for soft-deleted records
+  - Admin-only queries:
+    - `deletedRecords` - list soft-deleted records by entity type
+    - `deletedRecordDetails` - detailed info with deleted_by user
+  - Admin-only mutations:
+    - `restoreRecord` - restore soft-deleted entity
+    - `permanentDelete` - permanently remove (irreversible)
+  - Applied to: UserModel, ConceptModel, DictionaryModel, LanguageModel
+  - `SoftDeleteMixin` provides: is_deleted(), restore(), default query scopes
+  - Integrated into main schema
+
+### Added - Infrastructure & Security
+
+- **Security Headers Middleware** (#46, 2 SP)
+  - `core/middleware/security_headers.py` - SecurityHeadersMiddleware
+  - Headers: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+  - HSTS with configurable max-age
+  - Content-Security-Policy (configurable via env)
+  - Referrer-Policy, Permissions-Policy
+  - App-level protection (independent of nginx)
+  - Configurable via environment variables
+
+- **Graceful Shutdown Handling** (#54, 3 SP)
+  - `core/shutdown.py` - GracefulShutdown with signal handlers
+  - `core/middleware/shutdown.py` - ShutdownMiddleware (returns 503 during shutdown)
+  - Cross-platform support (Unix signals, Windows events)
+  - Configurable timeout via `SHUTDOWN_TIMEOUT` env var (default 30s)
+  - Wait for active requests to complete
+  - Reject new requests during shutdown
+  - Health checks return 503 during shutdown
+  - Integrated with uvicorn graceful shutdown
 
 ### Changed
-- `auth/models/user.py` - Now inherits from `SoftDeleteMixin`
-- `languages/models/concept.py` - Now inherits from `SoftDeleteMixin`
-- `languages/models/dictionary.py` - Now inherits from `SoftDeleteMixin`
-- `languages/models/language.py` - Now inherits from `SoftDeleteMixin`
-- `app.py` - Added `/health/detailed` endpoint
+- `app.py` - Added new middleware: RequestLoggingMiddleware, SecurityHeadersMiddleware, ShutdownMiddleware
+- `app.py` - `/metrics` endpoint now updates DB pool metrics on scrape
+- `app.py` - Sentry initialization on startup
+- `app.py` - Graceful shutdown setup with configurable timeout
+- `core/schemas/schema.py` - Added SoftDeleteQuery, SoftDeleteMutation
+- `CLAUDE.md` - Comprehensive documentation updates for all new features
+- `requirements.txt` - Added: prometheus-client, psutil, sentry-sdk, openpyxl, pandas
 
-### Planned
-- Advanced Search & Filtering (P1)
-- User Profile Management enhancements (P1)
-- API Rate Limiting (P1)
-- Import/Export System (P1)
+### Fixed
+- `core/schemas/soft_delete.py` - Renamed `EntityTypeEnum` to `SoftDeleteEntityType` to avoid conflict with import_export schema
 
 ## [0.3.0] - 2025-01-16
 
@@ -231,6 +330,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **0.4.0** (2025-01-20) - Monitoring, Observability & Core Features (64 SP)
 - **0.3.0** (2025-01-16) - File Upload & Audit Logging
 - **0.2.0** (2025-01-15) - OAuth & Email Verification
 - **0.1.0** (2025-01-10) - Initial Release

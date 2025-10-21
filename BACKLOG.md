@@ -1,6 +1,6 @@
 # Product Backlog - МультиПУЛЬТ
 
-Бэклог пользовательских историй для развития проекта в production-ready backend template.
+Бэклог задач для развития проекта в production-ready backend template.
 
 ## Легенда приоритетов
 
@@ -13,1062 +13,29 @@
 
 - 📋 **Backlog** - в очереди
 - 🚧 **In Progress** - в разработке
-- ✅ **Done** - завершено
 - 🔒 **Blocked** - заблокировано
 
-## 🎯 Vision: Production-Ready Template для тысяч проектов
+## 🎯 Vision
 
-**Цель:** Создать универсальный, безопасный, масштабируемый backend-шаблон, который может быть использован как submodule в любом проекте и запущен в production за 30 минут.
-
----
-
-## 🚀 Quick Wins - Задачи без новых зависимостей
-
-**🎯 ПРИОРИТЕТНЫЕ ДЛЯ РЕАЛИЗАЦИИ (можно сделать быстро, без новых зависимостей):**
-
-1. **#46 - Security Headers Middleware** (P1, 2 SP, 1-2 часа) - Критично для безопасности
-2. **#54 - Graceful Shutdown** (P1, 3 SP, 1-2 часа) - Важно для production
-3. **#6 - Завершение Soft Delete** (P2, 3 SP, 2-3 часа) - 60% готово, нужен GraphQL API
-4. **#32 - Enhanced Health Checks** (P1, 5 SP, 2-3 часа) - Добавить K8s endpoints
-5. **#47 - DB Connection Pool Monitoring** (P2, 5 SP, 2-3 часа) - Prometheus метрики
-6. **#53 - API Request/Response Logging** (P2, 5 SP, 2-3 часа) - Debugging
-7. **#3 - User Profile Management** (P1, 5 SP, 3-4 часа) - Profile модель есть
-8. **#8 - Admin Panel Features** (P2, 8 SP, 4-6 часов) - Частично реализовано
-9. **#24 - DB Query Optimization** (P1, 8 SP, 4-6 часов) - N+1 prevention
-
-**Общий объем:** ~40 story points, ~25-35 часов работы
+Создать универсальный, безопасный, масштабируемый backend-шаблон, который может быть использован как submodule в любом проекте и запущен в production за 30 минут.
 
 ---
 
-## Top 10 Приоритетных Задач
+## 🔥 P0 - Critical (Блокирует Production)
 
-**Обозначения статусов:**
-- ✅ **Done** - полностью завершено
-- 🚧 **In Progress** - частично реализовано, требуется доработка
-- 📋 **Backlog** - не начато
-- 🎯 **QUICK WIN** - можно сделать быстро без новых зависимостей
-
-### 1. 🔥 P0 - File Upload System для Avatars и Attachments
+### #18 - Background Task Processing (Celery)
 
 **User Story:**
-> Как пользователь, я хочу загружать аватар для профиля и прикреплять файлы к концепциям, чтобы визуально идентифицировать себя и добавлять медиа к контенту.
+Как разработчик, я хочу выполнять длительные задачи асинхронно (отправка email, генерация отчетов), чтобы не блокировать HTTP requests.
 
 **Acceptance Criteria:**
-- [✅] Загрузка файлов через GraphQL (multipart/form-data)
-- [✅] Сохранение в локальное хранилище или S3
-- [✅] Валидация типов файлов (JPEG, PNG, GIF для аватаров)
-- [✅] Ограничение размера (5MB для аватаров, 10MB для attachments)
-- [✅] Генерация thumbnails для изображений
-- [✅] Secure filename sanitization
-- [✅] GraphQL mutations: `uploadAvatar`, `uploadFile`, `deleteFile`
-- [✅] Endpoint для получения файлов: `/uploads/:filename`
-
-**Implementation:**
-- `core/models/file.py` - модель File для БД
-- `core/file_storage.py` - FileStorageService для работы с файловой системой
-- `core/services/file_service.py` - бизнес-логика
-- `core/schemas/file.py` - GraphQL API
-- `app.py` - endpoint `/uploads/{filename:path}`
-- Обновлена модель UserProfileModel с `avatar_file_id`
-- Добавлен Pillow в requirements.txt
-
-**Estimated Effort:** 5 story points
-
-**Status:** ✅ **Done** (2025-01-16)
-
----
-
-### 2. ⚡ P1 - Advanced Search & Filtering
-
-**User Story:**
-> Как пользователь, я хочу искать концепции и переводы по ключевым словам, фильтровать по языкам и тегам, чтобы быстро находить нужную информацию.
-
-**Acceptance Criteria:**
-- [✅] Full-text search по концепциям (name, description)
-- [✅] Поиск по переводам в словарях
-- [✅] Фильтры: язык, категория, дата создания
-- [✅] Пагинация результатов (по 20 элементов)
-- [✅] Сортировка: по релевантности, алфавиту, дате
-- [✅] GraphQL query: `searchConcepts(query: String!, filters: SearchFilters)`
-- [✅] PostgreSQL full-text search (using ILIKE)
-- [✅] Autocomplete/suggestions query
-- [✅] Popular concepts query
-
-**Example Query:**
-```graphql
-query SearchConcepts {
-  searchConcepts(
-    query: "пользователь"
-    filters: {
-      languages: ["ru", "en"]
-      dateFrom: "2024-01-01"
-    }
-    pagination: { limit: 20, offset: 0 }
-    sortBy: RELEVANCE
-  ) {
-    results {
-      id
-      name
-      translations {
-        language { code }
-        name
-      }
-    }
-    totalCount
-  }
-}
-```
-
-**Estimated Effort:** 8 story points
-
-**Status:** ✅ **Done** (2025-01-20)
-
-**Implementation Details:**
-- `languages/services/search_service.py` - SearchService с полнотекстовым поиском
-- `languages/schemas/search.py` - GraphQL схема с 3 queries:
-  - `searchConcepts` - основной поиск с фильтрами
-  - `searchSuggestions` - автодополнение
-  - `popularConcepts` - популярные концепции
-- PostgreSQL ILIKE для case-insensitive поиска
-- Eager loading (joinedload) для предотвращения N+1 queries
-- Поддержка soft-delete (только активные записи)
-- Максимум 100 результатов на страницу
-- Документация в CLAUDE.md с примерами
-
----
-
-### 3. ⚡ P1 - User Profile Management 🎯 QUICK WIN
-
-**User Story:**
-> Как пользователь, я хочу управлять своим профилем (имя, био, аватар, настройки), чтобы персонализировать аккаунт.
-
-**QUICK WIN:** Модель Profile уже есть, нужны GraphQL mutations, 3-4 часа работы
-
-**Acceptance Criteria:**
-- [✅] GraphQL mutation: `updateProfile(input: ProfileUpdateInput!)`
-- [✅] Поля: firstName, lastName, bio, avatar, timezone, language
-- [✅] Валидация: bio до 500 символов
-- [✅] Возможность изменить email (с подтверждением)
-- [✅] Возможность изменить пароль (с текущим паролем)
-- [⏸️] Просмотр истории OAuth подключений (future enhancement)
-- [⏸️] Отвязка OAuth провайдеров (future enhancement)
-- [✅] Удаление аккаунта (soft delete)
-
-**Mutations:**
-```graphql
-mutation UpdateProfile {
-  updateProfile(input: {
-    firstName: "Иван"
-    lastName: "Петров"
-    bio: "Backend разработчик"
-    timezone: "Europe/Moscow"
-  }) {
-    id
-    firstName
-    lastName
-  }
-}
-
-mutation ChangeEmail {
-  changeEmail(input: {
-    newEmail: "newemail@example.com"
-    password: "CurrentPass123!"
-  }) {
-    success
-    message
-    # Отправляет email на новый адрес для подтверждения
-  }
-}
-
-mutation DeleteAccount {
-  deleteAccount(input: {
-    password: "CurrentPass123!"
-    reason: "Не использую больше"
-  }) {
-    success
-  }
-}
-```
-
-**Estimated Effort:** 5 story points
-
-**Status:** ✅ **Done** (2025-01-20)
-
-**Implementation Details:**
-- `auth/services/profile_service.py` - ProfileService с полной бизнес-логикой:
-  - `update_profile()` - обновление полей профиля с валидацией
-  - `change_password()` - смена пароля с проверкой текущего
-  - `initiate_email_change()` - инициация смены email с токеном
-  - `confirm_email_change()` - подтверждение смены через email
-  - `delete_account()` - soft delete аккаунта
-- `auth/schemas/user.py` - GraphQL мутации:
-  - `updateProfile` - обновление профиля
-  - `changePassword` - смена пароля
-  - `requestEmailChange` - запрос смены email
-  - `confirmEmailChange` - подтверждение email
-  - `deleteAccount` - удаление аккаунта
-- `core/email_service.py` - email template для подтверждения смены email
-- Добавлено поле `bio` в UserProfile
-- Валидация всех полей (firstName/lastName max 50, bio max 500)
-- Токены смены email хранятся в Redis (TTL 24 часа)
-- Soft delete использует существующий SoftDeleteMixin
-- Документация в CLAUDE.md с примерами
-
----
-
-### 4. 🔥 P0 - Audit Logging System
-
-**User Story:**
-> Как администратор, я хочу видеть логи всех важных действий пользователей (вход, изменения данных, удаления), чтобы обеспечить безопасность и возможность аудита.
-
-**Acceptance Criteria:**
-- [✅] Новая модель `AuditLog` с полями: user_id, action, entity_type, entity_id, old_data, new_data, ip_address, user_agent, timestamp, description, status
-- [✅] Готовые методы логирования: login, logout, register, OAuth login, entity CRUD
-- [✅] GraphQL queries для админов: `auditLogs`, `myAuditLogs`, `userActivity`
-- [✅] Фильтрация по user_id, action, entity_type, status, датам
-- [✅] Пагинация и сортировка
-- [✅] Метод автоматической очистки старых логов (`cleanup_old_logs`)
-- [✅] Статистика активности пользователя
-
-**Implementation:**
-- `core/models/audit_log.py` - модель AuditLog
-- `core/services/audit_service.py` - AuditService с методами:
-  - `log()` - базовый метод логирования
-  - `log_login()`, `log_register()`, `log_logout()`
-  - `log_entity_create/update/delete()`
-  - `get_logs()` - получение с фильтрами
-  - `get_user_activity()` - статистика
-  - `cleanup_old_logs()` - очистка
-- `core/schemas/audit.py` - GraphQL API для аудита
-- Интегрировано в core/schemas/schema.py
-
-**Estimated Effort:** 8 story points
-
-**Status:** ✅ **Done** (2025-01-16)
-
----
-
-### 5. ⚡ P1 - API Rate Limiting
-
-**User Story:**
-> Как администратор, я хочу ограничить количество запросов к API от одного пользователя/IP, чтобы защититься от злоупотреблений и DDoS атак.
-
-**Acceptance Criteria:**
-- [ ] Rate limiting на уровне приложения (не только nginx)
-- [ ] Лимиты на основе: IP адреса, user_id, JWT токена
-- [ ] Разные лимиты для разных endpoint'ов:
-  - Обычные запросы: 100 req/min
-  - Мутации: 20 req/min
-  - Login/register: 5 req/min
-  - Email отправка: 3 req/hour (уже есть)
-- [ ] Redis для хранения счетчиков
-- [ ] HTTP заголовки: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-- [ ] GraphQL error при превышении: `RATE_LIMIT_EXCEEDED`
-- [ ] Белый список IP для админов
-
-**Implementation:**
-```python
-# core/rate_limiter.py
-from functools import wraps
-from starlette.requests import Request
-
-def rate_limit(max_requests: int, window_seconds: int):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            request = kwargs.get('info').context['request']
-            ip = request.client.host
-            key = f"rate_limit:{ip}:{func.__name__}"
-
-            # Check Redis counter
-            current = await redis.incr(key)
-            if current == 1:
-                await redis.expire(key, window_seconds)
-
-            if current > max_requests:
-                raise GraphQLError("Rate limit exceeded")
-
-            return await func(*args, **kwargs)
-        return wrapper
-    return decorator
-```
-
-**Estimated Effort:** 5 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 6. 📌 P2 - Soft Delete для всех моделей 🎯 QUICK WIN
-
-**User Story:**
-> Как администратор, я хочу восстанавливать случайно удаленные данные (пользователей, концепции, словари), вместо их окончательного удаления.
-
-**QUICK WIN:** Миксин уже реализован на 60%, нужно добавить GraphQL API, 2-3 часа работы
-
-**Acceptance Criteria:**
-- [✅] Добавить поля `deleted_at`, `deleted_by_id` в SoftDeleteMixin
-- [✅] Методы `soft_delete()` и `restore()` для управления жизненным циклом
-- [✅] Фильтрация: `active()`, `deleted()`, `with_deleted()` query builders
-- [✅] Применено к основным моделям: User, Concept, Dictionary, Language
-- [✅] GraphQL query `deletedRecords` для просмотра удаленных (для всех entities)
-- [✅] GraphQL мутация `restoreRecord(entityType, entityId)` для восстановления
-- [✅] GraphQL мутация `permanentDelete(entityType, entityId)` для админов
-- [⏸️] Celery задача для автоматического permanent удаления через 90 дней (future enhancement)
-
-**Implementation Status:**
-- ✅ `core/models/mixins/soft_delete.py` - SoftDeleteMixin с полным функционалом
-- ✅ Применён к моделям: UserModel, ConceptModel, DictionaryModel, LanguageModel
-- ✅ Методы: `soft_delete(db, deleted_by_user_id)`, `restore(db)`, `is_deleted()`
-- ✅ Query builders: `Model.active(db)`, `Model.deleted(db)`, `Model.with_deleted(db)`
-- ✅ `core/schemas/soft_delete.py` - GraphQL API для управления удалёнными записями
-- ✅ Admin-only permissions для restore и permanent delete
-- ✅ Integrated into main GraphQL schema
-
-**Example Usage (Python):**
-```python
-# Soft delete
-user.soft_delete(db, deleted_by_user_id=admin.id)
-
-# Query only active
-active_users = User.active(db).all()
-
-# Query deleted
-deleted_users = User.deleted(db).all()
-
-# Restore
-user.restore(db)
-```
-
-**GraphQL API (To Be Implemented):**
-```graphql
-# Просмотр удалённых элементов (admin only)
-query ArchivedItems {
-  archivedConcepts(limit: 20, offset: 0) {
-    concepts {
-      id
-      name
-      deletedAt
-      deletedBy { id username }
-    }
-    total
-  }
-  archivedUsers(limit: 20, offset: 0) {
-    users {
-      id
-      username
-      email
-      deletedAt
-      deletedBy { id username }
-    }
-    total
-  }
-}
-
-# Восстановление записи
-mutation RestoreItem {
-  restoreConcept(id: 123) {
-    success
-    message
-    concept { id name deletedAt }
-  }
-}
-
-# Permanent delete (admin only, осторожно!)
-mutation PermanentDelete {
-  permanentlyDeleteConcept(id: 123) {
-    success
-    message
-  }
-}
-```
-
-**Estimated Effort:** 8 story points total
-- ✅ 5 story points - Core functionality (Done)
-- 📋 3 story points - GraphQL API + автоочистка (Backlog)
-
-**Status:** 🚧 **In Progress** (Core ~60% реализован, GraphQL API требуется)
-
----
-
-### 7. ⚡ P1 - Import/Export System
-
-**User Story:**
-> Как администратор контента, я хочу экспортировать и импортировать концепции и переводы в JSON/CSV, чтобы мигрировать данные между окружениями или делать бэкапы.
-
-**Acceptance Criteria:**
-- [✅] GraphQL mutation: `exportData(entityType: String!, format: ExportFormat!)`
-- [✅] Форматы: JSON, CSV, XLSX
-- [✅] Экспорт: concepts, dictionaries, users (без паролей), languages
-- [✅] Импорт с валидацией: `importData(file: Upload!, entityType: String!)`
-- [✅] Обработка дубликатов: skip, update, or fail
-- [✅] Прогресс импорта через job status tracking
-- [✅] Лог импорта: успешные/ошибочные записи
-- [ ] Асинхронная обработка для больших файлов (требуется Celery)
-
-**Example:**
-```graphql
-mutation ExportConcepts {
-  exportData(
-    entityType: "concepts"
-    format: JSON
-    filters: { language: "ru" }
-  ) {
-    url  # Ссылка на скачивание
-    expiresAt
-  }
-}
-
-mutation ImportConcepts {
-  importData(
-    file: Upload!
-    entityType: "concepts"
-    options: {
-      onDuplicate: UPDATE
-      validateOnly: false
-    }
-  ) {
-    jobId
-    status
-  }
-}
-
-query ImportStatus {
-  importJob(id: "job-123") {
-    status  # pending, processing, completed, failed
-    progress  # 75%
-    processedCount
-    errorCount
-    errors {
-      row
-      message
-    }
-  }
-}
-```
-
-**Implementation Details:**
-- `core/models/import_export_job.py` - Job tracking model with status, progress, errors
-- `core/services/export_service.py` - Export to JSON, CSV, XLSX with filtering
-- `core/services/import_service.py` - Import with validation and duplicate handling
-- `core/schemas/import_export.py` - GraphQL mutations and queries
-- `app.py` - `/exports/{filename}` endpoint for file downloads
-- `tests/test_import_export.py` - Comprehensive test suite
-- `docs/IMPORT_EXPORT.md` - Complete documentation with examples
-
-**Key Features Implemented:**
-- Synchronous processing (ready for async with Celery)
-- Job status tracking with progress percentage
-- Detailed error reporting (row-level)
-- Validation-only mode (dry run)
-- Automatic file cleanup (24 hours)
-- Filtering for exports (language, dates)
-- Path traversal protection
-- Admin-only access for user imports/exports
-
-**Estimated Effort:** 13 story points
-
-**Status:** ✅ **Done** (2025-01-20)
-
----
-
-### 8. 📌 P2 - Admin Panel Features 🎯 QUICK WIN
-
-**User Story:**
-> Как администратор, я хочу управлять пользователями, ролями и правами через GraphQL, чтобы контролировать доступ к системе.
-
-**QUICK WIN:** Частично реализовано (роли есть), нужны admin queries и ban/unban, 4-6 часов работы
-
-**Acceptance Criteria:**
-- [ ] GraphQL queries для админов:
-  - `users(filters, pagination)` - список всех пользователей
-  - `userActivity(userId)` - активность пользователя
-  - `systemStats` - статистика системы
-- [ ] Мутации:
-  - `adminUpdateUser` - изменить данные любого пользователя
-  - `adminBanUser` - заблокировать пользователя
-  - `adminUnbanUser` - разблокировать
-  - `adminAssignRole` - назначить роль
-  - `adminRevokeRole` - отозвать роль
-- [ ] Фильтры: по ролям, статусу (active/banned/unverified), дате регистрации
-- [ ] Пагинация и сортировка
-- [ ] Bulk операции: массовое удаление, изменение ролей
-
-**Queries:**
-```graphql
-query AdminGetUsers {
-  users(
-    filters: {
-      role: "user"
-      status: ACTIVE
-      registeredAfter: "2024-01-01"
-    }
-    pagination: { limit: 50, offset: 0 }
-    sortBy: { field: CREATED_AT, order: DESC }
-  ) {
-    users {
-      id
-      username
-      email
-      roles { name }
-      isVerified
-      isBanned
-      lastLoginAt
-    }
-    totalCount
-  }
-}
-
-query SystemStats {
-  systemStats {
-    totalUsers
-    activeUsers
-    totalConcepts
-    totalTranslations
-    languagesCount
-    storageUsed
-  }
-}
-
-mutation AdminBanUser {
-  adminBanUser(
-    userId: 123
-    reason: "Spam"
-    until: "2024-12-31"
-  ) {
-    success
-    message
-  }
-}
-```
-
-**Estimated Effort:** 8 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 9. 💡 P3 - GraphQL Subscriptions (Real-time Updates)
-
-**User Story:**
-> Как пользователь, я хочу получать обновления в реальном времени (новые переводы, изменения концепций), чтобы видеть актуальные данные без перезагрузки.
-
-**Acceptance Criteria:**
-- [ ] WebSocket поддержка в Strawberry GraphQL
-- [ ] Subscriptions:
-  - `conceptUpdated(conceptId)` - изменения концепции
-  - `translationAdded(conceptId)` - новый перевод
-  - `userStatusChanged(userId)` - статус пользователя online/offline
-- [ ] Redis Pub/Sub для обмена сообщениями между workers
-- [ ] Аутентификация через WebSocket (JWT в connection params)
-- [ ] Graceful disconnect handling
-
-**Implementation:**
-```python
-# В core/schemas/schema.py
-@strawberry.type
-class Subscription:
-    @strawberry.subscription
-    async def concept_updated(
-        self,
-        info: Info,
-        concept_id: int
-    ) -> ConceptType:
-        async for message in redis_subscribe(f"concept:{concept_id}"):
-            yield message
-
-# Клиент
-subscription {
-  conceptUpdated(conceptId: 123) {
-    id
-    name
-    updatedAt
-    dictionaries {
-      language { code }
-      name
-    }
-  }
-}
-```
-
-**Estimated Effort:** 13 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 10. 📌 P2 - Notification System
-
-**User Story:**
-> Как пользователь, я хочу получать уведомления о важных событиях (новые комментарии, изменения в концепциях, которые я отслеживаю), чтобы быть в курсе.
-
-**Acceptance Criteria:**
-- [ ] Модель `Notification`: type, title, message, is_read, user_id, entity_type, entity_id
-- [ ] Типы уведомлений:
-  - `concept_updated` - изменена отслеживаемая концепция
-  - `translation_added` - добавлен перевод
-  - `comment_reply` - ответ на комментарий
-  - `role_assigned` - назначена новая роль
-  - `system_announcement` - системное объявление
-- [ ] Доставка: in-app, email, web push (опционально)
-- [ ] GraphQL queries:
-  - `notifications(filters, pagination)` - список уведомлений
-  - `unreadNotificationsCount` - количество непрочитанных
-- [ ] Мутации:
-  - `markNotificationAsRead(id)`
-  - `markAllAsRead`
-  - `deleteNotification(id)`
-- [ ] Настройки пользователя: какие уведомления получать
-
-**Models:**
-```python
-# core/models/notification.py
-class Notification(BaseModel):
-    __tablename__ = "notifications"
-
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    type = Column(String(50), nullable=False)
-    title = Column(String(255), nullable=False)
-    message = Column(Text)
-    is_read = Column(Boolean, default=False)
-    read_at = Column(DateTime, nullable=True)
-    entity_type = Column(String(50))  # "concept", "comment"
-    entity_id = Column(Integer)
-    data = Column(JSON)  # Дополнительные данные
-
-    user = relationship("User", backref="notifications")
-
-class NotificationSettings(BaseModel):
-    __tablename__ = "notification_settings"
-
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    email_notifications = Column(Boolean, default=True)
-    concept_updates = Column(Boolean, default=True)
-    translation_updates = Column(Boolean, default=True)
-    comments = Column(Boolean, default=True)
-    system_announcements = Column(Boolean, default=True)
-```
-
-**Queries:**
-```graphql
-query GetNotifications {
-  notifications(
-    filters: { isRead: false }
-    pagination: { limit: 20, offset: 0 }
-  ) {
-    notifications {
-      id
-      type
-      title
-      message
-      isRead
-      createdAt
-      entity {
-        ... on ConceptType {
-          id
-          name
-        }
-      }
-    }
-    totalCount
-    unreadCount
-  }
-}
-
-mutation MarkAsRead {
-  markNotificationAsRead(id: 123) {
-    success
-  }
-}
-```
-
-**Estimated Effort:** 13 story points
-
-**Status:** 📋 Backlog
-
----
-
-## Дополнительные задачи (P3 - Nice to Have)
-
-### 11. 💡 P3 - Two-Factor Authentication (2FA)
-
-**User Story:**
-> Как пользователь, я хочу включить двухфакторную аутентификацию для дополнительной безопасности аккаунта.
-
-**Acceptance Criteria:**
-- [ ] TOTP (Time-based One-Time Password) через Google Authenticator/Authy
-- [ ] QR код для настройки
-- [ ] Backup коды (10 одноразовых кодов)
-- [ ] Принудительная 2FA для админов
-- [ ] Recovery опции при потере устройства
-
-**Estimated Effort:** 8 story points
-
----
-
-### 12. 💡 P3 - Comment System для концепций
-
-**User Story:**
-> Как пользователь, я хочу оставлять комментарии к концепциям и переводам, чтобы обсуждать их с другими.
-
-**Acceptance Criteria:**
-- [ ] Модель `Comment` с вложенными комментариями (threads)
-- [ ] CRUD операции через GraphQL
-- [ ] Markdown поддержка
-- [ ] Модерация комментариев (для moderator роли)
-- [ ] Уведомления о новых комментариях
-
-**Estimated Effort:** 13 story points
-
----
-
-### 13. 💡 P3 - Version History для концепций
-
-**User Story:**
-> Как редактор, я хочу видеть историю изменений концепций и переводов, чтобы откатывать ошибочные правки.
-
-**Acceptance Criteria:**
-- [ ] Модель `ConceptVersion` с snapshot данных
-- [ ] Автоматическое создание версии при каждом изменении
-- [ ] Просмотр diff между версиями
-- [ ] Откат к предыдущей версии
-- [ ] Хранение не более 50 последних версий
-
-**Estimated Effort:** 13 story points
-
----
-
-### 14. 💡 P3 - Tags/Labels система
-
-**User Story:**
-> Как редактор, я хочу добавлять теги к концепциям для лучшей организации и поиска.
-
-**Acceptance Criteria:**
-- [ ] Модель `Tag` с many-to-many связью с Concept
-- [ ] CRUD операции для тегов
-- [ ] Автокомплит при добавлении тега
-- [ ] Поиск концепций по тегам
-- [ ] Цветовая маркировка тегов
-
-**Estimated Effort:** 5 story points
-
----
-
-### 15. 💡 P3 - Analytics Dashboard
-
-**User Story:**
-> Как администратор, я хочу видеть аналитику использования системы (популярные концепции, активные пользователи, языки).
-
-**Acceptance Criteria:**
-- [ ] Dashboard с метриками:
-  - Регистрации по дням
-  - Активные пользователи (DAU, MAU)
-  - Топ-10 популярных концепций
-  - Использование языков
-  - API requests statistics
-- [ ] Графики с Chart.js или Recharts
-- [ ] Экспорт отчетов в PDF
-
-**Estimated Effort:** 13 story points
-
----
-
-## Процесс работы с бэклогом
-
-### Планирование спринта
-
-1. **Grooming** - еженедельный разбор задач:
-   - Уточнение требований
-   - Оценка сложности (story points)
-   - Приоритизация
-
-2. **Sprint Planning** - выбор задач на спринт:
-   - Capacity: ~20 story points на спринт
-   - Выбор из топ-приоритетных задач
-   - Декомпозиция на подзадачи
-
-3. **Daily** - обновление статусов
-
-4. **Review & Retro** - демо и ретроспектива
-
-### Критерии готовности (Definition of Done)
-
-- [ ] Код написан и прошел code review
-- [ ] Unit тесты написаны и проходят
-- [ ] Integration тесты проходят
-- [ ] Документация обновлена (CLAUDE.md, README.md)
-- [ ] GraphQL schema экспортирована
-- [ ] Миграции созданы (если нужны)
-- [ ] Проверено на staging окружении
-- [ ] No regressions в существующем функционале
-
----
-
-## Метрики
-
-**Velocity:** Отслеживать завершенные story points за спринт
-
-**Sprint Goal Achievement:** % выполненных задач из sprint backlog
-
-**Bug Rate:** Количество багов на задачу
-
----
-
----
-
-## 🚀 НОВЫЕ ЗАДАЧИ: Infrastructure & Production Readiness
-
-### 16. 🔥 P0 - Error Tracking & Monitoring (Sentry Integration)
-
-**User Story:**
-> Как DevOps инженер, я хочу автоматически отслеживать все ошибки в production, чтобы быстро реагировать на проблемы.
-
-**Acceptance Criteria:**
-- [✅] Интеграция с Sentry (или аналог)
-- [✅] Автоматическая отправка всех uncaught exceptions
-- [✅] Контекст ошибок: user_id, request_id, endpoint, environment
-- [✅] Source maps для stack traces
-- [✅] Email/Slack уведомления при критических ошибках (настраивается в Sentry UI)
-- [✅] Группировка похожих ошибок (автоматически в Sentry)
-- [✅] Performance monitoring (transaction traces)
-- [✅] Release tracking для связи с деплоями
-- [✅] Breadcrumbs для отслеживания действий пользователя
-- [✅] Фильтрация чувствительных данных (пароли, токены)
-
-**Implementation:**
-```python
-# core/sentry.py
-import sentry_sdk
-from sentry_sdk.integrations.starlette import StarletteIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-
-def init_sentry():
-    sentry_sdk.init(
-        dsn=os.getenv("SENTRY_DSN"),
-        environment=os.getenv("ENVIRONMENT", "production"),
-        traces_sample_rate=1.0,
-        integrations=[
-            StarletteIntegration(),
-            SqlalchemyIntegration(),
-        ],
-        before_send=filter_sensitive_data,
-    )
-
-# В app.py
-from core.sentry import init_sentry
-init_sentry()
-```
-
-**Dependencies:** `sentry-sdk[starlette,sqlalchemy]`, `psutil`
-
-**Implementation Details:**
-- `core/sentry.py` - Sentry initialization with integrations (Starlette, SQLAlchemy, Logging)
-- `app.py` - Automatic initialization on startup
-- Environment variables: SENTRY_DSN, ENVIRONMENT, SENTRY_ENABLE_TRACING, SENTRY_TRACES_SAMPLE_RATE
-- Automatic user context tracking for authenticated requests
-- Comprehensive tests in `tests/test_sentry.py`
-- Documentation in CLAUDE.md with setup instructions and usage examples
-- Production checklist updated with Sentry configuration steps
-
-**Key Features Implemented:**
-- `before_send` filter for automatic sensitive data removal
-- User context tracking with username and email
-- Breadcrumbs for authenticated requests
-- Configurable sample rates (1.0 for dev, 0.1 for production)
-- Manual error capture: `capture_exception()`, `capture_message()`
-- Performance monitoring: `start_transaction()`
-- Helper functions: `set_user_context()`, `add_breadcrumb()`, `set_context()`
-
-**Estimated Effort:** 5 story points
-
-**Status:** ✅ **Done** (2025-01-19)
-
----
-
-### 17. 🔥 P0 - Prometheus Metrics Collection
-
-**User Story:**
-> Как SRE, я хочу собирать метрики производительности (latency, throughput, errors), чтобы настраивать алерты и анализировать тренды.
-
-**Acceptance Criteria:**
-- [✅] Экспорт метрик в формате Prometheus
-- [✅] Endpoint `/metrics` для scraping
-- [✅] Метрики запросов:
-  - `http_requests_total` (counter)
-  - `http_request_duration_seconds` (histogram)
-  - `http_requests_in_progress` (gauge)
-- [✅] Метрики GraphQL (готовы к использованию):
-  - `graphql_query_duration_seconds`
-  - `graphql_query_errors_total`
-- [✅] Метрики базы данных (готовы к использованию):
-  - `db_connections_active`
-  - `db_query_duration_seconds`
-  - `db_errors_total`
-- [✅] Метрики Redis (готовы к использованию):
-  - `redis_connections_active`
-  - `redis_commands_total`
-- [✅] Метрики бизнес-логики (готовы к использованию):
-  - `users_registered_total`
-  - `emails_sent_total`
-  - `files_uploaded_total`
-- [✅] Метрики системы:
-  - `process_cpu_usage_percent`
-  - `process_memory_bytes`
-  - `process_open_fds`
-- [ ] Grafana dashboard template (опционально)
-
-**Implementation:**
-```python
-# core/metrics.py
-from prometheus_client import Counter, Histogram, Gauge, generate_latest
-
-REQUEST_COUNT = Counter('http_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
-REQUEST_DURATION = Histogram('http_request_duration_seconds', 'Request duration')
-DB_CONNECTIONS = Gauge('db_connections_active', 'Active DB connections')
-
-# middleware/metrics.py
-class PrometheusMiddleware:
-    async def __call__(self, request, call_next):
-        with REQUEST_DURATION.time():
-            response = await call_next(request)
-        REQUEST_COUNT.labels(request.method, request.url.path, response.status_code).inc()
-        return response
-
-# app.py
-@app.route("/metrics")
-async def metrics(request):
-    return Response(generate_latest(), media_type="text/plain")
-```
-
-**Dependencies:** `prometheus-client`
-
-**Implementation Details:**
-- ✅ `core/metrics.py` - All metrics definitions and collection logic
-- ✅ `core/middleware/metrics.py` - PrometheusMiddleware for automatic HTTP metrics
-- ✅ `app.py` - `/metrics` endpoint and middleware registration
-- ✅ `tests/test_metrics.py` - Comprehensive test suite
-- ✅ `requirements.txt` - Added prometheus-client dependency
-
-**Key Features:**
-- Automatic HTTP request tracking (count, duration, in-progress)
-- Path normalization for better metric grouping (e.g., `/users/123` → `/users/{id}`)
-- System metrics auto-update (CPU, memory, file descriptors)
-- Ready-to-use metrics for GraphQL, database, Redis, and business logic
-- Prometheus-compatible exposition format
-- Self-excluding (metrics endpoint doesn't track itself)
-
-**Usage:**
-```python
-# In your service code, use the metrics:
-from core.metrics import users_registered_total, emails_sent_total
-
-# Track user registration
-users_registered_total.labels(method='google').inc()
-
-# Track email sending
-emails_sent_total.labels(email_type='verification', status='success').inc()
-```
-
-**Access metrics:**
-```bash
-curl http://localhost:8000/metrics
-```
-
-**Estimated Effort:** 8 story points
-
-**Status:** ✅ **Done** (2025-01-20)
-
----
-
-### 18. 🔥 P0 - Background Task Processing (Celery)
-
-**User Story:**
-> Как разработчик, я хочу выполнять длительные задачи асинхронно (отправка email, генерация отчетов), чтобы не блокировать API запросы.
-
-**Acceptance Criteria:**
-- [ ] Celery setup с Redis/RabbitMQ broker
-- [ ] Worker процесс в Docker Compose
-- [ ] Задачи:
-  - `send_email_task` - отправка email
-  - `cleanup_old_logs_task` - очистка старых audit logs
-  - `generate_report_task` - генерация отчетов
-  - `process_image_task` - обработка изображений
-  - `send_notification_task` - отправка уведомлений
-- [ ] Scheduled tasks (Celery Beat):
-  - Ежедневная очистка старых токенов
-  - Еженедельная генерация статистики
-  - Ежемесячный бэкап данных
-- [ ] Retry механизм с exponential backoff
-- [ ] Task monitoring через Flower
-- [ ] Task result backend (Redis)
-- [ ] GraphQL query для статуса задачи: `taskStatus(taskId: ID!)`
+- [ ] Celery integration с Redis/RabbitMQ broker
+- [ ] Задачи: отправка email, генерация thumbnails, очистка старых файлов
+- [ ] Celery beat для периодических задач
+- [ ] Monitoring задач (Flower или Prometheus)
+- [ ] Retry logic с exponential backoff
 - [ ] Dead letter queue для failed tasks
-- [ ] Rate limiting на уровне задач
-
-**Implementation:**
-```python
-# core/celery_app.py
-from celery import Celery
-
-celery_app = Celery(
-    "multipult",
-    broker=os.getenv("CELERY_BROKER_URL"),
-    backend=os.getenv("CELERY_RESULT_BACKEND"),
-)
-
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    timezone="UTC",
-    enable_utc=True,
-)
-
-# tasks/email_tasks.py
-@celery_app.task(bind=True, max_retries=3)
-def send_email_task(self, to: str, subject: str, body: str):
-    try:
-        send_email(to, subject, body)
-    except Exception as exc:
-        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
-
-# tasks/cleanup_tasks.py
-@celery_app.task
-def cleanup_old_logs():
-    AuditService.cleanup_old_logs(days=90)
-
-# Celery Beat schedule
-celery_app.conf.beat_schedule = {
-    'cleanup-logs-daily': {
-        'task': 'tasks.cleanup_tasks.cleanup_old_logs',
-        'schedule': crontab(hour=2, minute=0),
-    },
-}
-```
-
-**Dependencies:** `celery[redis]`, `flower`
-
-**Docker Compose:**
-```yaml
-services:
-  celery_worker:
-    build: .
-    command: celery -A core.celery_app worker --loglevel=info
-    depends_on:
-      - redis
-      - db
-
-  celery_beat:
-    build: .
-    command: celery -A core.celery_app beat --loglevel=info
-    depends_on:
-      - redis
-
-  flower:
-    build: .
-    command: celery -A core.celery_app flower --port=5555
-    ports:
-      - "5555:5555"
-```
+- [ ] Graceful shutdown
 
 **Estimated Effort:** 13 story points
 
@@ -1076,104 +43,39 @@ services:
 
 ---
 
-### 19. 🔥 P0 - Structured Logging (JSON Format)
+### #19 - Structured Logging (JSON Format)
 
 **User Story:**
-> Как DevOps инженер, я хочу иметь структурированные логи в JSON формате, чтобы легко их агрегировать и анализировать в ELK/CloudWatch.
+Как DevOps инженер, я хочу логи в JSON формате, чтобы легко их парсить и анализировать в ELK/CloudWatch.
 
 **Acceptance Criteria:**
-- [ ] JSON formatter для логов
-- [ ] Поля в каждом логе:
-  - `timestamp` (ISO 8601)
-  - `level` (INFO, WARNING, ERROR)
-  - `message`
-  - `service` (backend)
-  - `environment` (dev/staging/prod)
-  - `request_id` (correlation ID)
-  - `user_id` (если аутентифицирован)
-  - `endpoint` (GraphQL query/mutation)
-  - `duration_ms` (для запросов)
-  - `error` (stack trace если есть)
-- [ ] Контекстные логи с дополнительными полями
-- [ ] Log levels конфигурируются через env
-- [ ] Ротация логов (по размеру/дате)
-- [ ] Separate log streams: access, error, audit
-- [ ] Фильтрация sensitive данных (tokens, passwords)
+- [ ] JSON logging format (structlog или python-json-logger)
+- [ ] Поля: timestamp, level, message, request_id, user_id, endpoint
+- [ ] Correlation ID для трассировки request-ов
+- [ ] Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+- [ ] Rotation политика (по размеру/времени)
+- [ ] Separate logs: access.log, error.log, app.log
+- [ ] ELK/CloudWatch compatibility
 
-**Implementation:**
-```python
-# core/logging_config.py
-import logging
-import json
-from pythonjsonlogger import jsonlogger
-
-class CustomJsonFormatter(jsonlogger.JsonFormatter):
-    def add_fields(self, log_record, record, message_dict):
-        super().add_fields(log_record, record, message_dict)
-        log_record['timestamp'] = datetime.utcnow().isoformat()
-        log_record['service'] = 'backend'
-        log_record['environment'] = os.getenv('ENVIRONMENT', 'development')
-        if hasattr(record, 'request_id'):
-            log_record['request_id'] = record.request_id
-
-def setup_logging():
-    handler = logging.StreamHandler()
-    handler.setFormatter(CustomJsonFormatter())
-
-    logging.basicConfig(
-        level=os.getenv('LOG_LEVEL', 'INFO'),
-        handlers=[handler]
-    )
-
-# middleware/request_id.py
-import uuid
-
-class RequestIDMiddleware:
-    async def __call__(self, request, call_next):
-        request.state.request_id = str(uuid.uuid4())
-        response = await call_next(request)
-        response.headers['X-Request-ID'] = request.state.request_id
-        return response
-
-# Использование в сервисах
-logger.info("User logged in", extra={
-    'user_id': user.id,
-    'request_id': request.state.request_id,
-    'ip_address': request.client.host
-})
-```
-
-**Dependencies:** `python-json-logger`
-
-**Estimated Effort:** 5 story points
+**Estimated Effort:** 8 story points
 
 **Status:** 📋 Backlog
 
 ---
 
-### 20. 🔥 P0 - Request ID & Distributed Tracing
+### #20 - Request ID & Distributed Tracing
 
 **User Story:**
-> Как разработчик, я хочу отслеживать запросы через все сервисы (API → DB → Redis → Celery), чтобы находить bottlenecks.
+Как разработчик, я хочу уникальный request_id для каждого запроса, чтобы трассировать его через все сервисы и логи.
 
 **Acceptance Criteria:**
-- [ ] Request ID генерируется для каждого запроса
-- [ ] Request ID в headers: `X-Request-ID`
+- [ ] Middleware генерирует уникальный request_id (UUID)
+- [ ] Request ID в response headers: `X-Request-ID`
 - [ ] Request ID в логах всех компонентов
-- [ ] Request ID передается в Celery tasks
-- [ ] OpenTelemetry интеграция (опционально)
-- [ ] Jaeger/Zipkin для визуализации traces (опционально)
-- [ ] Trace spans для:
-  - GraphQL query/mutation
-  - Database queries
-  - Redis operations
-  - External API calls
-  - Celery tasks
-- [ ] Correlation ID для связи между requests
-
-**Implementation:** см. задачу 19 (RequestIDMiddleware)
-
-**Dependencies:** `opentelemetry-api`, `opentelemetry-instrumentation-starlette` (опционально)
+- [ ] Передача request_id в Celery tasks
+- [ ] Интеграция с OpenTelemetry для distributed tracing
+- [ ] Span для каждого GraphQL query/mutation
+- [ ] Correlation между HTTP → GraphQL → DB queries
 
 **Estimated Effort:** 8 story points
 
@@ -1181,268 +83,21 @@ logger.info("User logged in", extra={
 
 ---
 
-### 21. ⚡ P1 - Application-Level Rate Limiting
+## ⚡ P1 - High Priority
+
+### #5 - API Rate Limiting
 
 **User Story:**
-> Как backend разработчик, я хочу иметь rate limiting на уровне приложения (не только nginx), чтобы защититься от abuse на уровне пользователей и API endpoints.
+Как администратор системы, я хочу ограничить количество запросов от одного пользователя, чтобы защититься от abuse и DDoS.
 
 **Acceptance Criteria:**
-- [ ] Decorator для rate limiting на мутациях/queries
-- [ ] Redis-backed счетчики
-- [ ] Лимиты по:
-  - IP адресу
-  - User ID
-  - API key (если есть)
-- [ ] Конфигурируемые лимиты для разных endpoints:
-  - `@rate_limit(max_requests=100, window_seconds=60)` - обычные запросы
-  - `@rate_limit(max_requests=5, window_seconds=60)` - auth endpoints
-  - `@rate_limit(max_requests=10, window_seconds=3600)` - file uploads
-- [ ] HTTP headers в ответе:
-  - `X-RateLimit-Limit`
-  - `X-RateLimit-Remaining`
-  - `X-RateLimit-Reset`
-- [ ] GraphQL error: `RATE_LIMIT_EXCEEDED`
-- [ ] Whitelist для admin users
-- [ ] Sliding window algorithm
-- [ ] Metrics для rate limit hits
-
-**Implementation:**
-```python
-# core/rate_limiter.py
-from functools import wraps
-from core.redis_client import redis_client
-
-def rate_limit(max_requests: int, window_seconds: int, key_func=None):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            info = kwargs.get('info')
-            request = info.context['request']
-            user = info.context.get('user')
-
-            # Определяем ключ для rate limit
-            if key_func:
-                key = key_func(request, user)
-            elif user:
-                key = f"rate_limit:{func.__name__}:user:{user.id}"
-            else:
-                key = f"rate_limit:{func.__name__}:ip:{request.client.host}"
-
-            # Проверяем лимит
-            current = await redis_client.incr(key)
-            if current == 1:
-                await redis_client.expire(key, window_seconds)
-
-            ttl = await redis_client.ttl(key)
-
-            # Добавляем headers в response
-            info.context['response'].headers['X-RateLimit-Limit'] = str(max_requests)
-            info.context['response'].headers['X-RateLimit-Remaining'] = str(max(0, max_requests - current))
-            info.context['response'].headers['X-RateLimit-Reset'] = str(time.time() + ttl)
-
-            if current > max_requests:
-                raise GraphQLError(
-                    "Rate limit exceeded",
-                    extensions={"code": "RATE_LIMIT_EXCEEDED"}
-                )
-
-            return await func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-# Использование
-@strawberry.mutation
-@rate_limit(max_requests=5, window_seconds=60)
-async def login(self, info: Info, input: LoginInput) -> AuthPayload:
-    ...
-```
-
-**Estimated Effort:** 5 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 22. ⚡ P1 - HTTP Caching Headers Middleware
-
-**User Story:**
-> Как разработчик, я хочу автоматически добавлять HTTP caching headers (ETag, Cache-Control), чтобы снизить нагрузку и ускорить ответы.
-
-**Acceptance Criteria:**
-- [ ] ETag generation для GET запросов
-- [ ] `If-None-Match` header support (304 Not Modified)
-- [ ] `Cache-Control` headers:
-  - `public, max-age=3600` для публичных данных
-  - `private, max-age=300` для user-specific данных
-  - `no-cache` для sensitive данных
-- [ ] `Last-Modified` header для ресурсов
-- [ ] `Vary` header для content negotiation
-- [ ] Конфигурация через decorators
-- [ ] Cache invalidation при обновлении данных
-- [ ] Support для `If-Modified-Since`
-
-**Implementation:**
-```python
-# middleware/caching.py
-import hashlib
-
-class CachingMiddleware:
-    async def __call__(self, request, call_next):
-        # Только для GET запросов
-        if request.method != "GET":
-            return await call_next(request)
-
-        response = await call_next(request)
-
-        # Генерируем ETag из body
-        body = b""
-        async for chunk in response.body_iterator:
-            body += chunk
-
-        etag = hashlib.md5(body).hexdigest()
-
-        # Проверяем If-None-Match
-        if request.headers.get("If-None-Match") == etag:
-            return Response(status_code=304)
-
-        # Добавляем headers
-        response.headers["ETag"] = etag
-        response.headers["Cache-Control"] = "public, max-age=300"
-
-        return response
-
-# Для GraphQL можно использовать cache hints
-@strawberry.type
-class Language:
-    @strawberry.field
-    @cache_control(max_age=3600)  # Кастомный decorator
-    def name(self) -> str:
-        return self.name
-```
-
-**Estimated Effort:** 5 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 23. ⚡ P1 - Input Validation & Sanitization Middleware
-
-**User Story:**
-> Как security engineer, я хочу автоматически валидировать и sanitize все входные данные, чтобы защититься от injection attacks.
-
-**Acceptance Criteria:**
-- [ ] Schema validation на всех inputs
-- [ ] HTML/SQL injection protection
-- [ ] XSS protection (sanitize HTML tags)
-- [ ] Path traversal protection (для file paths)
-- [ ] Email validation
-- [ ] URL validation
-- [ ] Size limits для всех полей
-- [ ] Regex validation для custom fields
-- [ ] Blacklist опасных символов
-- [ ] Normalization (trim, lowercase для emails)
-
-**Implementation:**
-```python
-# core/validators.py
-import bleach
-import re
-
-def sanitize_html(text: str) -> str:
-    """Удаляет HTML теги"""
-    return bleach.clean(text, strip=True)
-
-def validate_email(email: str) -> bool:
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(pattern, email) is not None
-
-def sanitize_filename(filename: str) -> str:
-    """Удаляет опасные символы из имени файла"""
-    return re.sub(r'[^\w\s.-]', '', filename)
-
-# Использование в Strawberry input types
-@strawberry.input
-class CreateConceptInput:
-    name: str
-    description: str | None = None
-
-    def __post_init__(self):
-        # Валидация и sanitization
-        self.name = sanitize_html(self.name.strip())
-        if len(self.name) > 255:
-            raise ValueError("Name too long")
-
-        if self.description:
-            self.description = sanitize_html(self.description.strip())
-```
-
-**Dependencies:** `bleach`, `validators`
-
-**Estimated Effort:** 5 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 24. ⚡ P1 - Database Query Optimization & N+1 Prevention 🎯 QUICK WIN
-
-**User Story:**
-> Как backend разработчик, я хочу автоматически предотвращать N+1 queries, чтобы не деградировала производительность.
-
-**QUICK WIN:** SQLAlchemy встроенные инструменты, добавить middleware и logging, 4-6 часов работы
-
-**Acceptance Criteria:**
-- [ ] SQLAlchemy query logging в development
-- [ ] Автоматическое использование `joinedload`/`selectinload`
-- [ ] Query analyzer для обнаружения N+1
-- [ ] Database indexes для всех foreign keys
-- [ ] Composite indexes для частых queries
-- [ ] Query result caching (Redis)
-- [ ] Database connection pool monitoring
-- [ ] Slow query detection (>100ms warning)
-- [ ] Query explain plans в логах (dev mode)
-
-**Implementation:**
-```python
-# core/database.py
-import logging
-
-# Enable query logging in dev
-if os.getenv('DEBUG') == 'True':
-    logging.basicConfig()
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-
-# Middleware для подсчета queries
-class QueryCounterMiddleware:
-    async def __call__(self, request, call_next):
-        from sqlalchemy import event
-
-        query_count = 0
-
-        def count_query(conn, cursor, statement, *args):
-            nonlocal query_count
-            query_count += 1
-
-        event.listen(engine, "before_cursor_execute", count_query)
-
-        response = await call_next(request)
-
-        if query_count > 10:
-            logger.warning(f"High query count: {query_count} queries")
-
-        response.headers['X-Query-Count'] = str(query_count)
-
-        event.remove(engine, "before_cursor_execute", count_query)
-
-        return response
-
-# Использование eager loading
-def get_concepts_with_translations(db: Session):
-    return db.query(ConceptModel).options(
-        joinedload(ConceptModel.dictionaries).joinedload(DictionaryModel.language)
-    ).all()
-```
+- [ ] Rate limiting per user/IP
+- [ ] Лимиты: 100 req/min для auth users, 20 req/min для anon
+- [ ] Redis для хранения счетчиков
+- [ ] GraphQL field-level rate limiting (опционально)
+- [ ] Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- [ ] HTTP 429 Too Many Requests при превышении
+- [ ] Whitelist для admin/internal IPs
 
 **Estimated Effort:** 8 story points
 
@@ -1450,33 +105,168 @@ def get_concepts_with_translations(db: Session):
 
 ---
 
-### 25. 📌 P2 - API Versioning Support
+### #8 - Admin Panel Features
 
 **User Story:**
-> Как API consumer, я хочу иметь версионирование API, чтобы обновления не ломали мою интеграцию.
+Как администратор, я хочу управлять пользователями, ролями и контентом через GraphQL API.
 
 **Acceptance Criteria:**
-- [ ] URL-based versioning: `/graphql/v1`, `/graphql/v2`
-- [ ] Header-based versioning: `X-API-Version: 1`
-- [ ] Schema stitching для поддержки нескольких версий
-- [ ] Deprecation warnings в responses
-- [ ] Версионирование мутаций и типов
-- [ ] Автоматическая генерация changelog между версиями
-- [ ] Sunset headers для deprecated versions
+- [ ] Admin mutations: banUser, unbanUser, deleteUser
+- [ ] Admin queries: allUsers (с фильтрами), systemStats
+- [ ] Bulk operations: assignRole, removeRole
+- [ ] Audit log для всех admin действий
+- [ ] Permission проверки для всех admin operations
+- [ ] Pagination для больших списков
 
-**Implementation:**
-```python
-# schemas/v1/schema.py
-schema_v1 = strawberry.Schema(query=Query, mutation=Mutation)
+**Estimated Effort:** 8 story points
 
-# schemas/v2/schema.py
-schema_v2 = strawberry.Schema(query=QueryV2, mutation=MutationV2)
+**Status:** 🚧 In Progress (частично реализовано)
 
-# app.py
-app.mount("/graphql/v1", GraphQLWithContext(schema_v1))
-app.mount("/graphql/v2", GraphQLWithContext(schema_v2))
-app.mount("/graphql", GraphQLWithContext(schema_v2))  # Latest
-```
+---
+
+### #21 - Application-Level Rate Limiting
+
+**User Story:**
+Как разработчик, я хочу rate limiting на уровне приложения (не только nginx), чтобы защититься от abuse в GraphQL queries.
+
+**Acceptance Criteria:**
+- [ ] Middleware для подсчета запросов per user/IP
+- [ ] Redis для distributed rate limiting
+- [ ] Разные лимиты для разных endpoints
+- [ ] GraphQL query complexity analysis
+- [ ] Throttling для expensive queries
+- [ ] HTTP 429 с Retry-After header
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #22 - HTTP Caching Headers Middleware
+
+**User Story:**
+Как разработчик, я хочу настроить HTTP caching headers, чтобы снизить нагрузку на сервер и ускорить ответы.
+
+**Acceptance Criteria:**
+- [ ] Middleware для добавления Cache-Control headers
+- [ ] ETag generation для GraphQL responses
+- [ ] Conditional requests: If-None-Match (304 Not Modified)
+- [ ] Разные cache policies для разных endpoints
+- [ ] Cache invalidation при mutations
+- [ ] Support для Vary header
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #23 - Input Validation & Sanitization Middleware
+
+**User Story:**
+Как администратор безопасности, я хочу валидировать и санитизировать все входные данные, чтобы предотвратить XSS и injection attacks.
+
+**Acceptance Criteria:**
+- [ ] Middleware для валидации всех inputs
+- [ ] XSS protection (sanitize HTML)
+- [ ] SQL injection prevention (через ORM)
+- [ ] Validate GraphQL inputs (types, ranges, lengths)
+- [ ] Reject requests с подозрительными паттернами
+- [ ] Logging всех rejected requests
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #24 - Database Query Optimization & N+1 Prevention
+
+**User Story:**
+Как разработчик, я хочу автоматически оптимизировать DB queries, чтобы избежать N+1 проблемы.
+
+**Acceptance Criteria:**
+- [ ] SQLAlchemy relationship lazy loading review
+- [ ] Добавить joinedload/subqueryload где нужно
+- [ ] Query logging в DEBUG mode
+- [ ] Monitoring slow queries (>100ms)
+- [ ] Indexes для часто используемых полей
+- [ ] Database query profiling tools
+- [ ] GraphQL DataLoader integration
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #32 - Enhanced Health Checks
+
+**User Story:**
+Как DevOps инженер, я хочу расширенные health checks, чтобы мониторить состояние всех компонентов системы.
+
+**Acceptance Criteria:**
+- [ ] Kubernetes-friendly endpoints: `/health/live`, `/health/ready`
+- [ ] Проверки: DB, Redis, Celery, disk space, memory
+- [ ] Graceful degradation (partial outage reporting)
+- [ ] Metrics для response time каждой проверки
+- [ ] Configurable timeout для health checks
+
+**Estimated Effort:** 5 story points
+
+**Status:** 🚧 In Progress (basic health checks готовы)
+
+---
+
+### #34 - Data Migration Tools
+
+**User Story:**
+Как администратор данных, я хочу инструменты для миграции данных между окружениями, чтобы безопасно переносить данные.
+
+**Acceptance Criteria:**
+- [ ] CLI commands для dump/restore данных
+- [ ] Selective export (по entities, dates, filters)
+- [ ] Data transformation при миграции
+- [ ] Dry-run mode для проверки
+- [ ] Rollback mechanism
+- [ ] Progress reporting для больших datasets
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #38 - GraphQL Persistent Queries
+
+**User Story:**
+Как разработчик, я хочу использовать persistent queries, чтобы снизить размер запросов и повысить безопасность.
+
+**Acceptance Criteria:**
+- [ ] Registry для pre-registered queries
+- [ ] Query hash вместо full query в production
+- [ ] Automatic query registration process
+- [ ] Reject non-whitelisted queries в production
+- [ ] Support для query versioning
+
+**Estimated Effort:** 5 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #42 - Database Read Replicas Support
+
+**User Story:**
+Как архитектор системы, я хочу поддержку read replicas, чтобы масштабировать read operations.
+
+**Acceptance Criteria:**
+- [ ] Separate DB connection для reads/writes
+- [ ] Automatic routing: mutations → primary, queries → replica
+- [ ] Replication lag monitoring
+- [ ] Fallback на primary при replica failures
+- [ ] Config для multiple replicas (load balancing)
 
 **Estimated Effort:** 13 story points
 
@@ -1484,85 +274,59 @@ app.mount("/graphql", GraphQLWithContext(schema_v2))  # Latest
 
 ---
 
-### 26. 📌 P2 - GraphQL Query Complexity Analysis
+### #50 - Comprehensive Integration Tests
 
 **User Story:**
-> Как backend developer, я хочу ограничивать сложность GraphQL запросов, чтобы защититься от DoS через complex queries.
+Как QA инженер, я хочу полный набор integration тестов, чтобы быть уверенным в качестве кода.
 
 **Acceptance Criteria:**
-- [ ] Query complexity calculation
-- [ ] Max complexity limit (например, 1000)
-- [ ] Depth limit (например, 10 уровней)
-- [ ] Cost analysis для каждого поля
-- [ ] Rejection сложных queries с понятным error message
-- [ ] Whitelist для admin users
-- [ ] Metrics для query complexity
+- [ ] Integration tests для всех GraphQL mutations/queries
+- [ ] Tests для OAuth flows (Google, Telegram)
+- [ ] Tests для email sending (с MailPit)
+- [ ] Tests для file uploads
+- [ ] Tests для rate limiting
+- [ ] CI/CD integration (GitHub Actions)
+- [ ] Code coverage >80%
 
-**Implementation:**
-```python
-# core/query_complexity.py
-from strawberry.extensions import Extension
-
-class QueryComplexityExtension(Extension):
-    def on_request_start(self):
-        complexity = self.calculate_complexity(self.execution_context.query)
-        if complexity > 1000:
-            raise GraphQLError(f"Query too complex: {complexity}")
-
-schema = strawberry.Schema(
-    query=Query,
-    extensions=[QueryComplexityExtension]
-)
-```
-
-**Estimated Effort:** 5 story points
+**Estimated Effort:** 13 story points
 
 **Status:** 📋 Backlog
 
 ---
 
-### 27. 📌 P2 - Automated Database Backup & Restore
+## 📌 P2 - Medium Priority
+
+### #10 - Notification System
 
 **User Story:**
-> Как DevOps engineer, я хочу автоматические бэкапы БД с возможностью восстановления, чтобы защититься от потери данных.
+Как пользователь, я хочу получать уведомления о важных событиях (новые комментарии, mentions), чтобы быть в курсе активности.
 
 **Acceptance Criteria:**
-- [ ] Scheduled daily backups (через Celery Beat)
-- [ ] Incremental backups каждый час
-- [ ] Full backup каждую неделю
-- [ ] Backup retention policy (30 дней)
-- [ ] Backup в S3/GCS/Azure Blob
-- [ ] Backup encryption
-- [ ] Restore скрипт с валидацией
-- [ ] Backup verification (test restore)
-- [ ] Metrics для backup size и duration
-- [ ] Alerts при failed backups
+- [ ] In-app notifications
+- [ ] Email notifications (с возможностью отключить)
+- [ ] Push notifications (опционально)
+- [ ] Уведомления: mentions, replies, system announcements
+- [ ] Настройки уведомлений per user
+- [ ] Mark as read/unread
+- [ ] GraphQL subscriptions для real-time notifications
 
-**Implementation:**
-```python
-# tasks/backup_tasks.py
-@celery_app.task
-def backup_database():
-    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-    filename = f"backup_{timestamp}.sql.gz"
+**Estimated Effort:** 13 story points
 
-    # pg_dump
-    os.system(f"pg_dump {DATABASE_URL} | gzip > /tmp/{filename}")
+**Status:** 📋 Backlog
 
-    # Upload to S3
-    s3_client.upload_file(f"/tmp/{filename}", "backups", filename)
+---
 
-    # Cleanup old backups
-    cleanup_old_backups(days=30)
+### #25 - API Versioning Support
 
-# Celery Beat schedule
-celery_app.conf.beat_schedule['backup-daily'] = {
-    'task': 'tasks.backup_tasks.backup_database',
-    'schedule': crontab(hour=3, minute=0),
-}
-```
+**User Story:**
+Как API maintainer, я хочу поддерживать несколько версий API, чтобы обеспечить backward compatibility.
 
-**Dependencies:** `boto3` (для S3)
+**Acceptance Criteria:**
+- [ ] Versioning scheme: v1, v2 (в URL или header)
+- [ ] Deprecated fields/queries маркировка
+- [ ] Automatic schema documentation для каждой версии
+- [ ] Migration guide между версиями
+- [ ] Sunset policy для старых версий
 
 **Estimated Effort:** 8 story points
 
@@ -1570,46 +334,54 @@ celery_app.conf.beat_schedule['backup-daily'] = {
 
 ---
 
-### 28. 📌 P2 - Secrets Management (Vault Integration)
+### #26 - GraphQL Query Complexity Analysis
 
 **User Story:**
-> Как security engineer, я хочу хранить secrets в Vault/AWS Secrets Manager, а не в .env файлах.
+Как администратор безопасности, я хочу анализировать сложность GraphQL queries, чтобы предотвратить expensive queries.
+
+**Acceptance Criteria:**
+- [ ] Cost calculation для каждого field
+- [ ] Reject queries с cost > threshold
+- [ ] Configurable complexity limits
+- [ ] Whitelist для admin/internal queries
+- [ ] Logging expensive queries
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #27 - Automated Database Backup & Restore
+
+**User Story:**
+Как администратор БД, я хочу автоматические backups, чтобы защититься от потери данных.
+
+**Acceptance Criteria:**
+- [ ] Daily backups в S3/local storage
+- [ ] Retention policy (7 daily, 4 weekly, 12 monthly)
+- [ ] Point-in-time recovery
+- [ ] Backup verification (restore test)
+- [ ] Celery task для scheduled backups
+- [ ] CLI command для manual backup/restore
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #28 - Secrets Management (Vault Integration)
+
+**User Story:**
+Как DevOps инженер, я хочу хранить secrets в HashiCorp Vault, чтобы не держать их в .env файлах.
 
 **Acceptance Criteria:**
 - [ ] HashiCorp Vault integration
-- [ ] AWS Secrets Manager support (альтернатива)
-- [ ] Secrets rotation без restart
-- [ ] Environment-specific secrets
+- [ ] Secrets: DB password, JWT secret, API keys
+- [ ] Dynamic secrets rotation
+- [ ] Fallback на .env при Vault недоступности
 - [ ] Audit log для secret access
-- [ ] Emergency secrets rotation
-- [ ] Secrets версионирование
-- [ ] Fallback на environment variables
-
-**Implementation:**
-```python
-# core/secrets.py
-import hvac
-
-class SecretsManager:
-    def __init__(self):
-        self.vault_client = hvac.Client(
-            url=os.getenv('VAULT_URL'),
-            token=os.getenv('VAULT_TOKEN')
-        )
-
-    def get_secret(self, key: str) -> str:
-        try:
-            response = self.vault_client.secrets.kv.read_secret_version(path=key)
-            return response['data']['data']['value']
-        except Exception:
-            # Fallback на env
-            return os.getenv(key)
-
-secrets = SecretsManager()
-JWT_SECRET_KEY = secrets.get_secret('jwt_secret_key')
-```
-
-**Dependencies:** `hvac` (Vault client)
 
 **Estimated Effort:** 8 story points
 
@@ -1617,215 +389,17 @@ JWT_SECRET_KEY = secrets.get_secret('jwt_secret_key')
 
 ---
 
-### 29. 💡 P3 - Multi-Tenancy Support
+### #33 - API Documentation Generator (OpenAPI/Swagger)
 
 **User Story:**
-> Как SaaS provider, я хочу поддерживать multi-tenancy (несколько организаций в одной БД), чтобы снизить infrastructure costs.
+Как frontend разработчик, я хочу автоматически сгенерированную документацию API, чтобы быстро понять endpoints.
 
 **Acceptance Criteria:**
-- [ ] Модель `Organization`/`Tenant`
-- [ ] Row-level security для tenant isolation
-- [ ] Tenant context в каждом запросе
-- [ ] Tenant-specific subdomain routing
-- [ ] Tenant-specific settings/branding
-- [ ] Tenant usage metrics
-- [ ] Tenant data export
-- [ ] Cross-tenant admin queries (для super admin)
-
-**Implementation:**
-```python
-# auth/models/organization.py
-class Organization(BaseModel):
-    __tablename__ = "organizations"
-    name = Column(String(255), unique=True)
-    subdomain = Column(String(100), unique=True)
-    settings = Column(JSON)
-
-# User с tenant
-class User(BaseModel):
-    organization_id = Column(Integer, ForeignKey("organizations.id"))
-    organization = relationship("Organization")
-
-# Middleware для tenant context
-class TenantMiddleware:
-    async def __call__(self, request, call_next):
-        subdomain = request.url.hostname.split('.')[0]
-        org = db.query(Organization).filter_by(subdomain=subdomain).first()
-        request.state.tenant = org
-        return await call_next(request)
-
-# Query filter
-def get_users_for_tenant(db, tenant_id):
-    return db.query(User).filter_by(organization_id=tenant_id).all()
-```
-
-**Estimated Effort:** 21 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 30. 💡 P3 - Feature Flags System
-
-**User Story:**
-> Как product manager, я хочу включать/выключать фичи без деплоя, чтобы безопасно тестировать новые возможности.
-
-**Acceptance Criteria:**
-- [ ] Feature flags таблица в БД
-- [ ] Feature flags admin UI
-- [ ] Feature flags по:
-  - Environment (dev/staging/prod)
-  - User ID
-  - User role
-  - Percentage rollout (canary)
-- [ ] Decorator `@feature_flag("new_feature")`
-- [ ] GraphQL query: `isFeatureEnabled(name: String!)`
-- [ ] Real-time feature flag updates (без restart)
-- [ ] A/B testing support
-- [ ] Feature flag analytics
-
-**Implementation:**
-```python
-# core/models/feature_flag.py
-class FeatureFlag(BaseModel):
-    __tablename__ = "feature_flags"
-    name = Column(String(100), unique=True)
-    enabled = Column(Boolean, default=False)
-    rollout_percentage = Column(Integer, default=0)  # 0-100
-    enabled_for_roles = Column(ARRAY(String))
-    enabled_for_users = Column(ARRAY(Integer))
-
-# core/feature_flags.py
-def is_feature_enabled(name: str, user=None) -> bool:
-    flag = db.query(FeatureFlag).filter_by(name=name).first()
-    if not flag:
-        return False
-
-    if flag.enabled:
-        return True
-
-    if user and user.id in flag.enabled_for_users:
-        return True
-
-    if user and user.role in flag.enabled_for_roles:
-        return True
-
-    # Percentage rollout
-    if flag.rollout_percentage > 0:
-        user_hash = hash(user.id) if user else 0
-        return (user_hash % 100) < flag.rollout_percentage
-
-    return False
-
-# Использование
-@strawberry.mutation
-def create_concept(self, info: Info, input: CreateConceptInput):
-    if is_feature_enabled("new_concept_validation", info.context.get('user')):
-        # New validation logic
-        pass
-    else:
-        # Old logic
-        pass
-```
-
-**Estimated Effort:** 13 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 31. 💡 P3 - WebSocket Support для Real-time Updates
-
-**User Story:**
-> Как frontend developer, я хочу получать real-time обновления через WebSocket, чтобы не делать polling.
-
-**Acceptance Criteria:**
-- [ ] WebSocket endpoint `/ws`
-- [ ] Authentication через WebSocket (JWT в connection params)
-- [ ] Subscribe/Unsubscribe mechanism
-- [ ] Channels:
-  - `user.{user_id}` - личные уведомления
-  - `concept.{concept_id}` - обновления концепции
-  - `system` - системные объявления
-- [ ] Redis Pub/Sub для multi-server support
-- [ ] Heartbeat/ping-pong для connection health
-- [ ] Reconnection logic на клиенте
-- [ ] Rate limiting для WS messages
-
-**Implementation:**
-```python
-# core/websocket.py
-from starlette.websockets import WebSocket, WebSocketDisconnect
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: dict[str, list[WebSocket]] = {}
-
-    async def connect(self, websocket: WebSocket, channel: str):
-        await websocket.accept()
-        if channel not in self.active_connections:
-            self.active_connections[channel] = []
-        self.active_connections[channel].append(websocket)
-
-    async def send_to_channel(self, channel: str, message: dict):
-        if channel in self.active_connections:
-            for connection in self.active_connections[channel]:
-                await connection.send_json(message)
-
-manager = ConnectionManager()
-
-# app.py
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket, "system")
-    try:
-        while True:
-            data = await websocket.receive_json()
-            # Handle subscribe/unsubscribe
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-```
-
-**Estimated Effort:** 13 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 32. ⚡ P1 - Enhanced Health Checks 🎯 QUICK WIN
-
-**User Story:**
-> Как DevOps engineer, я хочу детальные health checks для всех зависимостей, чтобы быстро диагностировать проблемы.
-
-**QUICK WIN:** Уже есть /health и /health/detailed, нужно добавить K8s endpoints, 2-3 часа работы
-
-**Acceptance Criteria:**
-- [ ] `/health` - overall health (200/503)
-- [ ] `/health/detailed` - статус всех компонентов
-- [ ] Проверки:
-  - Database connectivity + query test
-  - Redis connectivity + ping
-  - Disk space available (>10% free)
-  - Memory usage (<90%)
-  - Celery workers alive
-  - External API dependencies (если есть)
-- [ ] Response format:
-```json
-{
-  "status": "healthy",
-  "version": "0.3.0",
-  "uptime_seconds": 12345,
-  "checks": {
-    "database": {"status": "healthy", "latency_ms": 5},
-    "redis": {"status": "healthy", "latency_ms": 2},
-    "disk": {"status": "healthy", "free_percent": 45},
-    "memory": {"status": "warning", "used_percent": 85},
-    "celery": {"status": "healthy", "workers": 2}
-  }
-}
-```
-- [ ] `/health/liveness` - для Kubernetes liveness probe
-- [ ] `/health/readiness` - для Kubernetes readiness probe
+- [ ] OpenAPI 3.0 spec generation
+- [ ] Swagger UI для interactive docs
+- [ ] Documentation для всех GraphQL queries/mutations
+- [ ] Examples для каждого endpoint
+- [ ] Auto-update при schema changes
 
 **Estimated Effort:** 5 story points
 
@@ -1833,83 +407,17 @@ async def websocket_endpoint(websocket: WebSocket):
 
 ---
 
-### 33. 📌 P2 - API Documentation Generator (OpenAPI/Swagger)
+### #35 - API Client SDK Generator
 
 **User Story:**
-> Как API consumer, я хочу иметь OpenAPI spec для REST endpoints, чтобы генерировать клиенты автоматически.
+Как frontend разработчик, я хочу автоматически сгенерированный TypeScript/Python SDK, чтобы не писать API clients вручную.
 
 **Acceptance Criteria:**
-- [ ] Auto-generated OpenAPI spec для REST endpoints
-- [ ] `/openapi.json` endpoint
-- [ ] Swagger UI на `/docs`
-- [ ] ReDoc на `/redoc`
-- [ ] GraphQL schema экспорт на `/graphql/schema`
-- [ ] Postman collection generator
-- [ ] Examples для всех endpoints
-- [ ] Authentication section в docs
-
-**Implementation:**
-```python
-from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
-
-# Если добавим REST endpoints
-rest_app = FastAPI()
-
-@rest_app.get("/api/v1/users/{user_id}")
-def get_user(user_id: int):
-    """Get user by ID"""
-    ...
-
-# Mount REST app alongside GraphQL
-app.mount("/api", rest_app)
-```
-
-**Dependencies:** `fastapi` (если добавим REST)
-
-**Estimated Effort:** 5 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 34. ⚡ P1 - Data Migration Tools
-
-**User Story:**
-> Как developer, я хочу иметь инструменты для безопасной миграции данных между версиями, чтобы не потерять данные при обновлениях.
-
-**Acceptance Criteria:**
-- [ ] Data migration framework (отдельно от schema migrations)
-- [ ] Reversible migrations (up/down)
-- [ ] Migration validation перед apply
-- [ ] Dry-run mode
-- [ ] Progress reporting для длительных миграций
-- [ ] Rollback mechanism
-- [ ] Migration locking (prevent concurrent runs)
-- [ ] Migration audit log
-
-**Implementation:**
-```python
-# migrations/data/001_migrate_user_roles.py
-class MigrateUserRoles:
-    def up(self, db: Session):
-        # Migrate data forward
-        users = db.query(User).filter_by(old_role="moderator").all()
-        for user in users:
-            user.role_id = new_moderator_role.id
-        db.commit()
-
-    def down(self, db: Session):
-        # Rollback migration
-        users = db.query(User).filter_by(role_id=new_moderator_role.id).all()
-        for user in users:
-            user.old_role = "moderator"
-        db.commit()
-
-# scripts/run_data_migration.py
-python run_data_migration.py --migration 001 --dry-run
-python run_data_migration.py --migration 001 --apply
-```
+- [ ] GraphQL Code Generator integration
+- [ ] TypeScript SDK для frontend
+- [ ] Python SDK для automation scripts
+- [ ] Auto-generated types/interfaces
+- [ ] Published в npm/PyPI
 
 **Estimated Effort:** 8 story points
 
@@ -1917,249 +425,37 @@ python run_data_migration.py --migration 001 --apply
 
 ---
 
-### 35. 📌 P2 - API Client SDK Generator
+### #37 - Environment Configuration Validator
 
 **User Story:**
-> Как frontend developer, я хочу иметь auto-generated клиент для GraphQL, чтобы не писать queries вручную.
+Как DevOps инженер, я хочу валидацию .env файла при старте, чтобы избежать ошибок конфигурации.
 
 **Acceptance Criteria:**
-- [ ] GraphQL Code Generator setup
-- [ ] TypeScript types для всех GraphQL типов
-- [ ] React hooks для queries/mutations (если React frontend)
-- [ ] Python client SDK для backend-to-backend
-- [ ] Auto-regeneration при schema changes
-- [ ] Published SDK package (npm/pypi)
-- [ ] SDK documentation
-
-**Implementation:**
-```yaml
-# codegen.yml
-schema: http://localhost:8000/graphql
-documents: 'src/**/*.graphql'
-generates:
-  src/generated/graphql.ts:
-    plugins:
-      - typescript
-      - typescript-operations
-      - typescript-react-apollo
-```
-
-**Dependencies:** `@graphql-codegen/cli`
-
-**Estimated Effort:** 8 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 36. 💡 P3 - Load Testing Framework
-
-**User Story:**
-> Как QA engineer, я хочу иметь готовые load tests, чтобы валидировать производительность перед production.
-
-**Acceptance Criteria:**
-- [ ] Locust/K6 setup
-- [ ] Test scenarios:
-  - Login flow (100 users/sec)
-  - Read-heavy queries (500 req/sec)
-  - Write-heavy mutations (50 req/sec)
-  - File upload (10 concurrent)
-- [ ] CI integration для performance regression tests
-- [ ] Performance benchmarks baseline
-- [ ] Reports с latency percentiles (p50, p95, p99)
-
-**Implementation:**
-```python
-# tests/load/locustfile.py
-from locust import HttpUser, task, between
-
-class GraphQLUser(HttpUser):
-    wait_time = between(1, 3)
-
-    def on_start(self):
-        # Login
-        response = self.client.post("/graphql", json={
-            "query": "mutation { login(input: {username: \"test\", password: \"test\"}) { accessToken } }"
-        })
-        self.token = response.json()['data']['login']['accessToken']
-
-    @task(3)
-    def get_languages(self):
-        self.client.post("/graphql",
-            json={"query": "query { languages { id name } }"},
-            headers={"Authorization": f"Bearer {self.token}"}
-        )
-
-    @task(1)
-    def create_concept(self):
-        self.client.post("/graphql",
-            json={"query": "mutation { createConcept(...) { id } }"},
-            headers={"Authorization": f"Bearer {self.token}"}
-        )
-```
-
-**Dependencies:** `locust`
-
-**Estimated Effort:** 8 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 37. 📌 P2 - Environment Configuration Validator
-
-**User Story:**
-> Как DevOps engineer, я хочу валидировать конфигурацию перед стартом приложения, чтобы не получить runtime errors из-за missing env vars.
-
-**Acceptance Criteria:**
-- [ ] Pydantic models для env configuration
-- [ ] Required/optional fields
+- [ ] Проверка наличия всех required переменных
 - [ ] Type validation (int, bool, URL)
-- [ ] Default values
-- [ ] Environment-specific configs (dev/staging/prod)
-- [ ] Startup validation failure если config invalid
-- [ ] Config documentation auto-generation
+- [ ] Validation rules (min/max, regex)
+- [ ] Clear error messages при invalid config
+- [ ] Example .env файл с комментариями
+- [ ] Fail-fast при старте с invalid config
 
-**Implementation:**
-```python
-# core/config.py
-from pydantic import BaseSettings, validator
-
-class Settings(BaseSettings):
-    # Database
-    DB_HOST: str
-    DB_PORT: int = 5432
-    DB_NAME: str
-    DB_USER: str
-    DB_PASSWORD: str
-
-    # JWT
-    JWT_SECRET_KEY: str
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
-    # Redis
-    REDIS_HOST: str = "redis"
-    REDIS_PORT: int = 6379
-
-    # Email
-    SMTP_HOST: str
-    SMTP_PORT: int
-    FROM_EMAIL: str
-
-    @validator('JWT_SECRET_KEY')
-    def validate_jwt_secret(cls, v):
-        if v == "your-super-secret-jwt-key-change-in-production":
-            raise ValueError("You must change JWT_SECRET_KEY in production!")
-        if len(v) < 32:
-            raise ValueError("JWT_SECRET_KEY must be at least 32 characters")
-        return v
-
-    class Config:
-        env_file = ".env"
-
-settings = Settings()  # Raises ValidationError if invalid
-```
-
-**Dependencies:** `pydantic[dotenv]`
-
-**Estimated Effort:** 3 story points
+**Estimated Effort:** 5 story points
 
 **Status:** 📋 Backlog
 
 ---
 
-### 38. ⚡ P1 - GraphQL Persistent Queries
+### #40 - GDPR Compliance Tools
 
 **User Story:**
-> Как frontend developer, я хочу использовать persisted queries, чтобы снизить размер GraphQL запросов и увеличить безопасность.
+Как compliance officer, я хочу GDPR-совместимые инструменты, чтобы соответствовать европейскому законодательству.
 
 **Acceptance Criteria:**
-- [ ] Query registration endpoint
-- [ ] Query ID <-> Query mapping в Redis
-- [ ] Client sends только query ID вместо полного query
-- [ ] Automatic Persisted Queries (APQ) support
-- [ ] Query whitelist режим (allow only registered queries)
-- [ ] Query registry UI для админов
-
-**Implementation:**
-```python
-# core/persisted_queries.py
-class PersistedQueryExtension(Extension):
-    async def resolve(self, _next, root, info, *args, **kwargs):
-        query_id = info.context['request'].headers.get('X-Query-ID')
-        if query_id:
-            query = await redis_client.get(f"persisted_query:{query_id}")
-            if query:
-                info.context['query'] = query
-        return await _next(root, info, *args, **kwargs)
-```
-
-**Estimated Effort:** 8 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 39. 💡 P3 - Audit Log Visualization Dashboard
-
-**User Story:**
-> Как admin, я хочу видеть визуализацию audit logs (timeline, charts), чтобы быстро находить подозрительную активность.
-
-**Acceptance Criteria:**
-- [ ] Web UI для просмотра логов
-- [ ] Filters: user, action, date range, entity type
-- [ ] Timeline view
-- [ ] Charts: actions per day, top users, error rate
-- [ ] Export в CSV/JSON
-- [ ] Search по description
-- [ ] Drill-down в детали события
-
-**Estimated Effort:** 13 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 40. 📌 P2 - GDPR Compliance Tools
-
-**User Story:**
-> Как compliance officer, я хочу иметь инструменты для GDPR compliance (data export, right to be forgotten), чтобы соответствовать законодательству.
-
-**Acceptance Criteria:**
-- [ ] User data export (JSON/CSV)
-  - Все данные пользователя в одном архиве
-  - Profile, audit logs, uploaded files, etc.
-- [ ] Right to be forgotten:
-  - Hard delete пользователя и всех связанных данных
-  - Anonymization как альтернатива
-- [ ] Consent management:
-  - Cookie consent tracking
-  - Email consent tracking
-  - Data processing consent
+- [ ] Data export для пользователя (все данные в JSON)
+- [ ] Right to be forgotten (полное удаление данных)
+- [ ] Consent management для data processing
 - [ ] Data retention policies
-- [ ] Data breach notification workflow
-- [ ] Privacy policy version tracking
-
-**GraphQL Mutations:**
-```graphql
-mutation ExportMyData {
-  exportMyData {
-    downloadUrl
-    expiresAt
-  }
-}
-
-mutation DeleteMyAccount {
-  deleteMyAccount(input: {
-    password: "current_password"
-    reason: "No longer using"
-    anonymize: false  # true для anonymization
-  }) {
-    success
-  }
-}
-```
+- [ ] Audit log для GDPR requests
+- [ ] Privacy policy & terms of service templates
 
 **Estimated Effort:** 13 story points
 
@@ -2167,173 +463,36 @@ mutation DeleteMyAccount {
 
 ---
 
-### 41. 💡 P3 - Internationalization (i18n) Framework
+### #43 - API Gateway Integration (Kong/Envoy)
 
 **User Story:**
-> Как backend developer, я хочу иметь i18n framework для error messages и emails, чтобы поддерживать несколько языков.
-
-**Acceptance Criteria:**
-- [ ] Translation files (JSON/YAML)
-- [ ] Language detection из:
-  - `Accept-Language` header
-  - User profile preference
-  - Query parameter `?lang=ru`
-- [ ] Translated error messages
-- [ ] Translated email templates
-- [ ] GraphQL queries возвращают переводы:
-  ```graphql
-  query GetConcept($id: ID!, $lang: String = "en") {
-    concept(id: $id) {
-      name(lang: $lang)
-      description(lang: $lang)
-    }
-  }
-  ```
-- [ ] Fallback на default language
-- [ ] Translation keys validation (no missing keys)
-
-**Implementation:**
-```python
-# core/i18n.py
-translations = {
-    "en": {
-        "error.auth.invalid_credentials": "Invalid username or password",
-        "error.auth.token_expired": "Token has expired",
-    },
-    "ru": {
-        "error.auth.invalid_credentials": "Неверное имя пользователя или пароль",
-        "error.auth.token_expired": "Токен истек",
-    }
-}
-
-def translate(key: str, lang: str = "en") -> str:
-    return translations.get(lang, {}).get(key, translations["en"][key])
-```
-
-**Dependencies:** `python-i18n`, `babel`
-
-**Estimated Effort:** 8 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 42. ⚡ P1 - Database Read Replicas Support
-
-**User Story:**
-> Как backend architect, я хочу поддерживать read replicas для масштабирования read-heavy workloads.
-
-**Acceptance Criteria:**
-- [ ] Multiple database connections (primary + replicas)
-- [ ] Read queries автоматически идут на replicas
-- [ ] Write queries идут на primary
-- [ ] Fallback на primary если replica unavailable
-- [ ] Replica lag monitoring
-- [ ] Session-level routing (sticky sessions)
-
-**Implementation:**
-```python
-# core/database.py
-from sqlalchemy.orm import sessionmaker
-
-# Primary DB (writes)
-primary_engine = create_engine(PRIMARY_DATABASE_URL)
-PrimarySession = sessionmaker(bind=primary_engine)
-
-# Read replica (reads)
-replica_engine = create_engine(REPLICA_DATABASE_URL)
-ReplicaSession = sessionmaker(bind=replica_engine)
-
-# Routing
-class DatabaseRouter:
-    def get_session(self, write: bool = False):
-        if write:
-            return PrimarySession()
-        else:
-            return ReplicaSession()
-
-db_router = DatabaseRouter()
-
-# Использование
-def get_languages():
-    db = db_router.get_session(write=False)  # Read from replica
-    return db.query(Language).all()
-
-def create_language(name: str):
-    db = db_router.get_session(write=True)  # Write to primary
-    ...
-```
-
-**Estimated Effort:** 13 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 43. 📌 P2 - API Gateway Integration (Kong/Envoy)
-
-**User Story:**
-> Как platform engineer, я хочу интегрировать API Gateway для centralized rate limiting, auth, и monitoring.
+Как архитектор системы, я хочу интеграцию с API Gateway, чтобы централизовать routing, auth, rate limiting.
 
 **Acceptance Criteria:**
 - [ ] Kong/Envoy configuration
-- [ ] JWT validation на gateway level
-- [ ] Rate limiting на gateway
+- [ ] JWT authentication в gateway
+- [ ] Rate limiting в gateway
 - [ ] Request/response transformation
-- [ ] Service mesh integration
-- [ ] Canary deployments support
-- [ ] Circuit breaker pattern
+- [ ] Service discovery integration
+- [ ] Metrics & logging
 
-**Estimated Effort:** 21 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 44. 💡 P3 - Event Sourcing & CQRS (опционально)
-
-**User Story:**
-> Как architect, я хочу иметь event sourcing для критических entities, чтобы иметь полную историю изменений.
-
-**Acceptance Criteria:**
-- [ ] Event store (PostgreSQL или EventStoreDB)
-- [ ] Event models:
-  - `UserCreatedEvent`
-  - `UserUpdatedEvent`
-  - `ConceptCreatedEvent`
-  - etc.
-- [ ] Event replay mechanism
-- [ ] Read models (projections)
-- [ ] Command handlers
-- [ ] Event handlers
-- [ ] Snapshots для performance
-
-**Estimated Effort:** 34 story points
+**Estimated Effort:** 13 story points
 
 **Status:** 📋 Backlog
 
 ---
 
-### 45. 📌 P2 - Service Health Dashboard
+### #45 - Service Health Dashboard
 
 **User Story:**
-> Как operations engineer, я хочу видеть dashboard со всеми метриками и health checks в одном месте.
+Как DevOps инженер, я хочу dashboard для мониторинга здоровья сервиса, чтобы видеть метрики в реальном времени.
 
 **Acceptance Criteria:**
-- [ ] Grafana dashboard setup
-- [ ] Panels:
-  - Request rate (req/sec)
-  - Error rate (%)
-  - Latency percentiles (p50, p95, p99)
-  - Database connections
-  - Redis memory usage
-  - Celery queue length
-  - Disk space
-  - Memory usage
-- [ ] Alerts configuration
-- [ ] Historical data (30 days)
-
-**Dependencies:** Prometheus + Grafana
+- [ ] Grafana dashboard с Prometheus metrics
+- [ ] Metrics: request rate, error rate, latency, DB connections
+- [ ] Alerts при критических условиях
+- [ ] SLA tracking (uptime, response time)
+- [ ] Historical data (7 days, 30 days)
 
 **Estimated Effort:** 8 story points
 
@@ -2341,175 +500,18 @@ def create_language(name: str):
 
 ---
 
-### 46. ⚡ P1 - Security Headers Middleware (App-Level) 🎯 QUICK WIN
+### #49 - CLI Tool для Admin Tasks
 
 **User Story:**
-> Как security engineer, я хочу иметь security headers на app level (не только nginx), чтобы защитить API даже если nginx bypassed.
-
-**QUICK WIN:** Нет зависимостей, простой middleware, 1-2 часа работы
+Как администратор, я хочу CLI tool для управления системой, чтобы автоматизировать рутинные задачи.
 
 **Acceptance Criteria:**
-- [ ] Headers в каждом response:
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: DENY`
-  - `X-XSS-Protection: 1; mode=block`
-  - `Strict-Transport-Security: max-age=31536000`
-  - `Content-Security-Policy`
-  - `Referrer-Policy: no-referrer`
-  - `Permissions-Policy`
-- [ ] Configurable через env vars
-- [ ] Middleware для автоматического добавления
-
-**Implementation:**
-```python
-# middleware/security_headers.py
-class SecurityHeadersMiddleware:
-    async def __call__(self, request, call_next):
-        response = await call_next(request)
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'DENY'
-        response.headers['X-XSS-Protection'] = '1; mode=block'
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-        response.headers['Content-Security-Policy'] = "default-src 'self'"
-        return response
-```
-
-**Estimated Effort:** 2 story points
-
-**Status:** ✅ **Done** (2025-01-20)
-
----
-
-### 47. 📌 P2 - Database Connection Pool Monitoring 🎯 QUICK WIN
-
-**User Story:**
-> Как DBA, я хочу мониторить connection pool (active connections, wait time), чтобы оптимизировать pool settings.
-
-**QUICK WIN:** Prometheus уже есть, SQLAlchemy pool metrics встроены, 2-3 часа работы
-
-**Acceptance Criteria:**
-- [✅] Metrics:
-  - Active connections (db_pool_checked_out)
-  - Idle connections (db_pool_checked_in)
-  - Pool size (db_pool_size)
-  - Overflow connections (db_pool_overflow)
-  - Max overflow (db_pool_num_overflow)
-- [✅] Prometheus metrics export at /metrics
-- [✅] Automatic update on metrics scrape
-- [⏸️] Alerts при pool exhaustion (configured in Prometheus/Grafana)
-- [⏸️] Auto-scaling pool size (future enhancement)
-
-**Implementation:**
-```python
-# core/database.py
-from prometheus_client import Gauge
-
-db_connections_active = Gauge('db_connections_active', 'Active DB connections')
-db_connections_idle = Gauge('db_connections_idle', 'Idle DB connections')
-
-def update_db_metrics():
-    pool = engine.pool
-    db_connections_active.set(pool.checkedout())
-    db_connections_idle.set(pool.size() - pool.checkedout())
-
-# Periodic task для обновления метрик
-@celery_app.task
-def collect_db_metrics():
-    update_db_metrics()
-```
-
-**Estimated Effort:** 5 story points
-
-**Status:** ✅ Done (2025-01-20)
-
-**Implementation Details:**
-- ✅ Created 5 Prometheus gauges in `core/metrics.py`:
-  - `db_pool_size` - Total pool size
-  - `db_pool_checked_out` - Active connections
-  - `db_pool_checked_in` - Available connections
-  - `db_pool_overflow` - Current overflow connections
-  - `db_pool_num_overflow` - Max overflow allowed
-- ✅ Implemented `update_db_pool_metrics()` function that extracts pool stats from SQLAlchemy engine
-- ✅ Modified `/metrics` endpoint in `app.py` to call `update_db_pool_metrics()` on every scrape
-- ✅ Updated `CLAUDE.md` with comprehensive documentation and Prometheus query examples
-- ⏸️ Alerts for pool exhaustion - configured in external Prometheus/Grafana (not in application)
-- ⏸️ Auto-scaling pool size - future enhancement, requires dynamic pool reconfiguration
-
-**Files Modified:**
-- `core/metrics.py` - Added 5 gauges and update function
-- `app.py` - Modified /metrics endpoint to update pool metrics
-- `CLAUDE.md` - Added documentation section
-
----
-
-### 48. 💡 P3 - GraphQL Schema Stitching/Federation
-
-**User Story:**
-> Как microservices architect, я хочу объединить несколько GraphQL схем в одну, чтобы frontend делал запросы к одному endpoint.
-
-**Acceptance Criteria:**
-- [ ] Apollo Federation setup
-- [ ] Service A (auth service)
-- [ ] Service B (content service)
-- [ ] Gateway для объединения схем
-- [ ] Cross-service references
-- [ ] Distributed queries
-
-**Dependencies:** `strawberry-graphql[apollo-federation]`
-
-**Estimated Effort:** 21 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 49. 📌 P2 - CLI Tool для Admin Tasks
-
-**User Story:**
-> Как admin, я хочу иметь CLI tool для выполнения admin tasks (create user, reset password, run migrations).
-
-**Acceptance Criteria:**
-- [ ] Click/Typer based CLI
-- [ ] Commands:
-  - `python cli.py user create --username admin --role admin`
-  - `python cli.py user reset-password --email user@example.com`
-  - `python cli.py db migrate`
-  - `python cli.py db seed`
-  - `python cli.py backup create`
-  - `python cli.py logs cleanup --days 90`
-- [ ] Interactive prompts для sensitive operations
-- [ ] Progress bars для long-running tasks
-- [ ] Colorized output
-
-**Implementation:**
-```python
-# cli.py
-import click
-
-@click.group()
-def cli():
-    """Admin CLI for МультиПУЛЬТ"""
-    pass
-
-@cli.group()
-def user():
-    """User management commands"""
-    pass
-
-@user.command()
-@click.option('--username', required=True)
-@click.option('--email', required=True)
-@click.option('--role', default='user')
-def create(username, email, role):
-    """Create a new user"""
-    click.echo(f"Creating user {username}...")
-    # Logic here
-
-if __name__ == '__main__':
-    cli()
-```
-
-**Dependencies:** `click` or `typer`
+- [ ] Click-based CLI tool
+- [ ] Commands: create-user, assign-role, seed-data, backup-db
+- [ ] Interactive prompts для user input
+- [ ] Config file support (YAML/JSON)
+- [ ] Dry-run mode
+- [ ] Colored output & progress bars
 
 **Estimated Effort:** 8 story points
 
@@ -2517,83 +519,164 @@ if __name__ == '__main__':
 
 ---
 
-### 50. ⚡ P1 - Comprehensive Integration Tests
+### #51 - Docker Multi-Stage Build Optimization
 
 **User Story:**
-> Как QA engineer, я хочу иметь полное покрытие integration tests для всех критических flows.
-
-**Acceptance Criteria:**
-- [ ] Test coverage >80%
-- [ ] Integration tests для:
-  - Auth flow (register → verify → login → refresh)
-  - OAuth flow (Google, Telegram)
-  - File upload → thumbnail → serve
-  - CRUD operations для всех entities
-  - Permissions/authorization
-  - Rate limiting
-  - Email sending
-  - Audit logging
-- [ ] Test fixtures для всех scenarios
-- [ ] Parallel test execution
-- [ ] CI integration с code coverage report
-
-**Estimated Effort:** 21 story points
-
-**Status:** 📋 Backlog
-
----
-
-### 51. 📌 P2 - Docker Multi-Stage Build Optimization
-
-**User Story:**
-> Как DevOps engineer, я хочу оптимизировать Docker image size и build time.
+Как DevOps инженер, я хочу оптимизировать Docker build, чтобы ускорить deployment и снизить image size.
 
 **Acceptance Criteria:**
 - [ ] Multi-stage Dockerfile
-- [ ] Separate build и runtime stages
-- [ ] Layer caching optimization
+- [ ] Build dependencies в separate stage
 - [ ] Image size <200MB (сейчас ~500MB)
-- [ ] Security scanning (Trivy/Snyk)
-- [ ] Non-root user для runtime
-- [ ] .dockerignore optimization
+- [ ] Layer caching optimization
+- [ ] .dockerignore для исключения лишних файлов
+- [ ] Security scanning (Trivy/Grype)
 
-**Implementation:**
-```dockerfile
-# Dockerfile (multi-stage)
-FROM python:3.11-slim as builder
-WORKDIR /build
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-FROM python:3.11-slim
-WORKDIR /app
-COPY --from=builder /root/.local /root/.local
-COPY . .
-ENV PATH=/root/.local/bin:$PATH
-RUN adduser --disabled-password --gecos '' appuser
-USER appuser
-CMD ["python", "app.py"]
-```
-
-**Estimated Effort:** 3 story points
+**Estimated Effort:** 5 story points
 
 **Status:** 📋 Backlog
 
 ---
 
-### 52. 💡 P3 - A/B Testing Framework
+### #55 - Template Customization System
 
 **User Story:**
-> Как product manager, я хочу проводить A/B тесты для новых фичи, чтобы измерять impact.
+Как разработчик, я хочу легко кастомизировать template под свой проект, чтобы не править core код.
 
 **Acceptance Criteria:**
-- [ ] Experiment framework
-- [ ] Variant assignment (A/B/C)
-- [ ] Consistent assignment (same user → same variant)
-- [ ] Metrics tracking
-- [ ] Statistical significance calculation
-- [ ] Admin UI для создания experiments
-- [ ] GraphQL query: `getExperimentVariant(experimentName: String!)`
+- [ ] Config-driven customization (YAML)
+- [ ] Plugin system для custom features
+- [ ] Template variables для naming, branding
+- [ ] Override mechanism для core components
+- [ ] Documentation для customization patterns
+
+**Estimated Effort:** 13 story points
+
+**Status:** 📋 Backlog
+
+---
+
+## 💡 P3 - Nice to Have
+
+### #9 - GraphQL Subscriptions (Real-time Updates)
+
+**User Story:**
+Как пользователь, я хочу получать real-time обновления, чтобы видеть изменения без обновления страницы.
+
+**Acceptance Criteria:**
+- [ ] WebSocket support для GraphQL subscriptions
+- [ ] Subscriptions: onConceptUpdated, onNewMessage
+- [ ] Redis pub/sub для distributed events
+- [ ] Authentication для WebSocket connections
+- [ ] Graceful fallback на polling
+
+**Estimated Effort:** 13 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #11 - Two-Factor Authentication (2FA)
+
+**User Story:**
+Как пользователь, я хочу включить 2FA, чтобы повысить безопасность аккаунта.
+
+**Acceptance Criteria:**
+- [ ] TOTP-based 2FA (Google Authenticator)
+- [ ] QR code generation при setup
+- [ ] Backup codes для recovery
+- [ ] Optional 2FA (пользователь выбирает)
+- [ ] GraphQL mutations: enable2FA, verify2FA, disable2FA
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #12 - Comment System для концепций
+
+**User Story:**
+Как пользователь, я хочу оставлять комментарии к концепциям, чтобы обсуждать их с другими.
+
+**Acceptance Criteria:**
+- [ ] Модель Comment (user, concept, text, parent_id для threads)
+- [ ] GraphQL mutations: addComment, editComment, deleteComment
+- [ ] Nested comments (до 3 уровней)
+- [ ] Mentions (@username)
+- [ ] Rich text support (Markdown)
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #13 - Version History для концепций
+
+**User Story:**
+Как пользователь, я хочу видеть историю изменений концепции, чтобы откатиться к предыдущей версии.
+
+**Acceptance Criteria:**
+- [ ] Модель ConceptVersion (snapshot при каждом update)
+- [ ] GraphQL query: conceptVersions(conceptId: Int!)
+- [ ] Diff между версиями
+- [ ] Restore previous version
+- [ ] Blame (кто и когда изменил)
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #14 - Tags/Labels система
+
+**User Story:**
+Как пользователь, я хочу добавлять теги к концепциям, чтобы организовать контент.
+
+**Acceptance Criteria:**
+- [ ] Модель Tag (name, color)
+- [ ] Many-to-many: Concept ↔ Tag
+- [ ] GraphQL mutations: addTag, removeTag
+- [ ] Tag autocomplete/suggestions
+- [ ] Filter concepts by tags
+
+**Estimated Effort:** 5 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #15 - Analytics Dashboard
+
+**User Story:**
+Как администратор, я хочу видеть аналитику использования системы, чтобы принимать решения.
+
+**Acceptance Criteria:**
+- [ ] Metrics: daily active users, new registrations, API calls
+- [ ] GraphQL query: analytics(period: AnalyticsPeriod!)
+- [ ] Charts: line, bar, pie
+- [ ] Export в CSV/Excel
+- [ ] Real-time dashboard (опционально)
+
+**Estimated Effort:** 13 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #29 - Multi-Tenancy Support
+
+**User Story:**
+Как SaaS провайдер, я хочу поддержку multi-tenancy, чтобы изолировать данные разных организаций.
+
+**Acceptance Criteria:**
+- [ ] Модель Organization/Tenant
+- [ ] Tenant-scoped queries (все запросы фильтруются по tenant)
+- [ ] Separate database schema per tenant (или shared schema)
+- [ ] Tenant identification через subdomain/header
+- [ ] Admin panel для управления tenants
 
 **Estimated Effort:** 21 story points
 
@@ -2601,178 +684,145 @@ CMD ["python", "app.py"]
 
 ---
 
-### 53. 📌 P2 - API Request/Response Logging 🎯 QUICK WIN
+### #30 - Feature Flags System
 
 **User Story:**
-> Как support engineer, я хочу логировать все API requests/responses для debugging customer issues.
-
-**QUICK WIN:** Стандартный logging, простой middleware, 2-3 часа работы
+Как product manager, я хочу включать/выключать features динамически, чтобы проводить A/B тесты.
 
 **Acceptance Criteria:**
-- [✅] Request logging:
-  - Method, path, headers, body
-  - User ID (if authenticated)
-  - Request ID
-  - Timestamp
-- [✅] Response logging:
-  - Status code
-  - Response time
-  - Body (optional, для errors)
-- [✅] Configurable log level (dev: verbose, prod: errors only)
-- [✅] PII filtering (passwords, tokens, secrets)
-- [⏸️] Log retention policy (managed by logging infrastructure)
-- [✅] X-Request-ID header in responses for tracing
+- [ ] Модель FeatureFlag (name, enabled, rules)
+- [ ] SDK для проверки flags в коде
+- [ ] GraphQL queries: isFeatureEnabled(name: String!)
+- [ ] Admin UI для управления flags
+- [ ] Targeting rules (по user, role, percentage)
 
-**Implementation:**
-```python
-# middleware/request_logging.py
-import time
+**Estimated Effort:** 13 story points
 
-class RequestLoggingMiddleware:
-    async def __call__(self, request, call_next):
-        start_time = time.time()
-
-        # Log request
-        logger.info("Request", extra={
-            'method': request.method,
-            'path': request.url.path,
-            'request_id': request.state.request_id,
-            'user_id': getattr(request.state, 'user_id', None)
-        })
-
-        response = await call_next(request)
-
-        # Log response
-        duration = time.time() - start_time
-        logger.info("Response", extra={
-            'request_id': request.state.request_id,
-            'status_code': response.status_code,
-            'duration_ms': duration * 1000
-        })
-
-        return response
-```
-
-**Estimated Effort:** 5 story points
-
-**Status:** ✅ **Done** (2025-01-20)
-
-**Final Implementation:**
-- `core/middleware/request_logging.py` - RequestLoggingMiddleware
-- Automatic user ID extraction from JWT token
-- Unique request ID per request (UUID)
-- Sensitive data masking (password, token, secret, authorization, api_key)
-- Different log levels by status code (INFO/WARNING/ERROR)
-- X-Request-ID header in all responses
-- Configurable via log_body and log_headers parameters
-- Integrated into app.py middleware stack
-- Документация в CLAUDE.md
+**Status:** 📋 Backlog
 
 ---
 
-### 54. ⚡ P1 - Graceful Shutdown Handling 🎯 QUICK WIN
+### #31 - WebSocket Support для Real-time Updates
 
 **User Story:**
-> Как platform engineer, я хочу graceful shutdown при деплое, чтобы не прерывать активные requests.
-
-**QUICK WIN:** Встроенная функциональность Python, signal handlers, 1-2 часа работы
+Как пользователь, я хочу WebSocket соединение для real-time обновлений, чтобы не делать polling.
 
 **Acceptance Criteria:**
-- [✅] Signal handlers (SIGTERM, SIGINT)
-- [✅] Wait for active requests to complete (timeout: 30s)
-- [✅] Reject new requests во время shutdown
-- [✅] Close database connections gracefully
-- [✅] Close Redis connections
-- [✅] Flush logs
-- [✅] Health check returns 503 during shutdown
+- [ ] WebSocket endpoint: /ws
+- [ ] Authentication через JWT token
+- [ ] Events: concept.updated, user.online, notification.new
+- [ ] Redis pub/sub для broadcast в multi-instance setup
+- [ ] Graceful reconnection на клиенте
 
-**Implementation:**
-```python
-# app.py
-import signal
-import asyncio
+**Estimated Effort:** 13 story points
 
-shutdown_event = asyncio.Event()
-
-def shutdown_handler(signum, frame):
-    logger.info("Received shutdown signal")
-    shutdown_event.set()
-
-signal.signal(signal.SIGTERM, shutdown_handler)
-signal.signal(signal.SIGINT, shutdown_handler)
-
-# Uvicorn с graceful shutdown
-if __name__ == "__main__":
-    uvicorn.run(
-        "app:app",
-        host="0.0.0.0",
-        port=8000,
-        timeout_graceful_shutdown=30
-    )
-```
-
-**Estimated Effort:** 3 story points
-
-**Status:** ✅ **Done** (2025-01-20)
-
-**Implementation Details:**
-- `core/shutdown.py` - GracefulShutdown handler with full signal management
-- `core/middleware/shutdown.py` - ShutdownMiddleware for rejecting requests
-- `app.py` - Integrated with uvicorn graceful shutdown
-- Health checks return 503 during shutdown
-- Cross-platform support (Unix and Windows)
-- Configurable timeout via `SHUTDOWN_TIMEOUT` env var
-- Documentation in CLAUDE.md
+**Status:** 📋 Backlog
 
 ---
 
-### 55. 📌 P2 - Template Customization System
+### #36 - Load Testing Framework
 
 **User Story:**
-> Как template user, я хочу легко кастомизировать email templates, error messages, и брендинг без изменения кода.
+Как performance engineer, я хочу framework для load testing, чтобы проверить масштабируемость.
 
 **Acceptance Criteria:**
-- [ ] Configurable branding:
-  - App name
-  - Logo URL
-  - Primary color
-  - Email sender name
-- [ ] Custom email templates (Jinja2)
-- [ ] Custom error messages
-- [ ] Template variables injection
-- [ ] Preview mode для templates
-- [ ] Version control для templates
+- [ ] Locust или k6 для load testing
+- [ ] Test scenarios: login, search, CRUD operations
+- [ ] Target: 1000 RPS, p95 latency <200ms
+- [ ] CI/CD integration (performance regression tests)
+- [ ] Reports: throughput, latency percentiles, errors
 
-**Implementation:**
-```python
-# core/branding.py
-class BrandingConfig:
-    def __init__(self):
-        self.app_name = os.getenv('APP_NAME', 'МультиПУЛЬТ')
-        self.logo_url = os.getenv('LOGO_URL', '/static/logo.png')
-        self.primary_color = os.getenv('PRIMARY_COLOR', '#007bff')
-        self.email_sender = os.getenv('EMAIL_SENDER', 'noreply@multipult.dev')
+**Estimated Effort:** 8 story points
 
-branding = BrandingConfig()
+**Status:** 📋 Backlog
 
-# В email templates
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        .header { background-color: {{ branding.primary_color }}; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <img src="{{ branding.logo_url }}" alt="{{ branding.app_name }}">
-    </div>
-    ...
-</body>
-</html>
-```
+---
 
-**Estimated Effort:** 5 story points
+### #39 - Audit Log Visualization Dashboard
+
+**User Story:**
+Как администратор безопасности, я хочу dashboard для визуализации audit logs, чтобы выявлять аномалии.
+
+**Acceptance Criteria:**
+- [ ] Grafana/Kibana dashboard для audit logs
+- [ ] Filters: user, action, date range
+- [ ] Timeline view всех событий
+- [ ] Alerts при suspicious activity
+- [ ] Export в CSV/PDF
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #41 - Internationalization (i18n) Framework
+
+**User Story:**
+Как пользователь, я хочу видеть UI на своем языке, чтобы удобнее работать.
+
+**Acceptance Criteria:**
+- [ ] Backend messages в i18n (error messages, emails)
+- [ ] Support для локализации GraphQL errors
+- [ ] Translation files (JSON/YAML)
+- [ ] Language detection (Accept-Language header)
+- [ ] Fallback на английский
+
+**Estimated Effort:** 8 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #44 - Event Sourcing & CQRS
+
+**User Story:**
+Как архитектор, я хочу реализовать Event Sourcing, чтобы иметь полную историю всех изменений.
+
+**Acceptance Criteria:**
+- [ ] Event store (PostgreSQL или EventStoreDB)
+- [ ] CQRS pattern: separate read/write models
+- [ ] Event replay для восстановления состояния
+- [ ] Snapshots для оптимизации
+- [ ] Event versioning
+
+**Estimated Effort:** 21 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #48 - GraphQL Schema Stitching/Federation
+
+**User Story:**
+Как архитектор микросервисов, я хочу объединить несколько GraphQL schemas, чтобы создать единый API.
+
+**Acceptance Criteria:**
+- [ ] Apollo Federation setup
+- [ ] Gateway для объединения subgraphs
+- [ ] Schema stitching для legacy services
+- [ ] Cross-service queries
+- [ ] Distributed caching
+
+**Estimated Effort:** 13 story points
+
+**Status:** 📋 Backlog
+
+---
+
+### #52 - A/B Testing Framework
+
+**User Story:**
+Как product manager, я хочу проводить A/B тесты, чтобы оптимизировать features.
+
+**Acceptance Criteria:**
+- [ ] Experiment model (name, variants, traffic_split)
+- [ ] User assignment (sticky по user_id)
+- [ ] Metrics tracking для каждого варианта
+- [ ] Statistical significance calculation
+- [ ] Admin UI для управления экспериментами
+
+**Estimated Effort:** 13 story points
 
 **Status:** 📋 Backlog
 
@@ -2780,41 +830,18 @@ branding = BrandingConfig()
 
 ## 📊 Summary
 
-**Общий прогресс Top 10 задач:**
-- ✅ **Done:** 3 задачи (#1 File Upload, #4 Audit Logging, #16 Sentry)
-- 🚧 **In Progress:** 1 задача (#6 Soft Delete - 60% готово)
-- 📋 **Backlog:** 6 задач
+### By Priority
+- **P0 (Critical):** 3 tasks, ~29 story points
+- **P1 (High):** 10 tasks, ~98 story points
+- **P2 (Medium):** 15 tasks, ~128 story points
+- **P3 (Nice to Have):** 16 tasks, ~193 story points
 
-**Всего задач Infrastructure & Production Readiness:** 40 (16-55)
+### Total
+- **43 pending tasks**
+- **~448 story points**
 
-**По приоритетам:**
-- 🔥 P0 (Критические): 5 задач (2 завершены - #16 Sentry, #17 Prometheus Metrics)
-- ⚡ P1 (Высокие): 12 задач
-- 📌 P2 (Средние): 14 задач (1 в процессе - Soft Delete)
-- 💡 P3 (Низкие): 9 задач
-
-**По категориям:**
-- **Infrastructure & Monitoring:** 8 задач
-- **Security:** 6 задач
-- **Performance:** 6 задач
-- **Developer Experience:** 8 задач
-- **Production Readiness:** 7 задач
-- **Advanced Features:** 5 задач
-
----
-
-**Обновлено:** 2025-01-20
-
-**Следующий Review:** Еженедельно
-
-**Приоритет для первой итерации (Quick Wins):**
-1. Error Tracking (Sentry) - #16
-2. Prometheus Metrics - #17
-3. Structured Logging - #19
-4. Request ID Tracking - #20
-5. Application Rate Limiting - #21
-6. Enhanced Health Checks - #32
-7. Environment Config Validator - #37
-8. Security Headers Middleware - #46
-9. Graceful Shutdown - #54
-10. Integration Tests - #50
+### Next Steps
+1. Focus on P0 tasks first (blocking production)
+2. Review P1 tasks with stakeholders
+3. Prioritize based on business value and effort
+4. Update task statuses as work progresses
