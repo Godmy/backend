@@ -40,9 +40,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         # Load configuration from environment
         self.enabled = os.getenv('SECURITY_HEADERS_ENABLED', 'true').lower() == 'true'
+        # Allow unpkg.com for GraphQL Playground resources
         self.csp_policy = os.getenv(
             'CSP_POLICY',
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://unpkg.com; "
+            "img-src 'self' data:; "
+            "font-src 'self' data:; "
+            "connect-src 'self'"
         )
         self.hsts_max_age = int(os.getenv('HSTS_MAX_AGE', '31536000'))
         self.frame_options = os.getenv('FRAME_OPTIONS', 'DENY')

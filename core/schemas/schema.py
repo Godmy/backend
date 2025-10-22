@@ -2,6 +2,7 @@ import strawberry
 
 # Импортируем схемы из модуля auth
 from auth.schemas import AuthMutation, RoleMutation, RoleQuery, UserMutation, UserQuery
+from auth.schemas.admin import AdminMutation, AdminQuery
 from core.schemas.audit import AuditLogQuery
 
 # Импортируем схемы для файлов и аудита
@@ -37,6 +38,7 @@ class Query(
     AuditLogQuery,
     ImportExportQuery,
     SoftDeleteQuery,
+    AdminQuery,
 ):
     pass
 
@@ -52,6 +54,7 @@ class Mutation(
     FileMutation,
     ImportExportMutation,
     SoftDeleteMutation,
+    AdminMutation,
 ):
     pass
 

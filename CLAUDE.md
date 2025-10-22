@@ -361,6 +361,170 @@ query Me {
 
 ---
 
+### Admin Panel Features
+
+Comprehensive admin panel with user management, system statistics, and bulk operations.
+
+**Features:**
+- User management (ban, unban, delete)
+- Bulk role assignment/removal
+- System statistics dashboard
+- User filtering and search
+- Audit logging for all admin actions
+- Permission-based access control
+
+**GraphQL Queries:**
+
+**1. Get All Users (with filters):**
+```graphql
+query {
+  allUsers(
+    limit: 50
+    offset: 0
+    filters: {
+      isActive: true
+      isVerified: true
+      roleName: "editor"
+      search: "john"
+    }
+  ) {
+    users {
+      id
+      username
+      email
+      isActive
+      isVerified
+      roles
+      firstName
+      lastName
+      createdAt
+    }
+    total
+    hasMore
+  }
+}
+```
+
+**2. Get System Statistics:**
+```graphql
+query {
+  systemStats {
+    users {
+      total
+      active
+      verified
+      newLast30Days
+      banned
+    }
+    content {
+      concepts
+      dictionaries
+      languages
+    }
+    files {
+      total
+      totalSizeMb
+    }
+    audit {
+      totalLogs
+      logsLast30Days
+    }
+    roles  # JSON object with role distribution
+  }
+}
+```
+
+**GraphQL Mutations:**
+
+**1. Ban User:**
+```graphql
+mutation {
+  banUser(userId: 123, reason: "Spam and abuse") {
+    id
+    username
+    isActive  # false
+  }
+}
+```
+
+**2. Unban User:**
+```graphql
+mutation {
+  unbanUser(userId: 123) {
+    id
+    username
+    isActive  # true
+  }
+}
+```
+
+**3. Delete User Permanently:**
+```graphql
+mutation {
+  deleteUserPermanently(userId: 123)  # Returns boolean
+}
+```
+⚠️ **WARNING:** This is irreversible! Use soft delete (via user profile) instead.
+
+**4. Bulk Assign Role:**
+```graphql
+mutation {
+  bulkAssignRole(userIds: [10, 20, 30], roleName: "editor") {
+    success
+    count  # Number of users updated
+    message
+  }
+}
+```
+
+**5. Bulk Remove Role:**
+```graphql
+mutation {
+  bulkRemoveRole(userIds: [10, 20, 30], roleName: "editor") {
+    success
+    count
+    message
+  }
+}
+```
+
+**Permission Requirements:**
+- All admin queries require `admin:read:users` or `admin:read:system` permission
+- All admin mutations require `admin:update:users` or `admin:delete:users` permission
+- Only users with "admin" role have these permissions by default
+
+**Audit Logging:**
+All admin actions are automatically logged with:
+- Admin user ID
+- Action performed (ban_user, unban_user, bulk_assign_role, etc.)
+- Target entity (user ID, role name)
+- Timestamp
+- IP address and User-Agent
+- Success/failure status
+
+**Safety Features:**
+- Cannot ban/delete yourself
+- Cannot delete users without admin permission
+- All actions logged in audit trail
+- Bulk operations skip invalid/not-found users
+- Soft delete preferred over hard delete
+
+**Implementation:**
+- `auth/services/admin_service.py` - Business logic for all admin operations
+- `auth/schemas/admin.py` - GraphQL API (queries and mutations)
+- `core/schemas/schema.py` - Integration into main schema
+- `tests/test_admin.py` - Comprehensive test suite
+
+**Use Cases:**
+- Ban abusive users
+- Bulk promote users to moderators
+- View system health dashboard
+- Search and filter users
+- Audit admin actions
+- Manage user roles at scale
+
+---
+
 ### File Upload System
 
 The application supports secure file uploads with automatic thumbnail generation and validation.
@@ -552,6 +716,128 @@ The following data is automatically filtered before sending to Sentry:
 - Configure alerts in Sentry UI for critical errors
 - Set up Slack/email notifications
 - Review error grouping and ignore non-critical errors
+
+---
+
+### Request ID & Distributed Tracing
+
+Comprehensive request tracking system for tracing requests across the application, including HTTP handlers, GraphQL resolvers, database queries, and background tasks.
+
+**Features:**
+- Automatic request ID generation (UUID) for every HTTP request
+- Request ID propagation through all application layers
+- Context variables for thread-safe request tracking
+- X-Request-ID header in all responses
+- Automatic logging with request_id and user_id
+- Support for background tasks and Celery
+- Tracing helpers for manual instrumentation
+- GraphQL context integration
+
+**How it works:**
+1. **RequestLoggingMiddleware** generates unique request_id for each request
+2. Request ID stored in **context variables** (thread-safe)
+3. All logs automatically include request_id and user_id
+4. GraphQL context includes request_id for resolvers
+5. Background tasks can propagate request_id
+
+**Automatic logging format:**
+```
+[abc12345] [user:42] INFO - app - Processing request
+[abc12345] [user:42] INFO - auth.services - User authenticated
+[abc12345] [user:42] INFO - core.database - Query executed
+```
+
+**GraphQL integration:**
+```python
+# In any GraphQL resolver
+@strawberry.field
+def my_query(self, info) -> str:
+    request_id = info.context["request_id"]
+    logger.info(f"Processing query")  # Automatically includes request_id
+    return "result"
+```
+
+**Manual request ID access:**
+```python
+from core.context import get_request_id, get_user_id
+
+def my_function():
+    request_id = get_request_id()  # Current request ID
+    user_id = get_user_id()  # Current user ID (if authenticated)
+
+    logger.info("Processing")  # Automatically includes both IDs
+```
+
+**Background tasks (async):**
+```python
+from core.tracing import with_request_context
+
+@with_request_context
+async def send_email_task(to_email: str):
+    # request_id is automatically available in logs
+    logger.info(f"Sending email to {to_email}")
+```
+
+**Celery tasks:**
+```python
+from celery import shared_task
+from core.tracing import celery_task_with_context
+from core.context import get_request_id, get_user_id
+
+@shared_task
+@celery_task_with_context()
+def process_report(report_id: int, request_id: str = None, user_id: int = None):
+    # request_id is now set in context
+    logger.info(f"Processing report {report_id}")
+
+# Call from request handler
+request_id = get_request_id()
+user_id = get_user_id()
+process_report.delay(
+    report_id=123,
+    request_id=request_id,
+    user_id=user_id
+)
+```
+
+**Manual tracing spans:**
+```python
+from core.tracing import TracingHelper
+
+def process_order(order_id: int):
+    with TracingHelper.span("process_order") as span:
+        span.set_tag("order_id", order_id)
+
+        validate_order(order_id)
+        span.log("Order validated")
+
+        charge_payment(order_id)
+        span.log("Payment charged")
+
+        fulfill_order(order_id)
+        span.log("Order fulfilled")
+```
+
+**Client usage:**
+All HTTP responses include `X-Request-ID` header for client-side tracking:
+```bash
+curl -v http://localhost:8000/health
+# < X-Request-ID: abc12345
+```
+
+**Implementation:**
+- `core/context.py` - Context variables and logging filter
+- `core/tracing.py` - Tracing decorators and helpers
+- `core/middleware/request_logging.py` - Middleware with request_id generation
+- `app.py` - Logging configuration with RequestContextFilter
+- `tests/test_request_tracing.py` - Comprehensive test suite
+
+**Benefits:**
+- **Debuggability** - Trace a single request through all logs
+- **Observability** - Correlate errors across services
+- **Performance** - Identify slow operations in request lifecycle
+- **Security** - Audit user actions with request correlation
+- **Production-ready** - Thread-safe, async-compatible, zero configuration
 
 ### Prometheus Metrics Collection
 

@@ -24,8 +24,23 @@ from core.middleware import (
 )
 from core.shutdown import setup_graceful_shutdown
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
+# Настройка логирования с request_id
+from core.context import RequestContextFilter
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(request_id)s] [user:%(user_id)s] %(levelname)s - %(name)s - %(message)s'
+)
+
+# Add context filter to root logger and all existing handlers
+root_logger = logging.getLogger()
+context_filter = RequestContextFilter()
+root_logger.addFilter(context_filter)
+
+# Also add filter to all existing handlers
+for handler in root_logger.handlers:
+    handler.addFilter(context_filter)
+
 logger = logging.getLogger(__name__)
 
 # Инициализация Sentry для error tracking и monitoring
@@ -43,8 +58,19 @@ class GraphQLWithContext(GraphQL):
 
     async def get_context(self, request, response=None):
         """Создание контекста для GraphQL запросов"""
+        from core.context import get_request_id
+
         db = next(get_db())
-        context = {"request": request, "response": response, "db": db}
+
+        # Get request ID from context (set by RequestLoggingMiddleware)
+        request_id = get_request_id()
+
+        context = {
+            "request": request,
+            "response": response,
+            "db": db,
+            "request_id": request_id
+        }
 
         # Пытаемся получить пользователя из токена
         auth_header = request.headers.get("Authorization", "")

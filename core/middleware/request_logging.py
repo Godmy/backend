@@ -60,15 +60,24 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process request and log details."""
+        from core.context import set_request_id, set_user_id, clear_context
+
         # Generate unique request ID
         request_id = str(uuid.uuid4())[:8]
         request.state.request_id = request_id
+
+        # Set request ID in context for access throughout the application
+        set_request_id(request_id)
 
         # Start timer
         start_time = time.time()
 
         # Extract user ID from token (if available)
         user_id = await self._extract_user_id(request)
+
+        # Set user ID in context
+        if user_id:
+            set_user_id(user_id)
 
         # Log request
         await self._log_request(request, request_id, user_id)
@@ -92,6 +101,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         # Add request ID to response headers
         response.headers["X-Request-ID"] = request_id
+
+        # Clear context after request processing
+        clear_context()
 
         return response
 
