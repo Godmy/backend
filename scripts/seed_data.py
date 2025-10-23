@@ -603,6 +603,12 @@ def seed_dictionaries(db):
     logger.info(f"✓ Added {count} dictionary translations")
 
 
+def seed_ui_concepts(db):
+    """Импортировать и запустить seed UI-переводов"""
+    from scripts.seed_ui_concepts import seed_ui_concepts as seed_ui
+    seed_ui(db)
+
+
 def main():
     """Запуск всех seed функций"""
     logger.info("=" * 60)
@@ -616,6 +622,7 @@ def main():
         seed_users(db)
         seed_concepts(db)
         seed_dictionaries(db)
+        seed_ui_concepts(db)  # NEW: UI translations
 
         logger.info("=" * 60)
         logger.info("✓ Database seeding completed successfully!")
