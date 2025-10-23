@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir -p \"D:\\2025\\templates\\backend\\core\\models\\mixins\")"
+      "Bash(mkdir -p \"D:\\2025\\templates\\backend\\core\\models\\mixins\")",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

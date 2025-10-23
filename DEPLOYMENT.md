@@ -363,18 +363,36 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 ## Environment Configuration
 
-### Security Checklist
+### Production Checklist
 
-- [ ] Change `JWT_SECRET_KEY` to random value
-- [ ] Set strong database password
-- [ ] Set strong Redis password
-- [ ] Update `ALLOWED_ORIGINS` to production domain
-- [ ] Configure production SMTP (not MailPit)
+Before deploying to production:
+
+- [ ] Change `JWT_SECRET_KEY` to random value (`openssl rand -hex 32`)
+- [ ] Set strong `DB_PASSWORD` and `REDIS_PASSWORD`
 - [ ] Set `SEED_DATABASE=false`
 - [ ] Set `DEBUG=False`
-- [ ] Configure OAuth credentials
-- [ ] Enable HTTPS only
-- [ ] Set up firewall rules
+- [ ] Configure production SMTP (SendGrid/AWS SES, not MailPit)
+- [ ] Update `ALLOWED_ORIGINS` to production domain(s)
+- [ ] Setup SSL certificate (Let's Encrypt recommended)
+- [ ] Configure OAuth credentials for production
+- [ ] Run database migrations
+- [ ] Setup backups (database + Redis)
+- [ ] Configure monitoring (logs, health checks, alerts)
+- [ ] **Configure Sentry error tracking:**
+  - [ ] Create Sentry project at sentry.io
+  - [ ] Set `SENTRY_DSN` in production environment
+  - [ ] Set `ENVIRONMENT=production`
+  - [ ] Set `SENTRY_TRACES_SAMPLE_RATE=0.1` (10%)
+  - [ ] Configure `SENTRY_RELEASE` for deploy tracking
+  - [ ] Setup alerts and notifications in Sentry UI
+- [ ] **Configure Prometheus metrics monitoring:**
+  - [ ] Setup Prometheus server to scrape `/metrics` endpoint
+  - [ ] Configure scrape interval (15s recommended)
+  - [ ] Setup Grafana for visualization
+  - [ ] Create dashboards for key metrics
+  - [ ] Configure alerts for critical thresholds (error rate, latency, memory)
+- [ ] Test OAuth flows in production
+- [ ] Setup SSL auto-renewal (cron job for certbot)
 
 ### Generate Secrets
 
