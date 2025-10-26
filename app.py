@@ -116,11 +116,19 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Add Prometheus metrics middleware
 app.add_middleware(PrometheusMiddleware)
 
-# Add CORS middleware
+# Add CORS middleware with special handling for SSR
+# Get allowed origins from environment variable
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
+
+logger.info(f"CORS allowed origins from env: {allowed_origins}")
+
+# For SSR, allow all origins (since it's server-to-server communication)
+# Using wildcard "*" for allow_origins to support SSR requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://frontend:5173"],
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins to support SSR
+    allow_credentials=False,  # Must be False when using allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
