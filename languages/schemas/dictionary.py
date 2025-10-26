@@ -1,6 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 import strawberry
+
+if TYPE_CHECKING:
+    from languages.schemas.concept import Concept
 
 
 @strawberry.type
@@ -15,7 +18,7 @@ class Dictionary:
     image: Optional[str]
 
     @strawberry.field
-    def concept(self) -> Optional["Concept"]:
+    def concept(self) -> Optional[strawberry.LazyType["Concept", "languages.schemas.concept"]]:
         """Получить связанный концепт"""
         from core.database import get_db
         from languages.services.concept_service import ConceptService
