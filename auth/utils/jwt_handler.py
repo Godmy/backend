@@ -5,7 +5,11 @@ from typing import Any, Dict, Optional
 import jwt
 from dotenv import load_dotenv
 
+from core.structured_logging import get_logger
+
 load_dotenv()
+
+logger = get_logger(__name__)
 
 
 class JWTHandler:
@@ -41,8 +45,26 @@ class JWTHandler:
         """Верификация токена"""
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            logger.debug(
+                "Token verified successfully",
+                extra={"user_id": payload.get("user_id"), "token_type": payload.get("type")}
+            )
             return payload
-        except jwt.PyJWTError:
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token verification failed - token expired", extra={"error": "expired"})
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.warning(
+                "Token verification failed - invalid token",
+                extra={"error": str(e), "error_type": "invalid"}
+            )
+            return None
+        except Exception as e:
+            logger.error(
+                "Token verification failed - unexpected error",
+                extra={"error": str(e)},
+                exc_info=True
+            )
             return None
 
     def refresh_access_token(self, refresh_token: str) -> Optional[str]:

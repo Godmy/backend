@@ -12,6 +12,7 @@ Complete documentation for all МультиПУЛЬТ backend features.
 - **[Database Pool Monitoring](db_pool_monitoring.md)** - Connection pool health and usage
 - **[Request Tracing](request_tracing.md)** - Distributed tracing with request IDs
 - **[Request Logging](request_logging.md)** - API request/response logging
+- **[Structured Logging](structured_logging.md)** - JSON-formatted logging for ELK/CloudWatch
 
 #### Authentication & Users
 - **[Email Service](email_service.md)** - Email sending with MailPit/SMTP
@@ -30,6 +31,8 @@ Complete documentation for all МультиПУЛЬТ backend features.
 
 #### Security & Performance
 - **[Security Headers](security_headers.md)** - Security headers middleware
+- **[Rate Limiting](rate_limiting.md)** - API rate limiting per user/IP
+- **[HTTP Caching](http_caching.md)** - Cache-Control, ETag, and 304 Not Modified
 - **[Sentry Error Tracking](sentry.md)** - Error tracking and performance monitoring
 - **[Graceful Shutdown](graceful_shutdown.md)** - Graceful application shutdown
 
@@ -48,6 +51,7 @@ Complete documentation for all МультиПУЛЬТ backend features.
 3. Database Pool Monitoring
 4. Request Tracing
 5. Request Logging
+6. Structured Logging (JSON Format)
 6. Audit Logging
 7. Sentry Error Tracking
 

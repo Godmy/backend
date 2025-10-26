@@ -20,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production  # Use production stage from multi-stage build
     container_name: templates_app
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
     expose:

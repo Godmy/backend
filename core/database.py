@@ -1,23 +1,16 @@
-import logging
-import os
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-logger = logging.getLogger(__name__)
+from core.config import settings
+from core.structured_logging import get_logger
 
-# Получаем настройки БД из переменных окружения
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "attractors")
-DB_USER = os.getenv("DB_USER", "attractor_user")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "attractor_password")
+logger = get_logger(__name__)
 
-# Формируем URL для PostgreSQL
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Get validated database configuration
+DATABASE_URL = settings.database_url
 
-logger.info(f"Connecting to database: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+logger.info(f"Connecting to database: {settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}")
 
 # Создаем движок с настройками для PostgreSQL
 engine = create_engine(
@@ -42,7 +35,11 @@ def get_db():
     try:
         yield db
     except Exception as e:
-        logger.error(f"Database error: {e}")
+        logger.error(
+            "Database session error",
+            extra={"error": str(e), "error_type": type(e).__name__, "event": "db_session_error"},
+            exc_info=True
+        )
         db.rollback()
         raise
     finally:

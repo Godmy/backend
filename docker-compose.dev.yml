@@ -58,7 +58,10 @@ services:
       retries: 3
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development  # Use development stage from multi-stage build
     container_name: templates_app_dev
     environment:
       DATABASE_URL: postgresql://template_user:template_password@db:5432/templates

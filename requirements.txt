@@ -9,6 +9,8 @@ uvicorn
 
 python-multipart
 python-dotenv
+pydantic
+pydantic-settings
 psycopg2-binary
 bcrypt
 PyJWT
@@ -46,3 +48,10 @@ pre-commit
 sentry-sdk[starlette,sqlalchemy]
 psutil
 prometheus-client
+
+# Structured Logging
+python-json-logger
+
+# CLI Tool
+click
+colorama

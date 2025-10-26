@@ -65,6 +65,7 @@ Complete feature documentation available in **[docs/features/](docs/features/REA
 - [Database Pool Monitoring](docs/features/db_pool_monitoring.md) - Connection pool health
 - [Request Tracing](docs/features/request_tracing.md) - Distributed tracing
 - [Request Logging](docs/features/request_logging.md) - API logging
+- [Structured Logging](docs/features/structured_logging.md) - JSON logging for ELK/CloudWatch
 - [Audit Logging](docs/features/audit_logging.md) - Activity tracking
 - [Sentry Error Tracking](docs/features/sentry.md) - Error monitoring
 
@@ -84,6 +85,8 @@ Complete feature documentation available in **[docs/features/](docs/features/REA
 
 **Security & Performance:**
 - [Security Headers](docs/features/security_headers.md) - Security middleware
+- [Rate Limiting](docs/features/rate_limiting.md) - API rate limiting per user/IP
+- [HTTP Caching](docs/features/http_caching.md) - Cache-Control, ETag, 304 Not Modified
 - [Graceful Shutdown](docs/features/graceful_shutdown.md) - Graceful shutdown handling
 
 ---

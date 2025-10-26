@@ -1,4 +1,3 @@
-import logging
 import os
 import time
 
@@ -20,28 +19,17 @@ from core.middleware import (
     PrometheusMiddleware,
     SecurityHeadersMiddleware,
     ShutdownMiddleware,
-    RequestLoggingMiddleware
+    RequestLoggingMiddleware,
+    RateLimitMiddleware,
+    CacheControlMiddleware
 )
 from core.shutdown import setup_graceful_shutdown
 
-# Настройка логирования с request_id
-from core.context import RequestContextFilter
+# Setup structured logging (JSON format)
+from core.structured_logging import setup_logging, get_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(request_id)s] [user:%(user_id)s] %(levelname)s - %(name)s - %(message)s'
-)
-
-# Add context filter to root logger and all existing handlers
-root_logger = logging.getLogger()
-context_filter = RequestContextFilter()
-root_logger.addFilter(context_filter)
-
-# Also add filter to all existing handlers
-for handler in root_logger.handlers:
-    handler.addFilter(context_filter)
-
-logger = logging.getLogger(__name__)
+setup_logging()
+logger = get_logger(__name__)
 
 # Инициализация Sentry для error tracking и monitoring
 init_sentry()
@@ -128,7 +116,13 @@ app = Starlette()
 # Add Shutdown middleware (first, to reject requests during shutdown)
 app.add_middleware(ShutdownMiddleware)
 
-# Add Request Logging middleware (before security headers for complete logging)
+# Add Rate Limiting middleware (early, to block excessive requests before processing)
+app.add_middleware(RateLimitMiddleware)
+
+# Add Cache Control middleware (add caching headers and handle 304 responses)
+app.add_middleware(CacheControlMiddleware)
+
+# Add Request Logging middleware (logs all requests including rate-limited ones)
 app.add_middleware(RequestLoggingMiddleware, log_body=True, log_headers=False)
 
 # Add Security Headers middleware
