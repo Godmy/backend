@@ -43,9 +43,17 @@ class UserService:
         return user, None
 
     @staticmethod
-    def authenticate_user(db: Session, username: str, password: str) -> Optional[UserModel]:
-        """Аутентификация пользователя"""
-        user = db.query(UserModel).filter(UserModel.username == username).first()
+    def authenticate_user(db: Session, username_or_email: str, password: str) -> Optional[UserModel]:
+        """
+        Аутентификация пользователя.
+        Принимает username или email.
+        """
+        # Проверяем, содержит ли строка "@" - если да, то это email
+        if "@" in username_or_email:
+            user = db.query(UserModel).filter(UserModel.email == username_or_email).first()
+        else:
+            user = db.query(UserModel).filter(UserModel.username == username_or_email).first()
+
         if not user or not user.is_active:
             return None
 
