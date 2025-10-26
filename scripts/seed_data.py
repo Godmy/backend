@@ -609,6 +609,18 @@ def seed_ui_concepts(db):
     seed_ui(db)
 
 
+# def seed_domain_concepts(db):
+#     """Импортировать и запустить seed доменных концепций"""
+#     from scripts.seed_domain_concepts import seed_domain_concepts as seed_domain
+#     seed_domain(db)
+
+
+# def seed_domain_concepts_simple(db):
+#     """Импортировать и запустить seed упрощённых доменных концепций (без характеристик)"""
+#     from scripts.seed_domain_concepts_simple import seed_domain_concepts_clean as seed_domain_simple
+#     seed_domain_simple(db)
+
+
 def main():
     """Запуск всех seed функций"""
     logger.info("=" * 60)
@@ -623,6 +635,7 @@ def main():
         seed_concepts(db)
         seed_dictionaries(db)
         seed_ui_concepts(db)  # NEW: UI translations
+        seed_domain_concepts_simple(db)  # NEW: Simplified domain concepts (without characteristics)
 
         logger.info("=" * 60)
         logger.info("✓ Database seeding completed successfully!")

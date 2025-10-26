@@ -1,4 +1,4 @@
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Any
 
 import strawberry
 
@@ -16,26 +16,23 @@ class Dictionary:
     name: str
     description: Optional[str]
     image: Optional[str]
+    # concept будет загружен через joinedload и передан при создании объекта
+    # Use strawberry.Private with proper type annotation
+    concept_model: strawberry.Private[Optional[Any]] = None
 
     @strawberry.field
     def concept(self) -> Optional[strawberry.LazyType["Concept", "languages.schemas.concept"]]:
-        """Получить связанный концепт"""
-        from core.database import get_db
-        from languages.services.concept_service import ConceptService
+        """Получить связанный концепт (уже загружен через joinedload)"""
         from languages.schemas.concept import Concept
 
-        db = next(get_db())
-        service = ConceptService(db)
-        concept_model = service.get_by_id(self.concept_id)
-
-        if not concept_model:
+        if not self.concept_model:
             return None
 
         return Concept(
-            id=concept_model.id,
-            parent_id=concept_model.parent_id,
-            path=concept_model.path,
-            depth=concept_model.depth,
+            id=self.concept_model.id,
+            parent_id=self.concept_model.parent_id,
+            path=self.concept_model.path,
+            depth=self.concept_model.depth,
         )
 
 
@@ -67,13 +64,13 @@ class DictionaryQuery:
 
     @strawberry.field
     def dictionaries(
-        self, concept_id: Optional[int] = None, language_id: Optional[int] = None
+        self, concept_id: Optional[int] = None, language_id: Optional[int] = None, info: strawberry.Info = None
     ) -> List[Dictionary]:
         """Получить список словарей с фильтрацией"""
-        from core.database import get_db
         from languages.services.dictionary_service import DictionaryService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = DictionaryService(db)
 
         if concept_id and language_id:
@@ -93,17 +90,18 @@ class DictionaryQuery:
                 name=d.name,
                 description=d.description,
                 image=d.image,
+                concept_model=d.concept,  # Pass preloaded concept
             )
             for d in dictionaries
         ]
 
     @strawberry.field
-    def dictionary(self, dictionary_id: int) -> Optional[Dictionary]:
+    def dictionary(self, dictionary_id: int, info: strawberry.Info = None) -> Optional[Dictionary]:
         """Получить словарь по ID"""
-        from core.database import get_db
         from languages.services.dictionary_service import DictionaryService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = DictionaryService(db)
         dict_item = service.get_by_id(dictionary_id)
 
@@ -117,6 +115,7 @@ class DictionaryQuery:
             name=dict_item.name,
             description=dict_item.description,
             image=dict_item.image,
+            concept_model=dict_item.concept,  # Pass preloaded concept
         )
 
 
@@ -125,12 +124,12 @@ class DictionaryMutation:
     """GraphQL мутации для словарей"""
 
     @strawberry.mutation
-    def create_dictionary(self, input: DictionaryInput) -> Dictionary:
+    def create_dictionary(self, input: DictionaryInput, info: strawberry.Info = None) -> Dictionary:
         """Создать новый словарь"""
-        from core.database import get_db
         from languages.services.dictionary_service import DictionaryService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = DictionaryService(db)
         dict_item = service.create(
             concept_id=input.concept_id,
@@ -147,15 +146,16 @@ class DictionaryMutation:
             name=dict_item.name,
             description=dict_item.description,
             image=dict_item.image,
+            concept_model=dict_item.concept,
         )
 
     @strawberry.mutation
-    def update_dictionary(self, dictionary_id: int, input: DictionaryUpdateInput) -> Dictionary:
+    def update_dictionary(self, dictionary_id: int, input: DictionaryUpdateInput, info: strawberry.Info = None) -> Dictionary:
         """Обновить словарь"""
-        from core.database import get_db
         from languages.services.dictionary_service import DictionaryService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = DictionaryService(db)
         dict_item = service.update(
             dictionary_id,
@@ -176,14 +176,15 @@ class DictionaryMutation:
             name=dict_item.name,
             description=dict_item.description,
             image=dict_item.image,
+            concept_model=dict_item.concept,
         )
 
     @strawberry.mutation
-    def delete_dictionary(self, dictionary_id: int) -> bool:
+    def delete_dictionary(self, dictionary_id: int, info: strawberry.Info = None) -> bool:
         """Удалить словарь"""
-        from core.database import get_db
         from languages.services.dictionary_service import DictionaryService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = DictionaryService(db)
         return service.delete(dictionary_id)

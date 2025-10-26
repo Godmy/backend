@@ -60,7 +60,7 @@ class SearchQuery:
     """GraphQL запросы для поиска"""
 
     @strawberry.field
-    def search_concepts(self, filters: SearchFilters) -> SearchResult:
+    def search_concepts(self, filters: SearchFilters, info: strawberry.Info = None) -> SearchResult:
         """
         Поиск концепций по ключевым словам с фильтрацией
 
@@ -70,10 +70,10 @@ class SearchQuery:
         Returns:
             SearchResult с найденными концепциями и метаданными
         """
-        from core.database import get_db
         from languages.services.search_service import SearchService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = SearchService(db)
 
         # Выполняем поиск
@@ -131,7 +131,7 @@ class SearchQuery:
 
     @strawberry.field
     def search_suggestions(
-        self, query: str, language_id: Optional[int] = None, limit: int = 5
+        self, query: str, language_id: Optional[int] = None, limit: int = 5, info: strawberry.Info = None
     ) -> List[str]:
         """
         Get search suggestions/autocomplete based on partial query.
@@ -152,10 +152,10 @@ class SearchQuery:
               searchSuggestions(query: "user", languageId: 1, limit: 5)
             }
         """
-        from core.database import get_db
         from languages.models.dictionary import DictionaryModel
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Limit max suggestions
         limit = min(limit, 20)
@@ -179,7 +179,7 @@ class SearchQuery:
         return [s[0] for s in suggestions]
 
     @strawberry.field
-    def popular_concepts(self, limit: int = 10) -> List[ConceptSearchResult]:
+    def popular_concepts(self, limit: int = 10, info: strawberry.Info = None) -> List[ConceptSearchResult]:
         """
         Get most popular concepts (by translation count).
 
@@ -201,11 +201,11 @@ class SearchQuery:
             }
         """
         from sqlalchemy import func, text
-        from core.database import get_db
         from languages.models.dictionary import DictionaryModel
         from languages.services.search_service import SearchService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Limit max results
         limit = min(limit, 50)

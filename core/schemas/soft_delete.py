@@ -69,14 +69,14 @@ class SoftDeleteQuery:
         """
         from auth.dependencies.auth import get_required_user
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
         from auth.models.user import UserModel
         from languages.models.concept import ConceptModel
         from languages.models.dictionary import DictionaryModel
         from languages.models.language import LanguageModel
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Check admin permission
         user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
@@ -157,14 +157,14 @@ class SoftDeleteMutation:
         """
         from auth.dependencies.auth import get_required_user
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
         from auth.models.user import UserModel
         from languages.models.concept import ConceptModel
         from languages.models.dictionary import DictionaryModel
         from languages.models.language import LanguageModel
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Check admin permission
         user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
@@ -224,14 +224,14 @@ class SoftDeleteMutation:
         """
         from auth.dependencies.auth import get_required_user
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
         from auth.models.user import UserModel
         from languages.models.concept import ConceptModel
         from languages.models.dictionary import DictionaryModel
         from languages.models.language import LanguageModel
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Check admin permission
         user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()

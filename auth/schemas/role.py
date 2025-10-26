@@ -48,10 +48,10 @@ class RoleQuery:
         """Получение списка всех ролей (только для администраторов)"""
         from auth.models.role import RoleModel
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Проверяем права доступа
         if not PermissionService.check_permission(db, current_user["id"], "role", "read"):
@@ -87,10 +87,10 @@ class RoleQuery:
         """Получение роли по ID (только для администраторов)"""
         from auth.models.role import RoleModel
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Проверяем права доступа
         if not PermissionService.check_permission(db, current_user["id"], "role", "read"):
@@ -119,10 +119,10 @@ class RoleQuery:
     async def my_roles(self, info) -> List[Role]:
         """Получение ролей текущего пользователя"""
         from auth.models.user import UserModel
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
         if not user:
@@ -161,10 +161,10 @@ class RoleMutation:
         """Создание новой роли (только для администраторов)"""
         from auth.models.role import RoleModel
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Проверяем права доступа
         if not PermissionService.check_permission(db, current_user["id"], "role", "create"):
@@ -187,10 +187,10 @@ class RoleMutation:
         """Обновление роли (только для администраторов)"""
         from auth.models.role import RoleModel
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Проверяем права доступа
         if not PermissionService.check_permission(db, current_user["id"], "role", "update"):
@@ -239,10 +239,10 @@ class RoleMutation:
         from auth.models.permission import PermissionModel
         from auth.models.role import RoleModel
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Проверяем права доступа
         if not PermissionService.check_permission(db, current_user["id"], "role", "update"):
@@ -293,10 +293,10 @@ class RoleMutation:
         """Назначение роли пользователю (только для администраторов)"""
         from auth.services.permission_service import PermissionService
         from auth.services.user_service import UserService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Проверяем права доступа
         if not PermissionService.check_permission(db, current_user["id"], "user", "update"):
@@ -314,10 +314,10 @@ class RoleMutation:
         from auth.models.role import RoleModel
         from auth.models.user import UserModel
         from auth.services.permission_service import PermissionService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         # Проверяем права доступа
         if not PermissionService.check_permission(db, current_user["id"], "user", "update"):

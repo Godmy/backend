@@ -52,35 +52,43 @@ seed_db = os.getenv("SEED_DATABASE", "true").lower() == "true"
 init_database(seed=seed_db)
 
 
-# Создаем GraphQL app
-class GraphQLWithContext(GraphQL):
-    """GraphQL app с кастомным контекстом"""
+# Context getter function for GraphQL (ASYNC VERSION for Strawberry ASGI)
+async def get_graphql_context(request=None, response=None):
+    """
+    Создание контекста для GraphQL запросов.
 
-    async def get_context(self, request, response=None):
-        """Создание контекста для GraphQL запросов"""
-        from core.context import get_request_id
+    NOTE: DB session is managed by DatabaseSessionExtension (in core.graphql_extensions)
+    and will be automatically added to context before query execution.
+    """
+    from core.context import get_request_id
 
-        db = next(get_db())
+    # Get request ID from context (set by RequestLoggingMiddleware)
+    request_id = get_request_id()
 
-        # Get request ID from context (set by RequestLoggingMiddleware)
-        request_id = get_request_id()
+    context = {
+        "request": request,
+        "response": response,
+        # "db" will be added by DatabaseSessionExtension
+        "request_id": request_id,
+    }
 
-        context = {
-            "request": request,
-            "response": response,
-            "db": db,
-            "request_id": request_id
-        }
-
-        # Пытаемся получить пользователя из токена
+    # Пытаемся получить пользователя из токена
+    # NOTE: We create a temporary DB session here just for authentication
+    # The actual GraphQL queries will use the session from DatabaseSessionExtension
+    if request:
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
+            from core.database import SessionLocal
+
             token = auth_header.split("Bearer ")[1]
+            auth_db = None
             try:
                 payload = jwt_handler.verify_token(token)
                 if payload and payload.get("type") == "access":
                     user_id = payload.get("user_id")
-                    user = UserService.get_user_by_id(db, user_id)
+                    # Create temporary session for authentication only
+                    auth_db = SessionLocal()
+                    user = UserService.get_user_by_id(auth_db, user_id)
                     if user and user.is_active:
                         context["user"] = user
                         # Set Sentry user context for error tracking
@@ -95,11 +103,24 @@ class GraphQLWithContext(GraphQL):
                         )
             except Exception as e:
                 logger.debug(f"Token verification failed: {e}")
+            finally:
+                # Always close the temporary auth session
+                if auth_db:
+                    auth_db.close()
 
-        return context
+    return context
 
 
-graphql_app = GraphQLWithContext(schema)
+# Note: DB session cleanup is now handled by DatabaseSessionExtension (in core.graphql_extensions)
+# which automatically closes sessions after each GraphQL request execution.
+
+# Create custom GraphQL app class to inject context
+class CustomGraphQL(GraphQL):
+    async def get_context(self, request, response=None):
+        """Override get_context to inject our custom context"""
+        return await get_graphql_context(request, response)
+
+graphql_app = CustomGraphQL(schema)
 
 # Создаем Starlette приложение с CORS
 app = Starlette()

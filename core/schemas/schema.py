@@ -59,4 +59,13 @@ class Mutation(
     pass
 
 
-schema = strawberry.Schema(Query, Mutation)
+# Import extensions for DB session management
+from core.graphql_extensions import DatabaseSessionExtension
+
+schema = strawberry.Schema(
+    Query,
+    Mutation,
+    extensions=[
+        DatabaseSessionExtension,  # Auto-manages DB sessions (create + close)
+    ]
+)

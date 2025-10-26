@@ -31,10 +31,10 @@ class UserQuery:
     @strawberry.field
     async def me(self, info) -> User:
         from auth.services.user_service import UserService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         user = UserService.get_user_by_id(db, current_user["id"])
 
         if not user:
@@ -110,10 +110,10 @@ class UserMutation:
             }
         """
         from auth.services.profile_service import ProfileService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         try:
             ProfileService.update_profile(
@@ -161,10 +161,10 @@ class UserMutation:
             }
         """
         from auth.services.profile_service import ProfileService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         try:
             ProfileService.change_password(
@@ -206,11 +206,11 @@ class UserMutation:
             }
         """
         from auth.services.profile_service import ProfileService
-        from core.database import get_db
         from core.email_service import email_service
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         try:
             token = ProfileService.initiate_email_change(
@@ -250,9 +250,9 @@ class UserMutation:
             }
         """
         from auth.services.profile_service import ProfileService
-        from core.database import get_db
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         try:
             ProfileService.confirm_email_change(db, token)
@@ -286,10 +286,10 @@ class UserMutation:
             }
         """
         from auth.services.profile_service import ProfileService
-        from core.database import get_db
 
         current_user = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         try:
             ProfileService.delete_account(db, current_user["id"], password)

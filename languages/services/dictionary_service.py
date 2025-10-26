@@ -4,7 +4,7 @@
 
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from languages.models.concept import ConceptModel
 from languages.models.dictionary import DictionaryModel
@@ -18,29 +18,47 @@ class DictionaryService:
         self.db = db
 
     def get_all(self) -> List[DictionaryModel]:
-        """Получить все словари"""
-        return self.db.query(DictionaryModel).all()
+        """Получить все словари с предзагрузкой concept"""
+        return (
+            self.db.query(DictionaryModel)
+            .options(joinedload(DictionaryModel.concept))
+            .all()
+        )
 
     def get_by_id(self, dictionary_id: int) -> Optional[DictionaryModel]:
-        """Получить словарь по ID"""
-        return self.db.query(DictionaryModel).filter(DictionaryModel.id == dictionary_id).first()
+        """Получить словарь по ID с предзагрузкой concept"""
+        return (
+            self.db.query(DictionaryModel)
+            .options(joinedload(DictionaryModel.concept))
+            .filter(DictionaryModel.id == dictionary_id)
+            .first()
+        )
 
     def get_by_concept(self, concept_id: int) -> List[DictionaryModel]:
-        """Получить все словари для концепции"""
-        return self.db.query(DictionaryModel).filter(DictionaryModel.concept_id == concept_id).all()
+        """Получить все словари для концепции с предзагрузкой concept"""
+        return (
+            self.db.query(DictionaryModel)
+            .options(joinedload(DictionaryModel.concept))
+            .filter(DictionaryModel.concept_id == concept_id)
+            .all()
+        )
 
     def get_by_language(self, language_id: int) -> List[DictionaryModel]:
-        """Получить все словари для языка"""
+        """Получить все словари для языка с предзагрузкой concept"""
         return (
-            self.db.query(DictionaryModel).filter(DictionaryModel.language_id == language_id).all()
+            self.db.query(DictionaryModel)
+            .options(joinedload(DictionaryModel.concept))
+            .filter(DictionaryModel.language_id == language_id)
+            .all()
         )
 
     def get_by_concept_and_language(
         self, concept_id: int, language_id: int
     ) -> List[DictionaryModel]:
-        """Получить словари для концепции и языка"""
+        """Получить словари для концепции и языка с предзагрузкой concept"""
         return (
             self.db.query(DictionaryModel)
+            .options(joinedload(DictionaryModel.concept))
             .filter(
                 DictionaryModel.concept_id == concept_id, DictionaryModel.language_id == language_id
             )

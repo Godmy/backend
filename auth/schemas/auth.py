@@ -76,10 +76,10 @@ class AuthMutation:
     def register(self, info, input: UserRegistrationInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
         from auth.services.token_service import token_service
-        from core.database import get_db
         from core.email_service import email_service
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         result, error = AuthService.register_user(
             db, input.username, input.email, input.password, input.first_name, input.last_name
         )
@@ -112,7 +112,6 @@ class AuthMutation:
         """Verify email address with token"""
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
-        from core.database import get_db
 
         # Verify token and get user ID
         user_id = token_service.verify_verification_token(input.token)
@@ -121,7 +120,8 @@ class AuthMutation:
             return MessageResponse(success=False, message="Invalid or expired verification token")
 
         # Mark user as verified
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         user = UserService.get_user_by_id(db, user_id)
 
         if not user:
@@ -141,7 +141,6 @@ class AuthMutation:
         """Resend verification email"""
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
-        from core.database import get_db
         from core.email_service import email_service
 
         # Check rate limit
@@ -153,7 +152,8 @@ class AuthMutation:
             )
 
         # Find user by email
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         user = UserService.get_user_by_email(db, email)
 
         if not user:
@@ -184,7 +184,6 @@ class AuthMutation:
         """Request password reset link"""
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
-        from core.database import get_db
         from core.email_service import email_service
 
         # Check rate limit
@@ -196,7 +195,8 @@ class AuthMutation:
             )
 
         # Find user by email
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         user = UserService.get_user_by_email(db, input.email)
 
         if not user:
@@ -225,7 +225,6 @@ class AuthMutation:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
         from auth.utils.security import hash_password
-        from core.database import get_db
 
         # Verify token and get user ID
         user_id = token_service.verify_reset_token(input.token)
@@ -234,7 +233,8 @@ class AuthMutation:
             return MessageResponse(success=False, message="Invalid or expired reset token")
 
         # Get user
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         user = UserService.get_user_by_id(db, user_id)
 
         if not user:
@@ -258,9 +258,9 @@ class AuthMutation:
     @strawberry.mutation
     def login(self, info, input: UserLoginInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
-        from core.database import get_db
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         result, error = AuthService.login_user(db, input.username, input.password)
 
         if error:
@@ -291,9 +291,9 @@ class AuthMutation:
     async def login_with_google(self, info, input: GoogleAuthInput) -> AuthPayload:
         """Authenticate with Google OAuth"""
         from auth.services.oauth_service import OAuthService
-        from core.database import get_db
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         result, error = await OAuthService.authenticate_with_google(db, input.id_token)
 
         if error:
@@ -309,7 +309,6 @@ class AuthMutation:
     def login_with_telegram(self, info, input: TelegramAuthInput) -> AuthPayload:
         """Authenticate with Telegram"""
         from auth.services.oauth_service import OAuthService
-        from core.database import get_db
 
         # Convert input to dict
         telegram_data = {
@@ -326,7 +325,8 @@ class AuthMutation:
         if input.photo_url:
             telegram_data["photo_url"] = input.photo_url
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         result, error = OAuthService.authenticate_with_telegram(db, telegram_data)
 
         if error:

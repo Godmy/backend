@@ -36,12 +36,12 @@ class ConceptQuery:
     """GraphQL запросы для концепций"""
 
     @strawberry.field
-    def concepts(self) -> List[Concept]:
+    def concepts(self, info: strawberry.Info = None) -> List[Concept]:
         """Получить список всех концепций"""
-        from core.database import get_db
         from languages.services.concept_service import ConceptService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = ConceptService(db)
         concepts = service.get_all()
 
@@ -50,12 +50,12 @@ class ConceptQuery:
         ]
 
     @strawberry.field
-    def concept(self, concept_id: int) -> Optional[Concept]:
+    def concept(self, concept_id: int, info: strawberry.Info = None) -> Optional[Concept]:
         """Получить концепцию по ID"""
-        from core.database import get_db
         from languages.services.concept_service import ConceptService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = ConceptService(db)
         concept = service.get_by_id(concept_id)
 
@@ -72,12 +72,12 @@ class ConceptMutation:
     """GraphQL мутации для концепций"""
 
     @strawberry.mutation
-    def create_concept(self, input: ConceptInput) -> Concept:
+    def create_concept(self, input: ConceptInput, info: strawberry.Info = None) -> Concept:
         """Создать новую концепцию"""
-        from core.database import get_db
         from languages.services.concept_service import ConceptService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = ConceptService(db)
         concept = service.create(path=input.path, depth=input.depth, parent_id=input.parent_id)
 
@@ -86,12 +86,12 @@ class ConceptMutation:
         )
 
     @strawberry.mutation
-    def update_concept(self, concept_id: int, input: ConceptUpdateInput) -> Concept:
+    def update_concept(self, concept_id: int, input: ConceptUpdateInput, info: strawberry.Info = None) -> Concept:
         """Обновить концепцию"""
-        from core.database import get_db
         from languages.services.concept_service import ConceptService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = ConceptService(db)
         concept = service.update(
             concept_id, path=input.path, depth=input.depth, parent_id=input.parent_id
@@ -105,11 +105,11 @@ class ConceptMutation:
         )
 
     @strawberry.mutation
-    def delete_concept(self, concept_id: int) -> bool:
+    def delete_concept(self, concept_id: int, info: strawberry.Info = None) -> bool:
         """Удалить концепцию"""
-        from core.database import get_db
         from languages.services.concept_service import ConceptService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = ConceptService(db)
         return service.delete(concept_id)

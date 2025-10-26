@@ -33,24 +33,24 @@ class LanguageQuery:
     """GraphQL запросы для языков"""
 
     @strawberry.field
-    def languages(self) -> List[Language]:
+    def languages(self, info: strawberry.Info = None) -> List[Language]:
         """Получить список всех языков"""
-        from core.database import get_db
         from languages.services.language_service import LanguageService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = LanguageService(db)
         languages = service.get_all()
 
         return [Language(id=lang.id, code=lang.code, name=lang.name) for lang in languages]
 
     @strawberry.field
-    def language(self, language_id: int) -> Optional[Language]:
+    def language(self, language_id: int, info: strawberry.Info = None) -> Optional[Language]:
         """Получить язык по ID"""
-        from core.database import get_db
         from languages.services.language_service import LanguageService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = LanguageService(db)
         lang = service.get_by_id(language_id)
 
@@ -65,24 +65,24 @@ class LanguageMutation:
     """GraphQL мутации для языков"""
 
     @strawberry.mutation
-    def create_language(self, input: LanguageInput) -> Language:
+    def create_language(self, input: LanguageInput, info: strawberry.Info = None) -> Language:
         """Создать новый язык"""
-        from core.database import get_db
         from languages.services.language_service import LanguageService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = LanguageService(db)
         language = service.create(code=input.code, name=input.name)
 
         return Language(id=language.id, code=language.code, name=language.name)
 
     @strawberry.mutation
-    def update_language(self, language_id: int, input: LanguageUpdateInput) -> Language:
+    def update_language(self, language_id: int, input: LanguageUpdateInput, info: strawberry.Info = None) -> Language:
         """Обновить язык"""
-        from core.database import get_db
         from languages.services.language_service import LanguageService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = LanguageService(db)
         language = service.update(language_id, code=input.code, name=input.name)
 
@@ -92,11 +92,11 @@ class LanguageMutation:
         return Language(id=language.id, code=language.code, name=language.name)
 
     @strawberry.mutation
-    def delete_language(self, language_id: int) -> bool:
+    def delete_language(self, language_id: int, info: strawberry.Info = None) -> bool:
         """Удалить язык"""
-        from core.database import get_db
         from languages.services.language_service import LanguageService
 
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
         service = LanguageService(db)
         return service.delete(language_id)

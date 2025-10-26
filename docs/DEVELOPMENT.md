@@ -131,12 +131,25 @@ python scripts/seed_data.py
 - 5 test users with different roles
 - ~80 concepts in hierarchical structure
 - ~150 translations across multiple languages
+- ~25,000 domain concepts about human body attractors (simplified version)
 
 **Test accounts:**
 - `admin / Admin123!` - Full access
 - `moderator / Moderator123!` - User management
 - `editor / Editor123!` - Content management
 - `testuser / User123!` - Regular user
+
+**Domain ontology seeding:**
+The human body attractors ontology contains approximately 25,000 concepts organized in a hierarchical structure. 
+By default, the simplified version is used (without min/max characteristics):
+
+```bash
+# Simplified version (default) - without characteristics
+python scripts/seed_domain_concepts_simple.py
+
+# Full version - with all characteristics
+python scripts/seed_domain_concepts.py
+```
 
 ---
 

@@ -24,6 +24,8 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
+    pool_size=10,  # Normal pool size (was 50 due to connection leak)
+    max_overflow=20,  # Normal overflow (was 50 due to connection leak)
     echo=False,
     connect_args={"connect_timeout": 10, "application_name": "attractors_app"},
 )

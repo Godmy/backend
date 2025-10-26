@@ -15,7 +15,6 @@ from auth.services.permission_service import PermissionService
 from core.services.audit_service import AuditService
 from auth.dependencies.auth import get_required_user
 from auth.models.user import UserModel
-from core.database import get_db
 
 
 # ============================================================================
@@ -157,7 +156,8 @@ class AdminQuery:
         """
         # Check admin permission
         current_user_dict = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(user, "admin", "read", "users"):
@@ -227,7 +227,8 @@ class AdminQuery:
         """
         # Check admin permission
         current_user_dict = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(user, "admin", "read", "system"):
@@ -281,7 +282,8 @@ class AdminMutation:
         """
         # Check admin permission
         current_user_dict = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
@@ -340,7 +342,8 @@ class AdminMutation:
         """
         # Check admin permission
         current_user_dict = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
@@ -397,7 +400,8 @@ class AdminMutation:
         """
         # Check admin permission
         current_user_dict = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "delete", "users"):
@@ -456,7 +460,8 @@ class AdminMutation:
         """
         # Check admin permission
         current_user_dict = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
@@ -511,7 +516,8 @@ class AdminMutation:
         """
         # Check admin permission
         current_user_dict = await get_required_user(info)
-        db = next(get_db())
+        # Use DB session from context (no connection leak)
+        db = info.context["db"]
 
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
