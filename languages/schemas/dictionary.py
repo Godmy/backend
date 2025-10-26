@@ -14,6 +14,27 @@ class Dictionary:
     description: Optional[str]
     image: Optional[str]
 
+    @strawberry.field
+    def concept(self) -> Optional["Concept"]:
+        """Получить связанный концепт"""
+        from core.database import get_db
+        from languages.services.concept_service import ConceptService
+        from languages.schemas.concept import Concept
+
+        db = next(get_db())
+        service = ConceptService(db)
+        concept_model = service.get_by_id(self.concept_id)
+
+        if not concept_model:
+            return None
+
+        return Concept(
+            id=concept_model.id,
+            parent_id=concept_model.parent_id,
+            path=concept_model.path,
+            depth=concept_model.depth,
+        )
+
 
 @strawberry.input
 class DictionaryInput:
