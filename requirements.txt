@@ -21,6 +21,11 @@ jinja2
 # Redis
 redis
 
+# Celery & Background Tasks
+celery>=5.3.0
+kombu>=5.3.0
+flower>=2.0.0
+
 # OAuth
 google-auth
 google-auth-oauthlib
@@ -55,3 +60,10 @@ python-json-logger
 # CLI Tool
 click
 colorama
+
+# Task Queue (for automated backups)
+celery
+redis
+
+# Cloud Storage (S3 backups)
+boto3

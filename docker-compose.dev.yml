@@ -91,6 +91,10 @@ services:
       SENTRY_ENABLE_TRACING: "true"
       SENTRY_TRACES_SAMPLE_RATE: "1.0"
       SENTRY_DEBUG: "false"
+      # Celery configuration
+      CELERY_WORKER_CONCURRENCY: "4"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "1000"
+      FILE_CLEANUP_MAX_AGE_DAYS: "90"
       # Database initialization
       SEED_DATABASE: "true"  # Auto-seed on first startup
     ports:
@@ -110,6 +114,102 @@ services:
       - ./uploads:/app/uploads
     restart: unless-stopped
     command: python app.py
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: templates_celery_worker_dev
+    environment:
+      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: templates
+      DB_USER: template_user
+      DB_PASSWORD: template_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_USE_TLS: "False"
+      FROM_EMAIL: "noreply@multipult.dev"
+      FRONTEND_URL: "http://localhost:5173"
+      UPLOAD_DIR: "uploads"
+      CELERY_WORKER_CONCURRENCY: "4"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "1000"
+      FILE_CLEANUP_MAX_AGE_DAYS: "90"
+      LOG_LEVEL: "INFO"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - templates_network
+    volumes:
+      - .:/app
+      - /app/__pycache__
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    command: celery -A workers.celery_worker worker --loglevel=info --concurrency=4
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: templates_celery_beat_dev
+    environment:
+      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: templates
+      DB_USER: template_user
+      DB_PASSWORD: template_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      LOG_LEVEL: "INFO"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - templates_network
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    restart: unless-stopped
+    command: celery -A workers.celery_worker beat --loglevel=info
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: templates_flower_dev
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - templates_network
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    command: celery -A workers.celery_worker flower --port=5555
 
 volumes:
   postgres_data_dev:
