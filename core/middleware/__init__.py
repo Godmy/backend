@@ -8,6 +8,7 @@ from .shutdown import ShutdownMiddleware
 from .request_logging import RequestLoggingMiddleware
 from .rate_limit import RateLimitMiddleware
 from .cache_control import CacheControlMiddleware
+from .celery_context import CeleryContextMiddleware, get_celery_context
 
 __all__ = [
     'PrometheusMiddleware',
@@ -15,5 +16,7 @@ __all__ = [
     'ShutdownMiddleware',
     'RequestLoggingMiddleware',
     'RateLimitMiddleware',
-    'CacheControlMiddleware'
+    'CacheControlMiddleware',
+    'CeleryContextMiddleware',
+    'get_celery_context',
 ]

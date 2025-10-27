@@ -16,6 +16,8 @@
 - **SQLAlchemy** - ORM для работы с базой данных
 - **PostgreSQL** - Реляционная база данных
 - **Redis** - Кэширование и хранение токенов
+- **Celery** - Фоновая обработка задач (email, thumbnails, cleanup)
+- **Flower** - Мониторинг Celery задач
 - **Alembic** - Миграции базы данных
 - **Docker & Docker Compose** - Контейнеризация
 - **JWT** - Аутентификация и авторизация
@@ -32,6 +34,11 @@
 - **Сброс пароля** через email
 - **Управление пользователями**, ролями и правами доступа
 - **File Upload System** - загрузка файлов с автоматическим созданием thumbnails
+- **Celery Background Tasks** - асинхронная обработка email, thumbnails, file cleanup
+- **Celery Beat** - периодические задачи (cleanup, health checks)
+- **Flower** - веб-мониторинг Celery задач
+- **Dead Letter Queue** - обработка неудавшихся задач
+- **Retry Logic** - автоматические повторы с экспоненциальной задержкой
 - **Audit Logging** - полное логирование действий пользователей и системных событий
 - **Работа с языками**, концепциями и словарями (multilingual)
 - **Доменная онтология аттракторов человеческого организма** - иерархическая структура из ~25,000 концепций
@@ -79,6 +86,8 @@ docker-compose -f docker-compose.prod.yml up -d
 5. Приложение будет доступно:
    - **GraphQL Playground**: http://localhost:8000/graphql
    - **Health Check**: http://localhost:8000/health
+   - **Detailed Health**: http://localhost:8000/health/detailed (includes Celery status)
+   - **Flower Monitoring** (dev only): http://localhost:5555
    - **MailPit Web UI** (dev only): http://localhost:8025
 
 6. **Автоматическая инициализация данных:**

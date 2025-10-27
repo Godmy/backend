@@ -166,6 +166,49 @@ class HealthCheckService:
                 "message": "Cache health check failed"
             }
 
+    @staticmethod
+    def check_celery() -> Dict[str, Any]:
+        """
+        Check Celery workers connectivity and status.
+
+        Returns:
+            Dict with Celery worker status and statistics
+        """
+        try:
+            from core.celery_app import celery_app
+
+            # Get worker stats with timeout
+            inspect = celery_app.control.inspect(timeout=2.0)
+            stats = inspect.stats()
+            active = inspect.active()
+            registered = inspect.registered()
+
+            if not stats:
+                return {
+                    "status": "unhealthy",
+                    "message": "No Celery workers are running",
+                    "workers_count": 0,
+                }
+
+            workers_count = len(stats)
+            total_active_tasks = sum(len(tasks) for tasks in (active or {}).values())
+
+            return {
+                "status": "healthy",
+                "message": f"{workers_count} worker(s) running",
+                "workers_count": workers_count,
+                "active_tasks": total_active_tasks,
+                "workers": list(stats.keys()) if stats else [],
+            }
+        except Exception as e:
+            logger.error(f"Celery health check failed: {e}")
+            return {
+                "status": "warning",
+                "message": "Celery check failed (workers may not be running)",
+                "error": str(e),
+                "workers_count": 0,
+            }
+
     @classmethod
     async def get_full_health_status(cls) -> Dict[str, Any]:
         """
@@ -179,8 +222,10 @@ class HealthCheckService:
         disk = cls.check_disk_space()
         memory = cls.check_memory()
         cache = await cls.check_cache()
+        celery = cls.check_celery()
 
         # Determine overall status
+        # Note: Celery warnings (workers not running) don't make overall status degraded
         components = [database, redis, disk, memory, cache]
         if any(c["status"] == "unhealthy" for c in components):
             overall_status = "unhealthy"
@@ -197,6 +242,7 @@ class HealthCheckService:
                 "redis": redis,
                 "disk": disk,
                 "memory": memory,
-                "cache": cache
+                "cache": cache,
+                "celery": celery,
             },
         }
