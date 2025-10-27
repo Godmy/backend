@@ -51,6 +51,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0
+      # Database initialization
+      SEED_DATABASE: "false"  # Disable auto-seeding in production
     ports:
       - "8000:8000"
     depends_on:

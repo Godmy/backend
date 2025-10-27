@@ -648,14 +648,23 @@ def main():
     Для использования ТОЛЬКО новой системы:
         python scripts/seed_data_new.py
     """
-    logger.info("=" * 60)
-    logger.info("Starting database seeding...")
-    logger.info("=" * 60)
+    import time
+    from core.db_stats import log_table_statistics
+
+    start_time = time.time()
+
+    logger.info("=" * 70)
+    logger.info("STARTING DATABASE SEEDING".center(70))
+    logger.info("=" * 70)
 
     db = SessionLocal()
     try:
+        # Показываем статистику ДО seeding
+        logger.info("")
+        log_table_statistics(db, title="Database State BEFORE Seeding")
+        logger.info("")
+
         # ВАРИАНТ 1: Новая модульная система (РЕКОМЕНДУЕТСЯ)
-        # Закомментируйте старый код ниже и раскомментируйте эту строку:
         seed_new_system(db)
 
         # ВАРИАНТ 2: Старая система (deprecated, оставлена для совместимости)
@@ -666,21 +675,44 @@ def main():
         # seed_dictionaries(db)
         # seed_ui_concepts(db)
 
-        logger.info("=" * 60)
-        logger.info("✓ Database seeding completed successfully!")
-        logger.info("=" * 60)
+        # Показываем статистику ПОСЛЕ seeding
+        logger.info("")
+        log_table_statistics(db, title="Database State AFTER Seeding")
 
-        # Статистика
-        logger.info("\nDatabase Statistics:")
-        logger.info(f"  Languages: {db.query(LanguageModel).count()}")
-        logger.info(f"  Users: {db.query(UserModel).count()}")
-        logger.info(f"  Roles: {db.query(RoleModel).count()}")
-        logger.info(f"  Permissions: {db.query(PermissionModel).count()}")
-        logger.info(f"  Concepts: {db.query(ConceptModel).count()}")
-        logger.info(f"  Dictionary entries: {db.query(DictionaryModel).count()}")
+        # Время выполнения
+        duration = time.time() - start_time
+
+        logger.info("")
+        logger.info("=" * 70)
+        logger.info("SEEDING PERFORMANCE".center(70))
+        logger.info("=" * 70)
+        logger.info(f"Total time: {duration:.2f} seconds")
+
+        # Подсчет записей для скорости
+        total_records = (
+            db.query(LanguageModel).count()
+            + db.query(UserModel).count()
+            + db.query(RoleModel).count()
+            + db.query(PermissionModel).count()
+            + db.query(ConceptModel).count()
+            + db.query(DictionaryModel).count()
+        )
+
+        if duration > 0:
+            rate = total_records / duration
+            logger.info(f"Speed: {rate:,.0f} records/second")
+
+        logger.info("")
+        logger.info("=" * 70)
+        logger.info("✓ DATABASE SEEDING COMPLETED SUCCESSFULLY!".center(70))
+        logger.info("=" * 70)
 
     except Exception as e:
-        logger.error(f"Error during seeding: {e}")
+        logger.error("")
+        logger.error("=" * 70)
+        logger.error("✗ SEEDING FAILED".center(70))
+        logger.error("=" * 70)
+        logger.error(f"Error: {e}")
         db.rollback()
         raise
     finally:

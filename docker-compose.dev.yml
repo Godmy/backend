@@ -95,6 +95,8 @@ services:
       CELERY_WORKER_CONCURRENCY: "4"
       CELERY_WORKER_MAX_TASKS_PER_CHILD: "1000"
       FILE_CLEANUP_MAX_AGE_DAYS: "90"
+      # Database initialization
+      SEED_DATABASE: "true"  # Auto-seed on first startup
     ports:
       - "8000:8000"
     depends_on:

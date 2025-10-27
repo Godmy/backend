@@ -4,7 +4,7 @@
 
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from core.decorators.cache import cached
 from languages.models.concept import ConceptModel
@@ -19,20 +19,36 @@ class ConceptService:
     @cached(key_prefix="concept:list", ttl=300)  # Cache for 5 minutes
     async def get_all(self) -> List[ConceptModel]:
         """Получить все концепции"""
-        return self.db.query(ConceptModel).order_by(ConceptModel.path).all()
+        return (
+            self.db.query(ConceptModel)
+            .options(joinedload(ConceptModel.dictionaries).joinedload("language"))
+            .order_by(ConceptModel.path)
+            .all()
+        )
 
     def get_by_id(self, concept_id: int) -> Optional[ConceptModel]:
         """Получить концепцию по ID"""
-        return self.db.query(ConceptModel).filter(ConceptModel.id == concept_id).first()
+        return (
+            self.db.query(ConceptModel)
+            .options(joinedload(ConceptModel.dictionaries).joinedload("language"))
+            .filter(ConceptModel.id == concept_id)
+            .first()
+        )
 
     def get_by_path(self, path: str) -> Optional[ConceptModel]:
         """Получить концепцию по пути"""
-        return self.db.query(ConceptModel).filter(ConceptModel.path == path).first()
+        return (
+            self.db.query(ConceptModel)
+            .options(joinedload(ConceptModel.dictionaries).joinedload("language"))
+            .filter(ConceptModel.path == path)
+            .first()
+        )
 
     def get_children(self, parent_id: int) -> List[ConceptModel]:
         """Получить дочерние концепции"""
         return (
             self.db.query(ConceptModel)
+            .options(joinedload(ConceptModel.dictionaries).joinedload("language"))
             .filter(ConceptModel.parent_id == parent_id)
             .order_by(ConceptModel.path)
             .all()
@@ -42,6 +58,7 @@ class ConceptService:
         """Получить корневые концепции (без родителя)"""
         return (
             self.db.query(ConceptModel)
+            .options(joinedload(ConceptModel.dictionaries).joinedload("language"))
             .filter(ConceptModel.parent_id.is_(None))
             .order_by(ConceptModel.path)
             .all()

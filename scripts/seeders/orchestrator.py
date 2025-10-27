@@ -197,21 +197,38 @@ class SeederOrchestrator:
         completed = sum(1 for r in self.results if r.status == "completed")
         skipped = sum(1 for r in self.results if r.status == "skipped")
         failed = sum(1 for r in self.results if r.status == "failed")
-        total_records = sum(r.records_created for r in self.results)
+        total_created = sum(r.records_created for r in self.results)
+        total_updated = sum(r.records_updated for r in self.results)
+        total_skipped = sum(r.records_skipped for r in self.results)
 
         self.logger.info(f"Total seeders: {len(self.results)}")
         self.logger.info(f"  ✓ Completed: {completed}")
         self.logger.info(f"  ⊘ Skipped: {skipped}")
         self.logger.info(f"  ✗ Failed: {failed}")
-        self.logger.info(f"  Total records created: {total_records:,}")
+        self.logger.info("")
+        self.logger.info(f"Records Statistics:")
+        self.logger.info(f"  ✅ Created:  {total_created:>8,}")
+        self.logger.info(f"  🔄 Updated:  {total_updated:>8,}")
+        self.logger.info(f"  ⊘ Skipped:  {total_skipped:>8,}")
+        self.logger.info(f"  📊 Total:    {total_created + total_updated:>8,}")
 
         # Время выполнения
         if self.start_time and self.end_time:
             duration = (self.end_time - self.start_time).total_seconds()
-            self.logger.info(f"  Duration: {duration:.2f} seconds")
+            self.logger.info("")
+            self.logger.info(f"Duration: {duration:.2f} seconds")
+
+            # Скорость (records/second)
+            if duration > 0 and total_created > 0:
+                rate = total_created / duration
+                self.logger.info(f"Speed: {rate:,.0f} records/second")
 
         self.logger.info("")
         self.logger.info("Details by seeder:")
+        self.logger.info("-" * 80)
+        self.logger.info(
+            f"  {'Status':<7} {'Name':<25} {'Created':>10} {'Updated':>10} {'Skipped':>10}"
+        )
         self.logger.info("-" * 80)
 
         for result in self.results:
@@ -223,9 +240,10 @@ class SeederOrchestrator:
             }.get(result.status, "?")
 
             self.logger.info(
-                f"  {status_icon} {result.name:20s} | "
-                f"Status: {result.status:10s} | "
-                f"Records: {result.records_created:6,d}"
+                f"  {status_icon:<7} {result.name:<25} "
+                f"{result.records_created:>10,} "
+                f"{result.records_updated:>10,} "
+                f"{result.records_skipped:>10,}"
             )
 
         self.logger.info("=" * 80)

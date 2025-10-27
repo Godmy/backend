@@ -94,16 +94,59 @@ def init_database(seed: bool = True):
     Args:
         seed: Если True, то после создания таблиц запускается скрипт seed_data
     """
-    wait_for_db()
-    create_tables()
+    logger.info("=" * 70)
+    logger.info("DATABASE INITIALIZATION".center(70))
+    logger.info("=" * 70)
 
+    # Шаг 1: Ожидание БД
+    logger.info("\n[1/3] Waiting for database connection...")
+    wait_for_db()
+    logger.info("✓ Database connection established")
+
+    # Шаг 2: Создание таблиц
+    logger.info("\n[2/3] Creating database tables...")
+    create_tables()
+    logger.info("✓ Database tables created")
+
+    # Шаг 3: Seeding (опционально)
     if seed:
         try:
-            logger.info("Seeding database with test data...")
+            logger.info("\n[3/3] Seeding database with initial data...")
+            logger.info("-" * 70)
+
+            # Показываем статистику ДО seeding
+            from core.database import SessionLocal
+            from core.db_stats import log_table_statistics
+
+            db = SessionLocal()
+            try:
+                log_table_statistics(db, title="Database State BEFORE Seeding")
+            finally:
+                db.close()
+
+            # Запускаем seeding
             from scripts.seed_data import main as seed_main
 
             seed_main()
-        except Exception as e:
-            logger.warning(f"Seeding failed (this is OK if data already exists): {e}")
 
-    logger.info("Database initialization completed")
+            # Показываем статистику ПОСЛЕ seeding
+            db = SessionLocal()
+            try:
+                logger.info("")
+                log_table_statistics(db, title="Database State AFTER Seeding")
+            finally:
+                db.close()
+
+            logger.info("")
+            logger.info("✓ Database seeding completed successfully")
+
+        except Exception as e:
+            logger.warning(f"⚠ Seeding failed (this is OK if data already exists)")
+            logger.warning(f"  Error: {e}")
+    else:
+        logger.info("\n[3/3] Skipping database seeding (SEED_DATABASE=false)")
+
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("✓ DATABASE INITIALIZATION COMPLETED".center(70))
+    logger.info("=" * 70)

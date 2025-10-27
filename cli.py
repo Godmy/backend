@@ -43,7 +43,7 @@ from auth.models.role import Role
 from auth.services.user_service import UserService
 from core.config import get_settings
 from core.database import get_db
-from core.init_db import init_database, seed_database
+from core.init_db import init_database
 
 
 # ==============================================================================
@@ -223,21 +223,16 @@ def seed_data(dry_run: bool):
             info("  - 8 languages (English, Russian, Spanish, etc.)")
             info("  - 5 roles (admin, moderator, editor, user, guest)")
             info("  - 5 test users with different roles")
-            info("  - ~80 concept records")
+            info("  - ~11,000-15,000 domain concepts")
+            info("  - ~200 UI translations")
             success("Dry run completed")
             return
 
-        # Initialize and seed database
-        from sqlalchemy.ext.asyncio import create_async_engine
+        # Use the existing seed_data.main() function
+        from scripts.seed_data import main as seed_main
 
-        # Convert sync URL to async URL
-        async_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
-        engine = create_async_engine(async_url)
-
-        async def run_seed():
-            await seed_database(engine)
-
-        asyncio.run(run_seed())
+        info("Starting database seeding...")
+        seed_main()
 
         success("Database seeded successfully!")
         info("Check the database for new records")
