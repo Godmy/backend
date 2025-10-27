@@ -184,59 +184,272 @@ class SecureGraphQL(GraphQL):
         await super().__call__(scope, receive, send)
 
     def get_graphiql_html(self, **kwargs) -> str:
-        """Override to customize the GraphiQL interface with default headers"""
-        # Get default headers from environment variables
-        default_headers_str = os.getenv("GRAPHQL_PLAYGROUND_DEFAULT_HEADERS", "{}")
-        try:
-            import json
-            default_headers = json.loads(default_headers_str)
-        except json.JSONDecodeError:
-            default_headers = {"Content-Type": "application/json"}
-        
-        # Add JavaScript to set default headers in the GraphiQL interface
-        graphiql_with_default_headers = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>GraphQL Playground</title>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/graphiql@2/graphiql.min.css" />
-        </head>
-        <body style="margin: 0;">
-            <div id="graphiql" style="height: 100vh;"></div>
-            
-            <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/graphiql@2/graphiql.min.js"></script>
-            
-            <script>
-                // Default headers from environment
-                const defaultHeaders = {default_headers_str or '{{"Content-Type": "application/json"}}'};
-                
-                // Enhance fetcher to add custom headers and tracking
-                const fetcher = GraphiQL.createFetcher({{
-                    url: '{kwargs.get('endpoint', '/graphql')}',
-                    subscriptionUrl: '{kwargs.get('subscription_endpoint', '')}',
-                    headers: {{
-                        ...defaultHeaders,
-                        'X-GraphQL-Client': 'Playground',
-                        'X-GraphQL-Request-Source': 'Playground'
-                    }}
-                }});
-                
-                ReactDOM.render(
-                    React.createElement(GraphiQL, {{
-                        fetcher: fetcher,
-                        defaultEditorToolsVisibility: true,
-                        headers: defaultHeaders
-                    }}),
-                    document.getElementById('graphiql')
-                );
-            </script>
-        </body>
-        </html>
-        """
-        return graphiql_with_default_headers
+        """Enhanced GraphiQL interface with quick login and examples"""
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>HumansOntology GraphQL Playground</title>
+    <link rel="stylesheet" href="https://unpkg.com/graphiql@3.8.3/graphiql.min.css" />
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        #toolbar {
+            background: #1a202c;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        #toolbar h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-success:hover { background: #059669; }
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        .btn-warning:hover { background: #d97706; }
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover { background: #4b5563; }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover { background: #dc2626; }
+        select {
+            padding: 6px 12px;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            background: #374151;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        #status {
+            margin-left: auto;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-authenticated {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-anonymous {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        #graphiql { height: calc(100vh - 60px); }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <h1>🧠 HumansOntology API</h1>
+
+        <div class="btn-group">
+            <button class="btn btn-success" onclick="quickLogin('admin')">👑 Admin</button>
+            <button class="btn btn-primary" onclick="quickLogin('moderator')">👮 Moderator</button>
+            <button class="btn btn-warning" onclick="quickLogin('editor')">✏️ Editor</button>
+            <button class="btn btn-secondary" onclick="quickLogin('testuser')">👤 Testuser</button>
+        </div>
+
+        <select id="examples" onchange="loadExample()">
+            <option value="">📝 Load Example...</option>
+            <optgroup label="Authentication">
+                <option value="auth.login">Login</option>
+                <option value="auth.register">Register</option>
+                <option value="auth.getCurrentUser">Get Current User</option>
+                <option value="auth.refreshToken">Refresh Token</option>
+            </optgroup>
+            <optgroup label="Languages">
+                <option value="languages.getAllLanguages">Get All Languages</option>
+                <option value="languages.getLanguageById">Get Language by ID</option>
+            </optgroup>
+            <optgroup label="Concepts">
+                <option value="concepts.getAllConcepts">Get All Concepts</option>
+                <option value="concepts.getRootConcepts">Get Root Concepts</option>
+                <option value="concepts.getConceptById">Get Concept by ID</option>
+                <option value="concepts.createConcept">Create Concept</option>
+            </optgroup>
+            <optgroup label="Search">
+                <option value="search.searchDictionaries">Search Dictionaries</option>
+            </optgroup>
+            <optgroup label="Admin">
+                <option value="admin.getAllUsers">Get All Users</option>
+                <option value="admin.getStatistics">Get Statistics</option>
+                <option value="admin.updateUserStatus">Update User Status</option>
+            </optgroup>
+            <optgroup label="Audit">
+                <option value="audit.getAuditLogs">Get Audit Logs</option>
+                <option value="audit.getMyLogs">Get My Logs</option>
+            </optgroup>
+            <optgroup label="Profile">
+                <option value="profile.updateProfile">Update Profile</option>
+                <option value="profile.changePassword">Change Password</option>
+            </optgroup>
+        </select>
+
+        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+
+        <div id="status" class="status-anonymous">Anonymous</div>
+    </div>
+
+    <div id="graphiql"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/graphiql@3.8.3/graphiql.min.js"></script>
+
+    <script>
+        let currentToken = localStorage.getItem('graphql_token') || '';
+        let currentUser = JSON.parse(localStorage.getItem('graphql_user') || 'null');
+        let examplesData = null;
+        let graphiqlInstance = null;
+
+        // Update status display
+        function updateStatus() {
+            const statusEl = document.getElementById('status');
+            if (currentToken && currentUser) {
+                statusEl.textContent = `✓ ${currentUser.username} (${currentUser.roles?.join(', ') || 'user'})`;
+                statusEl.className = 'status-authenticated';
+            } else {
+                statusEl.textContent = 'Anonymous';
+                statusEl.className = 'status-anonymous';
+            }
+        }
+
+        // Quick login function
+        async function quickLogin(username) {
+            try {
+                const response = await fetch(`/graphql/quick-login?user=${username}`);
+                const data = await response.json();
+
+                if (data.access_token) {
+                    currentToken = data.access_token;
+                    currentUser = data.user;
+                    localStorage.setItem('graphql_token', currentToken);
+                    localStorage.setItem('graphql_user', JSON.stringify(currentUser));
+                    updateStatus();
+                    alert(`✓ Logged in as ${username}\\n\\nToken copied to headers automatically!`);
+
+                    // Reload GraphiQL with new token
+                    initGraphiQL();
+                } else {
+                    alert('Login failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Login error: ' + error.message);
+            }
+        }
+
+        // Logout function
+        function logout() {
+            currentToken = '';
+            currentUser = null;
+            localStorage.removeItem('graphql_token');
+            localStorage.removeItem('graphql_user');
+            updateStatus();
+            alert('✓ Logged out');
+            initGraphiQL();
+        }
+
+        // Load examples from API
+        async function loadExamples() {
+            try {
+                const response = await fetch('/graphql/examples');
+                examplesData = await response.json();
+            } catch (error) {
+                console.error('Failed to load examples:', error);
+            }
+        }
+
+        // Load selected example
+        function loadExample() {
+            const select = document.getElementById('examples');
+            const value = select.value;
+            if (!value || !examplesData) return;
+
+            const [category, name] = value.split('.');
+            const example = examplesData[category]?.[name];
+
+            if (example && graphiqlInstance) {
+                // Update query editor
+                graphiqlInstance.setState({
+                    query: example.query
+                });
+                alert(`✓ Loaded: ${example.description}`);
+            }
+
+            select.value = '';
+        }
+
+        // Initialize GraphiQL
+        function initGraphiQL() {
+            const headers = currentToken
+                ? { 'Authorization': `Bearer ${currentToken}` }
+                : {};
+
+            const fetcher = GraphiQL.createFetcher({
+                url: '/graphql',
+                headers: {
+                    ...headers,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const root = ReactDOM.createRoot(document.getElementById('graphiql'));
+            root.render(
+                React.createElement(GraphiQL, {
+                    fetcher: fetcher,
+                    defaultEditorToolsVisibility: true,
+                    headers: JSON.stringify(headers, null, 2),
+                    ref: (instance) => { graphiqlInstance = instance; }
+                })
+            );
+        }
+
+        // Initialize on load
+        updateStatus();
+        loadExamples();
+        initGraphiQL();
+    </script>
+</body>
+</html>
+"""
 
 async def process_graphql_operation(self, request, *args, **kwargs):
     """
@@ -448,157 +661,360 @@ async def serve_export(request):
     return FileResponse(file_path)
 
 
-# Test user login endpoint for GraphQL Playground
-@app.route("/graphql/test-user-login")
-async def test_user_login(request):
+# Quick login endpoint for GraphQL Playground
+@app.route("/graphql/quick-login")
+async def quick_login(request):
     """
-    Generate a test user JWT token for use in GraphQL Playground.
-    This provides an easy way to test authenticated GraphQL queries.
+    Quick login for GraphQL Playground - generates JWT tokens for seed users.
+    Available users: admin, moderator, editor, testuser
+
+    Usage: GET /graphql/quick-login?user=admin
     """
-    from auth.models.user import User
+    from auth.models.user import User as UserModel
     from auth.utils.jwt_handler import jwt_handler
     from core.database import SessionLocal
-    
+
     # Check if we're in development mode
     is_development = os.getenv("ENVIRONMENT", "development").lower() == "development"
     if not is_development:
         return JSONResponse(
-            {"error": "Test user login is only available in development environment"},
+            {"error": "Quick login is only available in development environment"},
             status_code=403
         )
-    
-    # Create or get a test user
+
+    # Get username from query params (default: testuser)
+    username = request.query_params.get("user", "testuser")
+
+    # Map of available test users with their info
+    available_users = {
+        "admin": {"username": "admin", "description": "Full admin access"},
+        "moderator": {"username": "moderator", "description": "User management"},
+        "editor": {"username": "editor", "description": "Content management"},
+        "testuser": {"username": "testuser", "description": "Regular user"}
+    }
+
+    if username not in available_users:
+        return JSONResponse({
+            "error": f"Unknown user '{username}'",
+            "available_users": available_users
+        }, status_code=400)
+
     db = SessionLocal()
     try:
-        # Try to find an existing test user
-        test_user = db.query(User).filter(User.username == "test_user").first()
-        
-        if not test_user:
-            # Create a test user if one doesn't exist
-            from auth.services.user_service import UserService
-            from auth.models.user import User
-            from core.database import hash_password
-            import uuid
+        # Find the user from seed data
+        user = db.query(UserModel).filter(UserModel.username == username).first()
 
-            test_user = User(
-                id=str(uuid.uuid4()),
-                username="test_user",
-                email="test@example.com",
-                password=hash_password("test_password"),  # Use default test password
-                is_active=True,
-                is_verified=True
-            )
-            db.add(test_user)
-            db.commit()
-            db.refresh(test_user)
-        
-        # Generate JWT token for the test user
+        if not user:
+            return JSONResponse({
+                "error": f"User '{username}' not found. Make sure SEED_DATABASE=true",
+                "available_users": list(available_users.keys())
+            }, status_code=404)
+
+        # Generate JWT tokens
         access_token = jwt_handler.generate_token(
-            test_user.id,
-            test_user.username,
-            test_user.email,
+            user.id,
+            user.username,
+            user.email,
             token_type="access"
         )
-        
+
         refresh_token = jwt_handler.generate_token(
-            test_user.id, 
-            test_user.username,
-            test_user.email,
+            user.id,
+            user.username,
+            user.email,
             token_type="refresh"
         )
-        
+
         return JSONResponse({
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
             "user": {
-                "id": test_user.id,
-                "username": test_user.username,
-                "email": test_user.email
-            }
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "roles": [role.name for role in user.roles] if user.roles else []
+            },
+            "hint": f"Copy this to Headers: {{\"Authorization\": \"Bearer {access_token}\"}}"
         })
     except Exception as e:
-        logger.error(f"Error creating/generating test user token: {e}")
+        logger.error(f"Error generating token for {username}: {e}")
         return JSONResponse(
-            {"error": "Failed to generate test user token"},
+            {"error": f"Failed to generate token: {str(e)}"},
             status_code=500
         )
     finally:
         db.close()
 
 
-# GraphQL query examples endpoint for GraphQL Playground
+# GraphQL examples endpoint for Playground
 @app.route("/graphql/examples")
 async def graphql_examples(request):
     """
-    Provides common GraphQL query and mutation examples for use in GraphQL Playground.
+    Real GraphQL query and mutation examples based on actual schema.
+    Organized by category for easy navigation.
     """
     examples = {
-        "queries": {
-            "getAllLanguages": {
-                "description": "Get all available languages",
-                "query": """query GetAllLanguages {
-  languages {
-    id
-    name
-    code
-    is_active
+        "auth": {
+            "login": {
+                "description": "Login with username and password",
+                "query": """mutation Login {
+  login(input: {username: "admin", password: "Admin123!"}) {
+    accessToken
+    refreshToken
+    tokenType
   }
 }"""
             },
-            "getConceptsByLanguage": {
-                "description": "Get concepts for a specific language",
-                "query": """query GetConceptsByLanguage($languageId: ID!) {
-  concepts(languageId: $languageId) {
+            "register": {
+                "description": "Register a new user account",
+                "query": """mutation Register {
+  register(input: {
+    username: "newuser"
+    email: "newuser@example.com"
+    password: "SecurePass123!"
+  }) {
+    accessToken
+    refreshToken
+    tokenType
+  }
+}"""
+            },
+            "getCurrentUser": {
+                "description": "Get current authenticated user (requires auth)",
+                "query": """query Me {
+  me {
     id
-    name
-    description
-    translations {
-      language {
-        code
-      }
-      value
+    username
+    email
+    isActive
+    isVerified
+    profile {
+      firstName
+      lastName
+      language
+      timezone
     }
   }
 }"""
             },
-            "searchConcepts": {
-                "description": "Search concepts by name or description",
-                "query": """query SearchConcepts($searchTerm: String!) {
-  searchConcepts(query: $searchTerm) {
+            "refreshToken": {
+                "description": "Refresh access token",
+                "query": """mutation RefreshToken {
+  refreshToken(input: {refreshToken: "YOUR_REFRESH_TOKEN"}) {
+    accessToken
+    refreshToken
+    tokenType
+  }
+}"""
+            }
+        },
+        "languages": {
+            "getAllLanguages": {
+                "description": "Get all available languages",
+                "query": """query GetLanguages {
+  languages {
+    id
+    name
+    code
+    nativeName
+    isActive
+  }
+}"""
+            },
+            "getLanguageById": {
+                "description": "Get single language by ID",
+                "query": """query GetLanguage {
+  language(languageId: 1) {
+    id
+    name
+    code
+    nativeName
+    isActive
+  }
+}"""
+            }
+        },
+        "concepts": {
+            "getAllConcepts": {
+                "description": "Get all concepts",
+                "query": """query GetConcepts {
+  concepts {
+    id
+    path
+    depth
+    dictionaries {
+      name
+      description
+      language {
+        code
+      }
+    }
+  }
+}"""
+            },
+            "getRootConcepts": {
+                "description": "Get only root concepts (depth=0)",
+                "query": """query GetRootConcepts {
+  concepts(depth: 0) {
+    id
+    path
+    depth
+  }
+}"""
+            },
+            "getConceptById": {
+                "description": "Get single concept with translations",
+                "query": """query GetConcept {
+  concept(conceptId: 1) {
+    id
+    path
+    depth
+    dictionaries {
+      name
+      description
+      language {
+        name
+        code
+      }
+    }
+  }
+}"""
+            },
+            "createConcept": {
+                "description": "Create a new concept (root level)",
+                "query": """mutation CreateConcept {
+  createConcept(input: {
+    path: "animals"
+    depth: 0
+    parentId: null
+  }) {
+    id
+    path
+    depth
+  }
+}"""
+            }
+        },
+        "search": {
+            "searchDictionaries": {
+                "description": "Full-text search across dictionaries",
+                "query": """query Search {
+  search(query: "science", languageCode: "en", limit: 10) {
     id
     name
     description
+    concept {
+      id
+      path
+    }
     language {
       name
+      code
     }
   }
 }"""
             }
         },
-        "mutations": {
-            "createLanguage": {
-                "description": "Create a new language",
-                "query": """mutation CreateLanguage($name: String!, $code: String!) {
-  createLanguage(input: {name: $name, code: $code}) {
+        "admin": {
+            "getAllUsers": {
+                "description": "Get all users (admin only)",
+                "query": """query GetUsers {
+  users(limit: 20, offset: 0) {
     id
-    name
-    code
-    is_active
+    username
+    email
+    isActive
+    isVerified
   }
 }"""
             },
-            "createConcept": {
-                "description": "Create a new concept",
-                "query": """mutation CreateConcept($name: String!, $description: String!, $languageId: ID!) {
-  createConcept(input: {name: $name, description: $description, languageId: $languageId}) {
+            "getStatistics": {
+                "description": "Get system statistics (admin only)",
+                "query": """query GetStats {
+  statistics {
+    totalUsers
+    activeUsers
+    totalLanguages
+    totalConcepts
+    totalDictionaries
+  }
+}"""
+            },
+            "updateUserStatus": {
+                "description": "Activate/deactivate user (admin only)",
+                "query": """mutation UpdateUserStatus {
+  updateUserStatus(userId: 5, isActive: true) {
     id
-    name
-    description
-    language {
+    username
+    isActive
+  }
+}"""
+            }
+        },
+        "audit": {
+            "getAuditLogs": {
+                "description": "Get system audit logs (admin only)",
+                "query": """query GetAuditLogs {
+  auditLogs(limit: 50, filters: {action: "login"}) {
+    logs {
       id
-      name
+      userId
+      action
+      entityType
+      status
+      ipAddress
+      createdAt
     }
+    total
+    hasMore
+  }
+}"""
+            },
+            "getMyLogs": {
+                "description": "Get current user's audit logs",
+                "query": """query GetMyAuditLogs {
+  myAuditLogs(limit: 20) {
+    logs {
+      id
+      action
+      status
+      createdAt
+    }
+    total
+  }
+}"""
+            }
+        },
+        "profile": {
+            "updateProfile": {
+                "description": "Update current user profile",
+                "query": """mutation UpdateProfile {
+  updateProfile(
+    firstName: "John"
+    lastName: "Doe"
+    bio: "Software Developer"
+    language: "en"
+    timezone: "UTC"
+  ) {
+    id
+    profile {
+      firstName
+      lastName
+      bio
+    }
+  }
+}"""
+            },
+            "changePassword": {
+                "description": "Change current user password",
+                "query": """mutation ChangePassword {
+  changePassword(
+    currentPassword: "OldPassword123!"
+    newPassword: "NewSecurePassword456!"
+  ) {
+    success
+    message
   }
 }"""
             }

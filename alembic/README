@@ -44,3 +44,17 @@ npm install -g @anthropic-ai/claude-code
 # Удалим том базы данных и перезапустим:
 docker-compose down -v
 docker-compose up --build
+
+
+# Запуск dev сборки, которая поддерживает синхронизацию томов в контейнере.
+docker-compose -f docker-compose.dev.yml up -d --build
+
+  # Вариант 1: Только backend для разработки
+  docker-compose -f docker-compose.dev.yml up -d --build backend db redis
+
+  # Вариант 2: Полный стек
+  docker-compose -f docker-compose.dev.yml up -d --build
+
+
+
+  docker-compose -f docker-compose.dev.yml restart backend
