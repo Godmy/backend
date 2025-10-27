@@ -245,6 +245,26 @@ class Settings(BaseSettings):
     )
 
     # ===================
+    # Service Cache Configuration
+    # ===================
+    SERVICE_CACHE_ENABLED: bool = Field(
+        default=True,
+        description="Enable/disable service-level caching"
+    )
+    SERVICE_CACHE_DEFAULT_TTL: int = Field(
+        default=300,
+        ge=1,
+        le=86400,  # Max 24 hours
+        description="Default TTL for cached items in seconds (1-86400)"
+    )
+    SERVICE_CACHE_MAX_KEYS: int = Field(
+        default=10000,
+        ge=100,
+        le=1000000,
+        description="Maximum number of cached keys to prevent memory bloat (100-1000000)"
+    )
+
+    # ===================
     # Shutdown Configuration
     # ===================
     SHUTDOWN_TIMEOUT: int = Field(

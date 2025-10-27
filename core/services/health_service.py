@@ -144,8 +144,30 @@ class HealthCheckService:
             logger.error(f"Memory health check failed: {e}")
             return {"status": "unhealthy", "error": str(e), "message": "Memory check failed"}
 
+    @staticmethod
+    async def check_cache() -> Dict[str, Any]:
+        """
+        Check cache health status.
+
+        Returns:
+            Dict with cache health information including key count and usage
+        """
+        try:
+            from core.services.cache_service import get_cache_health
+
+            cache_health = await get_cache_health()
+            return cache_health
+        except Exception as e:
+            logger.error(f"Cache health check failed: {e}")
+            return {
+                "status": "error",
+                "available": False,
+                "error": str(e),
+                "message": "Cache health check failed"
+            }
+
     @classmethod
-    def get_full_health_status(cls) -> Dict[str, Any]:
+    async def get_full_health_status(cls) -> Dict[str, Any]:
         """
         Get comprehensive health status of all system components.
 
@@ -156,12 +178,13 @@ class HealthCheckService:
         redis = cls.check_redis()
         disk = cls.check_disk_space()
         memory = cls.check_memory()
+        cache = await cls.check_cache()
 
         # Determine overall status
-        components = [database, redis, disk, memory]
+        components = [database, redis, disk, memory, cache]
         if any(c["status"] == "unhealthy" for c in components):
             overall_status = "unhealthy"
-        elif any(c["status"] == "warning" for c in components):
+        elif any(c["status"] in ["warning", "degraded", "critical"] for c in components):
             overall_status = "degraded"
         else:
             overall_status = "healthy"
@@ -169,5 +192,11 @@ class HealthCheckService:
         return {
             "status": overall_status,
             "timestamp": time.time(),
-            "components": {"database": database, "redis": redis, "disk": disk, "memory": memory},
+            "components": {
+                "database": database,
+                "redis": redis,
+                "disk": disk,
+                "memory": memory,
+                "cache": cache
+            },
         }

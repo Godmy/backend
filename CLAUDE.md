@@ -87,6 +87,7 @@ Complete feature documentation available in **[docs/features/](docs/features/REA
 - [Security Headers](docs/features/security_headers.md) - Security middleware
 - [Rate Limiting](docs/features/rate_limiting.md) - API rate limiting per user/IP
 - [HTTP Caching](docs/features/http_caching.md) - Cache-Control, ETag, 304 Not Modified
+- [Redis Caching](docs/features/redis_caching.md) - Service-level caching with automatic invalidation
 - [Graceful Shutdown](docs/features/graceful_shutdown.md) - Graceful shutdown handling
 
 ---

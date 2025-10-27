@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from core.decorators.cache import cached
 from languages.models.concept import ConceptModel
 
 
@@ -15,7 +16,8 @@ class ConceptService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self) -> List[ConceptModel]:
+    @cached(key_prefix="concept:list", ttl=300)  # Cache for 5 minutes
+    async def get_all(self) -> List[ConceptModel]:
         """Получить все концепции"""
         return self.db.query(ConceptModel).order_by(ConceptModel.path).all()
 
@@ -45,8 +47,11 @@ class ConceptService:
             .all()
         )
 
-    def create(self, path: str, depth: int, parent_id: Optional[int] = None) -> ConceptModel:
+    async def create(self, path: str, depth: int, parent_id: Optional[int] = None) -> ConceptModel:
         """Создать новую концепцию"""
+        # Import here to avoid circular dependency
+        from core.services.cache_service import invalidate_concept_cache
+
         # Проверяем существование родительской концепции
         if parent_id is not None:
             parent = self.get_by_id(parent_id)
@@ -62,9 +67,13 @@ class ConceptService:
         self.db.add(concept)
         self.db.commit()
         self.db.refresh(concept)
+
+        # Invalidate concept cache after successful creation
+        await invalidate_concept_cache()
+
         return concept
 
-    def update(
+    async def update(
         self,
         concept_id: int,
         path: Optional[str] = None,
@@ -72,6 +81,9 @@ class ConceptService:
         parent_id: Optional[int] = None,
     ) -> Optional[ConceptModel]:
         """Обновить концепцию"""
+        # Import here to avoid circular dependency
+        from core.services.cache_service import invalidate_concept_cache
+
         concept = self.get_by_id(concept_id)
         if not concept:
             return None
@@ -98,10 +110,17 @@ class ConceptService:
 
         self.db.commit()
         self.db.refresh(concept)
+
+        # Invalidate concept cache after successful update
+        await invalidate_concept_cache()
+
         return concept
 
-    def delete(self, concept_id: int) -> bool:
+    async def delete(self, concept_id: int) -> bool:
         """Удалить концепцию"""
+        # Import here to avoid circular dependency
+        from core.services.cache_service import invalidate_concept_cache
+
         concept = self.get_by_id(concept_id)
         if not concept:
             return False
@@ -115,4 +134,8 @@ class ConceptService:
 
         self.db.delete(concept)
         self.db.commit()
+
+        # Invalidate concept cache after successful deletion
+        await invalidate_concept_cache()
+
         return True
