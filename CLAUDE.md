@@ -288,3 +288,13 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 - **GraphQL Playground:** http://localhost:8000/graphql
 - **Metrics:** http://localhost:8000/metrics
 - **MailPit UI:** http://localhost:8025 (dev only)
+
+---
+
+Issue to solve: undefined
+Your prepared branch: issue-3-2d341cdb
+Your prepared working directory: /tmp/gh-issue-solver-1761537615254
+Your forked repository: konard/backend
+Original repository (upstream): Godmy/backend
+
+Proceed.
