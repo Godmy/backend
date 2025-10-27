@@ -1,344 +1,216 @@
-from typing import List, Optional
+'''"""
+GraphQL schemas for role and permission management.
+"""
 
+from typing import List, Optional
 import strawberry
+from strawberry.types import Info
 
 from auth.dependencies.auth import get_required_user
+from auth.services.permission_service import PermissionService
+from auth.models.user import UserModel
+from auth.models.role import RoleModel, UserRoleModel
+from auth.models.permission import PermissionModel
 
+# ============================================================================
+# Types
+# ============================================================================
 
-@strawberry.type
+@strawberry.type(description="Represents a single permission.")
 class Permission:
     id: int
     role_id: int
-    resource: str
-    action: str
-    scope: str
+    resource: str = strawberry.field(description="The resource this permission applies to (e.g., 'concept', 'user').")
+    action: str = strawberry.field(description="The action allowed on the resource (e.g., 'create', 'read', 'update', 'delete').")
+    scope: str = strawberry.field(description="The scope of the action (e.g., 'own', 'all').")
 
-
-@strawberry.type
+@strawberry.type(description="Represents a user role and its associated permissions.")
 class Role:
     id: int
-    name: str
+    name: str = strawberry.field(description="The unique name of the role (e.g., 'admin', 'editor').")
     description: Optional[str]
     permissions: List[Permission]
 
+# ============================================================================
+# Inputs
+# ============================================================================
 
-@strawberry.input
+@strawberry.input(description="Input for creating or adding a permission.")
 class PermissionInput:
-    resource: str
-    action: str
-    scope: str = "own"
+    resource: str = strawberry.field(description="The resource name.")
+    action: str = strawberry.field(description="The action name.")
+    scope: str = strawberry.field(default="own", description="The scope ('own' or 'all').")
 
-
-@strawberry.input
+@strawberry.input(description="Input for creating a new role.")
 class RoleInput:
-    name: str
-    description: Optional[str] = None
+    name: str = strawberry.field(description="The name for the new role.")
+    description: Optional[str] = strawberry.field(default=None, description="An optional description for the role.")
 
-
-@strawberry.input
+@strawberry.input(description="Input for updating an existing role.")
 class RoleUpdateInput:
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: Optional[str] = strawberry.field(default=None, description="The new name for the role.")
+    description: Optional[str] = strawberry.field(default=None, description="The new description for the role.")
 
+# ============================================================================
+# Queries
+# ============================================================================
 
 @strawberry.type
 class RoleQuery:
-    @strawberry.field
-    async def roles(self, info) -> List[Role]:
-        """Получение списка всех ролей (только для администраторов)"""
-        from auth.models.role import RoleModel
-        from auth.services.permission_service import PermissionService
+    @strawberry.field(description='''Get a list of all roles and their permissions.
 
+**Required permissions:** `admin:read:roles`
+''')
+    async def roles(self, info: Info) -> List[Role]:
         current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Проверяем права доступа
-        if not PermissionService.check_permission(db, current_user["id"], "role", "read"):
+        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "read", "roles"):
             raise Exception("Insufficient permissions")
 
-        roles = db.query(RoleModel).all()
+        roles_db = db.query(RoleModel).all()
+        return [self._map_role_to_gql(role) for role in roles_db]
 
-        result = []
-        for role in roles:
-            permissions = [
-                Permission(
-                    id=perm.id,
-                    role_id=perm.role_id,
-                    resource=perm.resource,
-                    action=perm.action,
-                    scope=perm.scope,
-                )
-                for perm in role.permissions
-            ]
-            result.append(
-                Role(
-                    id=role.id,
-                    name=role.name,
-                    description=role.description,
-                    permissions=permissions,
-                )
-            )
+    @strawberry.field(description='''Get a single role by its ID.
 
-        return result
-
-    @strawberry.field
-    async def role(self, info, role_id: int) -> Role:
-        """Получение роли по ID (только для администраторов)"""
-        from auth.models.role import RoleModel
-        from auth.services.permission_service import PermissionService
-
+**Required permissions:** `admin:read:roles`
+''')
+    async def role(self, info: Info, role_id: int) -> Role:
         current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Проверяем права доступа
-        if not PermissionService.check_permission(db, current_user["id"], "role", "read"):
+        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "read", "roles"):
             raise Exception("Insufficient permissions")
 
-        role = db.query(RoleModel).filter(RoleModel.id == role_id).first()
-        if not role:
-            raise Exception("Role not found")
+        role_db = db.query(RoleModel).filter(RoleModel.id == role_id).first()
+        if not role_db: raise Exception("Role not found")
+        return self._map_role_to_gql(role_db)
 
-        permissions = [
-            Permission(
-                id=perm.id,
-                role_id=perm.role_id,
-                resource=perm.resource,
-                action=perm.action,
-                scope=perm.scope,
-            )
-            for perm in role.permissions
-        ]
+    @strawberry.field(description="Get the roles assigned to the current user.")
+    async def my_roles(self, info: Info) -> List[Role]:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not user: raise Exception("User not found")
+        return [self._map_role_to_gql(user_role.role) for user_role in user.roles]
 
+    def _map_role_to_gql(self, role_db: RoleModel) -> Role:
         return Role(
-            id=role.id, name=role.name, description=role.description, permissions=permissions
+            id=role_db.id, name=role_db.name, description=role_db.description,
+            permissions=[Permission(id=p.id, role_id=p.role_id, resource=p.resource, action=p.action, scope=p.scope) for p in role_db.permissions]
         )
 
-    @strawberry.field
-    async def my_roles(self, info) -> List[Role]:
-        """Получение ролей текущего пользователя"""
-        from auth.models.user import UserModel
-
-        current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
-        db = info.context["db"]
-
-        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
-        if not user:
-            raise Exception("User not found")
-
-        result = []
-        for user_role in user.roles:
-            # user.roles возвращает UserRoleModel объекты, а не RoleModel
-            role = user_role.role
-            permissions = [
-                Permission(
-                    id=perm.id,
-                    role_id=perm.role_id,
-                    resource=perm.resource,
-                    action=perm.action,
-                    scope=perm.scope,
-                )
-                for perm in role.permissions
-            ]
-            result.append(
-                Role(
-                    id=role.id,
-                    name=role.name,
-                    description=role.description,
-                    permissions=permissions,
-                )
-            )
-
-        return result
-
+# ============================================================================
+# Mutations
+# ============================================================================
 
 @strawberry.type
 class RoleMutation:
-    @strawberry.mutation
-    async def create_role(self, info, input: RoleInput) -> Role:
-        """Создание новой роли (только для администраторов)"""
-        from auth.models.role import RoleModel
-        from auth.services.permission_service import PermissionService
+    @strawberry.mutation(description='''Create a new role.
 
+**Required permissions:** `admin:create:roles`
+''')
+    async def create_role(self, info: Info, input: RoleInput) -> Role:
         current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Проверяем права доступа
-        if not PermissionService.check_permission(db, current_user["id"], "role", "create"):
+        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "create", "roles"):
             raise Exception("Insufficient permissions")
 
-        # Проверяем, нет ли уже роли с таким именем
-        existing_role = db.query(RoleModel).filter(RoleModel.name == input.name).first()
-        if existing_role:
+        if db.query(RoleModel).filter(RoleModel.name == input.name).first():
             raise Exception("Role with this name already exists")
 
-        role = RoleModel(name=input.name, description=input.description)
+        role = RoleModel(**input.__dict__)
         db.add(role)
         db.commit()
         db.refresh(role)
-
         return Role(id=role.id, name=role.name, description=role.description, permissions=[])
 
-    @strawberry.mutation
-    async def update_role(self, info, role_id: int, input: RoleUpdateInput) -> Role:
-        """Обновление роли (только для администраторов)"""
-        from auth.models.role import RoleModel
-        from auth.services.permission_service import PermissionService
+    @strawberry.mutation(description='''Update an existing role\'s name or description.
 
+**Required permissions:** `admin:update:roles`
+''')
+    async def update_role(self, info: Info, role_id: int, input: RoleUpdateInput) -> Role:
         current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Проверяем права доступа
-        if not PermissionService.check_permission(db, current_user["id"], "role", "update"):
+        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "update", "roles"):
             raise Exception("Insufficient permissions")
 
         role = db.query(RoleModel).filter(RoleModel.id == role_id).first()
-        if not role:
-            raise Exception("Role not found")
+        if not role: raise Exception("Role not found")
 
-        # Обновляем поля
         if input.name is not None:
-            # Проверяем, нет ли другой роли с таким именем
-            existing_role = (
-                db.query(RoleModel)
-                .filter(RoleModel.name == input.name, RoleModel.id != role_id)
-                .first()
-            )
-            if existing_role:
+            if db.query(RoleModel).filter(RoleModel.name == input.name, RoleModel.id != role_id).first():
                 raise Exception("Another role with this name already exists")
             role.name = input.name
-
         if input.description is not None:
             role.description = input.description
 
         db.commit()
         db.refresh(role)
+        return RoleQuery._map_role_to_gql(self, role)
 
-        permissions = [
-            Permission(
-                id=perm.id,
-                role_id=perm.role_id,
-                resource=perm.resource,
-                action=perm.action,
-                scope=perm.scope,
-            )
-            for perm in role.permissions
-        ]
+    @strawberry.mutation(description='''Add a permission to a role.
 
-        return Role(
-            id=role.id, name=role.name, description=role.description, permissions=permissions
-        )
-
-    @strawberry.mutation
-    async def add_permission_to_role(self, info, role_id: int, input: PermissionInput) -> Role:
-        """Добавление права к роли (только для администраторов)"""
-        from auth.models.permission import PermissionModel
-        from auth.models.role import RoleModel
-        from auth.services.permission_service import PermissionService
-
+**Required permissions:** `admin:update:roles`
+''')
+    async def add_permission_to_role(self, info: Info, role_id: int, input: PermissionInput) -> Role:
         current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Проверяем права доступа
-        if not PermissionService.check_permission(db, current_user["id"], "role", "update"):
+        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "update", "roles"):
             raise Exception("Insufficient permissions")
 
         role = db.query(RoleModel).filter(RoleModel.id == role_id).first()
-        if not role:
-            raise Exception("Role not found")
+        if not role: raise Exception("Role not found")
 
-        # Проверяем, нет ли уже такого права у роли
-        existing_permission = (
-            db.query(PermissionModel)
-            .filter(
-                PermissionModel.role_id == role_id,
-                PermissionModel.resource == input.resource,
-                PermissionModel.action == input.action,
-            )
-            .first()
-        )
-
-        if existing_permission:
+        if db.query(PermissionModel).filter_by(role_id=role_id, resource=input.resource, action=input.action).first():
             raise Exception("Permission already exists for this role")
 
-        permission = PermissionModel(
-            role_id=role_id, resource=input.resource, action=input.action, scope=input.scope
-        )
+        permission = PermissionModel(role_id=role_id, **input.__dict__)
         db.add(permission)
         db.commit()
         db.refresh(role)
+        return RoleQuery._map_role_to_gql(self, role)
 
-        permissions = [
-            Permission(
-                id=perm.id,
-                role_id=perm.role_id,
-                resource=perm.resource,
-                action=perm.action,
-                scope=perm.scope,
-            )
-            for perm in role.permissions
-        ]
+    @strawberry.mutation(description='''Assign a role to a user.
 
-        return Role(
-            id=role.id, name=role.name, description=role.description, permissions=permissions
-        )
-
-    @strawberry.mutation
-    async def assign_role_to_user(self, info, user_id: int, role_name: str) -> bool:
-        """Назначение роли пользователю (только для администраторов)"""
-        from auth.services.permission_service import PermissionService
+**Required permissions:** `admin:update:users`
+''')
+    async def assign_role_to_user(self, info: Info, user_id: int, role_name: str) -> bool:
         from auth.services.user_service import UserService
-
         current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Проверяем права доступа
-        if not PermissionService.check_permission(db, current_user["id"], "user", "update"):
+        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "update", "users"):
             raise Exception("Insufficient permissions")
 
-        success = UserService.assign_role_to_user(db, user_id, role_name)
-        if not success:
-            raise Exception("Failed to assign role to user")
-
+        if not UserService.assign_role_to_user(db, user_id, role_name):
+            raise Exception("Failed to assign role to user. User or role may not exist.")
         return True
 
-    @strawberry.mutation
-    async def remove_role_from_user(self, info, user_id: int, role_name: str) -> bool:
-        """Удаление роли у пользователя (только для администраторов)"""
-        from auth.models.role import RoleModel
-        from auth.models.user import UserModel
-        from auth.services.permission_service import PermissionService
+    @strawberry.mutation(description='''Remove a role from a user.
 
+**Required permissions:** `admin:update:users`
+''')
+    async def remove_role_from_user(self, info: Info, user_id: int, role_name: str) -> bool:
         current_user = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Проверяем права доступа
-        if not PermissionService.check_permission(db, current_user["id"], "user", "update"):
+        user = db.query(UserModel).filter(UserModel.id == current_user["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "update", "users"):
             raise Exception("Insufficient permissions")
 
-        from auth.models.role import UserRoleModel
+        user_to_modify = db.query(UserModel).filter(UserModel.id == user_id).first()
+        role_to_remove = db.query(RoleModel).filter(RoleModel.name == role_name).first()
+        if not user_to_modify or not role_to_remove: return False
 
-        user = db.query(UserModel).filter(UserModel.id == user_id).first()
-        role = db.query(RoleModel).filter(RoleModel.name == role_name).first()
-
-        if not user or not role:
-            return False
-
-        # Находим связь UserRoleModel и удаляем её
         user_role = db.query(UserRoleModel).filter(
-            UserRoleModel.user_id == user_id,
-            UserRoleModel.role_id == role.id
+            UserRoleModel.user_id == user_id, UserRoleModel.role_id == role_to_remove.id
         ).first()
 
         if user_role:
             db.delete(user_role)
             db.commit()
-
         return True
+'''

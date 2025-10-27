@@ -603,10 +603,10 @@ def seed_dictionaries(db):
     logger.info(f"✓ Added {count} dictionary translations")
 
 
-def seed_ui_concepts(db):
-    """Импортировать и запустить seed UI-переводов"""
-    from scripts.seed_ui_concepts import seed_ui_concepts as seed_ui
-    seed_ui(db)
+# def seed_ui_concepts(db):
+#     """Импортировать и запустить seed UI-переводов"""
+#     from scripts.seed_ui_concepts import seed_ui_concepts as seed_ui
+#     seed_ui(db)
 
 
 # def seed_domain_concepts(db):

@@ -48,10 +48,14 @@ class DomainConceptsSeeder(BaseSeeder):
         Returns:
             Список корневых узлов иерархии
         """
-        # Определяем путь к файлу парсера
-        script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        project_root = os.path.dirname(os.path.dirname(script_dir))
-        parser_file = os.path.join(project_root, "parser", "output.json")
+        # Try Docker volume path first (production/docker)
+        parser_file = "/parser/output.json"
+
+        # If not found, try relative path (local development)
+        if not os.path.exists(parser_file):
+            script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            project_root = os.path.dirname(os.path.dirname(script_dir))
+            parser_file = os.path.join(project_root, "parser", "output.json")
 
         self.logger.info(f"Loading ontology from: {parser_file}")
 

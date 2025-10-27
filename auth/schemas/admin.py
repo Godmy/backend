@@ -1,9 +1,7 @@
-"""
+'''"""
 GraphQL schemas for Admin operations.
 
 Provides admin-only queries and mutations for user management and system stats.
-
-Implementation for User Story #8 - Admin Panel Features (P1)
 """
 
 from typing import List, Optional
@@ -16,57 +14,45 @@ from core.services.audit_service import AuditService
 from auth.dependencies.auth import get_required_user
 from auth.models.user import UserModel
 
-
 # ============================================================================
 # Types
 # ============================================================================
 
-@strawberry.type
+@strawberry.type(description="User statistics for the admin dashboard.")
 class UserStats:
-    """User statistics."""
-    total: int
-    active: int
-    verified: int
-    new_last_30_days: int
-    banned: int
+    total: int = strawberry.field(description="Total number of users.")
+    active: int = strawberry.field(description="Number of active users.")
+    verified: int = strawberry.field(description="Number of users with verified emails.")
+    new_last_30_days: int = strawberry.field(description="Number of new users in the last 30 days.")
+    banned: int = strawberry.field(description="Number of banned users.")
 
-
-@strawberry.type
+@strawberry.type(description="Content statistics for the admin dashboard.")
 class ContentStats:
-    """Content statistics."""
-    concepts: int
-    dictionaries: int
-    languages: int
+    concepts: int = strawberry.field(description="Total number of concepts.")
+    dictionaries: int = strawberry.field(description="Total number of dictionary entries (translations).")
+    languages: int = strawberry.field(description="Total number of languages.")
 
-
-@strawberry.type
+@strawberry.type(description="File storage statistics.")
 class FileStats:
-    """File statistics."""
-    total: int
-    total_size_bytes: int
-    total_size_mb: float
+    total: int = strawberry.field(description="Total number of uploaded files.")
+    total_size_bytes: int = strawberry.field(description="Total size of all files in bytes.")
+    total_size_mb: float = strawberry.field(description="Total size of all files in megabytes.")
 
-
-@strawberry.type
+@strawberry.type(description="Audit log statistics.")
 class AuditStats:
-    """Audit log statistics."""
-    total_logs: int
-    logs_last_30_days: int
+    total_logs: int = strawberry.field(description="Total number of audit log entries.")
+    logs_last_30_days: int = strawberry.field(description="Number of audit log entries in the last 30 days.")
 
-
-@strawberry.type
+@strawberry.type(description="A comprehensive overview of system statistics.")
 class SystemStats:
-    """System statistics."""
-    users: UserStats
-    content: ContentStats
-    files: FileStats
-    audit: AuditStats
-    roles: strawberry.scalars.JSON
+    users: UserStats = strawberry.field(description="User-related statistics.")
+    content: ContentStats = strawberry.field(description="Content-related statistics.")
+    files: FileStats = strawberry.field(description="File storage statistics.")
+    audit: AuditStats = strawberry.field(description="Audit log statistics.")
+    roles: strawberry.scalars.JSON = strawberry.field(description="JSON object showing user distribution by role.")
 
-
-@strawberry.type
+@strawberry.type(description="Detailed user information for admin purposes.")
 class AdminUser:
-    """User type for admin queries (includes more fields)."""
     id: int
     username: str
     email: str
@@ -74,43 +60,32 @@ class AdminUser:
     is_verified: bool
     created_at: str
     updated_at: Optional[str]
-
-    # Profile fields
     first_name: Optional[str]
     last_name: Optional[str]
+    roles: List[str] = strawberry.field(description="List of roles assigned to the user.")
 
-    # Role names
-    roles: List[str]
-
-
-@strawberry.type
+@strawberry.type(description="Paginated response for the list of all users.")
 class AllUsersResponse:
-    """Response for allUsers query with pagination."""
     users: List[AdminUser]
-    total: int
-    has_more: bool
+    total: int = strawberry.field(description="Total number of users matching the filters.")
+    has_more: bool = strawberry.field(description="Indicates if more pages are available.")
 
-
-@strawberry.type
+@strawberry.type(description="Standard result for bulk operations.")
 class BulkOperationResult:
-    """Result of bulk operation."""
     success: bool
-    count: int
+    count: int = strawberry.field(description="Number of items affected.")
     message: str
-
 
 # ============================================================================
 # Inputs
 # ============================================================================
 
-@strawberry.input
+@strawberry.input(description="Filters for querying the list of all users.")
 class UserFilters:
-    """Filters for allUsers query."""
-    is_active: Optional[bool] = None
-    is_verified: Optional[bool] = None
-    role_name: Optional[str] = None
-    search: Optional[str] = None
-
+    is_active: Optional[bool] = strawberry.field(default=None, description="Filter by active status.")
+    is_verified: Optional[bool] = strawberry.field(default=None, description="Filter by email verification status.")
+    role_name: Optional[str] = strawberry.field(default=None, description="Filter by a specific role name.")
+    search: Optional[str] = strawberry.field(default=None, description="Search by username, email, or name.")
 
 # ============================================================================
 # Queries
@@ -118,133 +93,87 @@ class UserFilters:
 
 @strawberry.type
 class AdminQuery:
-    """Admin queries (admin-only)."""
+    """Admin-only queries for system management."""
 
-    @strawberry.field
+    @strawberry.field(description='''Get a paginated list of all users with advanced filtering.
+
+**Required permissions:** `admin:read:users`
+
+Example:
+```graphql
+query GetAllUsers {
+  allUsers(limit: 20, filters: { isActive: true, roleName: "editor", search: "john" }) {
+    users {
+      id
+      username
+      email
+      isActive
+      roles
+    }
+    total
+    hasMore
+  }
+}
+```
+''')
     async def all_users(
-        self,
-        info: Info,
-        limit: int = 50,
-        offset: int = 0,
-        filters: Optional[UserFilters] = None
+        self, info: Info, limit: int = 50, offset: int = 0, filters: Optional[UserFilters] = None
     ) -> AllUsersResponse:
-        """
-        Get all users with filters and pagination (admin only).
-
-        Args:
-            limit: Max results (max 100)
-            offset: Offset for pagination
-            filters: Filter criteria
-
-        Returns:
-            Paginated list of users
-
-        Example:
-            query {
-              allUsers(limit: 20, filters: { isActive: true, roleName: "admin" }) {
-                users {
-                  id
-                  username
-                  email
-                  isActive
-                  roles
-                }
-                total
-                hasMore
-              }
-            }
-        """
-        # Check admin permission
         current_user_dict = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
         user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(user, "admin", "read", "users"):
-            raise Exception("Admin permission required")
+            raise Exception("Permission denied: admin:read:users required")
 
-        # Get filters
-        kwargs = {}
-        if filters:
-            if filters.is_active is not None:
-                kwargs["is_active"] = filters.is_active
-            if filters.is_verified is not None:
-                kwargs["is_verified"] = filters.is_verified
-            if filters.role_name:
-                kwargs["role_name"] = filters.role_name
-            if filters.search:
-                kwargs["search"] = filters.search
+        kwargs = filters.__dict__ if filters else {}
+        users, total = AdminService.get_all_users(db, limit=limit, offset=offset, **kwargs)
 
-        # Get users
-        users, total = AdminService.get_all_users(
-            db,
-            limit=limit,
-            offset=offset,
-            **kwargs
-        )
-
-        # Convert to AdminUser type
-        admin_users = []
-        for u in users:
-            role_names = [ur.role.name for ur in u.roles if ur.role]
-            admin_users.append(
-                AdminUser(
-                    id=u.id,
-                    username=u.username,
-                    email=u.email,
-                    is_active=u.is_active,
-                    is_verified=u.is_verified,
-                    created_at=u.created_at.isoformat(),
-                    updated_at=u.updated_at.isoformat() if u.updated_at else None,
-                    first_name=u.profile.first_name if u.profile else None,
-                    last_name=u.profile.last_name if u.profile else None,
-                    roles=role_names
-                )
+        admin_users = [
+            AdminUser(
+                id=u.id, username=u.username, email=u.email, is_active=u.is_active,
+                is_verified=u.is_verified, created_at=u.created_at.isoformat(),
+                updated_at=u.updated_at.isoformat() if u.updated_at else None,
+                first_name=u.profile.first_name if u.profile else None,
+                last_name=u.profile.last_name if u.profile else None,
+                roles=[ur.role.name for ur in u.roles if ur.role]
             )
+            for u in users
+        ]
 
-        return AllUsersResponse(
-            users=admin_users,
-            total=total,
-            has_more=(offset + len(users)) < total
-        )
+        return AllUsersResponse(users=admin_users, total=total, has_more=(offset + len(users)) < total)
 
-    @strawberry.field
+    @strawberry.field(description='''Get a comprehensive dashboard of system statistics.
+
+**Required permissions:** `admin:read:system`
+
+Example:
+```graphql
+query GetSystemStats {
+  systemStats {
+    users { total active verified newLast30Days banned }
+    content { concepts dictionaries languages }
+    files { total totalSizeBytes totalSizeMb }
+    audit { totalLogs logsLast30Days }
+    roles
+  }
+}
+```
+''')
     async def system_stats(self, info: Info) -> SystemStats:
-        """
-        Get system statistics (admin only).
-
-        Returns:
-            System statistics
-
-        Example:
-            query {
-              systemStats {
-                users { total active verified }
-                content { concepts dictionaries }
-                files { total totalSizeMb }
-              }
-            }
-        """
-        # Check admin permission
         current_user_dict = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
         user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(user, "admin", "read", "system"):
-            raise Exception("Admin permission required")
+            raise Exception("Permission denied: admin:read:system required")
 
-        # Get stats
         stats = AdminService.get_system_stats(db)
-
         return SystemStats(
             users=UserStats(**stats["users"]),
             content=ContentStats(**stats["content"]),
-            files=FileStats(**stats["files"]),
+            files=FileStats(total=stats["files"]["total"], total_size_bytes=stats["files"]["total_size_bytes"], total_size_mb=stats["files"]["total_size_mb"]),
             audit=AuditStats(**stats["audit"]),
             roles=stats["roles"]
         )
-
 
 # ============================================================================
 # Mutations
@@ -252,294 +181,174 @@ class AdminQuery:
 
 @strawberry.type
 class AdminMutation:
-    """Admin mutations (admin-only)."""
+    """Admin-only mutations for system management."""
 
-    @strawberry.mutation
-    async def ban_user(
-        self,
-        info: Info,
-        user_id: int,
-        reason: Optional[str] = None
-    ) -> AdminUser:
-        """
-        Ban a user (set is_active=False).
+    @strawberry.mutation(description='''Bans a user, setting their `isActive` status to `false`.
 
-        Args:
-            user_id: ID of user to ban
-            reason: Optional reason for ban
+**Required permissions:** `admin:update:users`
 
-        Returns:
-            Updated user
-
-        Example:
-            mutation {
-              banUser(userId: 123, reason: "Spam") {
-                id
-                username
-                isActive
-              }
-            }
-        """
-        # Check admin permission
+Example:
+```graphql
+mutation BanUser {
+  banUser(userId: 123, reason: "Spam and abuse") {
+    id
+    username
+    isActive  # will be false
+  }
+}
+```
+''')
+    async def ban_user(self, info: Info, user_id: int, reason: Optional[str] = None) -> AdminUser:
         current_user_dict = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
-            raise Exception("Admin permission required")
+            raise Exception("Permission denied: admin:update:users required")
 
-        # Ban user
         user = AdminService.ban_user(db, user_id, admin_user, reason)
-
-        # Log action
-        audit_service = AuditService(db)
-        audit_service.log(
-            user_id=admin_user.id,
-            action="ban_user",
-            entity_type="user",
-            entity_id=user_id,
-            description=f"Banned user {user.username}. Reason: {reason}",
-            status="success",
-            ip_address=info.context["request"].client.host,
-            user_agent=info.context["request"].headers.get("user-agent")
+        AuditService(db).log(
+            user_id=admin_user.id, action="ban_user", entity_type="user", entity_id=user_id,
+            description=f"Banned user {user.username}. Reason: {reason}", status="success",
+            ip_address=info.context["request"].client.host, user_agent=info.context["request"].headers.get("user-agent")
         )
 
-        # Return
-        role_names = [ur.role.name for ur in user.roles if ur.role]
         return AdminUser(
-            id=user.id,
-            username=user.username,
-            email=user.email,
-            is_active=user.is_active,
-            is_verified=user.is_verified,
-            created_at=user.created_at.isoformat(),
+            id=user.id, username=user.username, email=user.email, is_active=user.is_active,
+            is_verified=user.is_verified, created_at=user.created_at.isoformat(),
             updated_at=user.updated_at.isoformat() if user.updated_at else None,
             first_name=user.profile.first_name if user.profile else None,
             last_name=user.profile.last_name if user.profile else None,
-            roles=role_names
+            roles=[ur.role.name for ur in user.roles if ur.role]
         )
 
-    @strawberry.mutation
+    @strawberry.mutation(description='''Unbans a user, setting their `isActive` status to `true`.
+
+**Required permissions:** `admin:update:users`
+
+Example:
+```graphql
+mutation UnbanUser {
+  unbanUser(userId: 123) {
+    id
+    username
+    isActive  # will be true
+  }
+}
+```
+''')
     async def unban_user(self, info: Info, user_id: int) -> AdminUser:
-        """
-        Unban a user (set is_active=True).
-
-        Args:
-            user_id: ID of user to unban
-
-        Returns:
-            Updated user
-
-        Example:
-            mutation {
-              unbanUser(userId: 123) {
-                id
-                username
-                isActive
-              }
-            }
-        """
-        # Check admin permission
         current_user_dict = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
-            raise Exception("Admin permission required")
+            raise Exception("Permission denied: admin:update:users required")
 
-        # Unban user
         user = AdminService.unban_user(db, user_id, admin_user)
-
-        # Log action
-        audit_service = AuditService(db)
-        audit_service.log(
-            user_id=admin_user.id,
-            action="unban_user",
-            entity_type="user",
-            entity_id=user_id,
-            description=f"Unbanned user {user.username}",
-            status="success",
-            ip_address=info.context["request"].client.host,
-            user_agent=info.context["request"].headers.get("user-agent")
+        AuditService(db).log(
+            user_id=admin_user.id, action="unban_user", entity_type="user", entity_id=user_id,
+            description=f"Unbanned user {user.username}", status="success",
+            ip_address=info.context["request"].client.host, user_agent=info.context["request"].headers.get("user-agent")
         )
 
-        # Return
-        role_names = [ur.role.name for ur in user.roles if ur.role]
         return AdminUser(
-            id=user.id,
-            username=user.username,
-            email=user.email,
-            is_active=user.is_active,
-            is_verified=user.is_verified,
-            created_at=user.created_at.isoformat(),
+            id=user.id, username=user.username, email=user.email, is_active=user.is_active,
+            is_verified=user.is_verified, created_at=user.created_at.isoformat(),
             updated_at=user.updated_at.isoformat() if user.updated_at else None,
             first_name=user.profile.first_name if user.profile else None,
             last_name=user.profile.last_name if user.profile else None,
-            roles=role_names
+            roles=[ur.role.name for ur in user.roles if ur.role]
         )
 
-    @strawberry.mutation
+    @strawberry.mutation(description='''Permanently deletes a user from the database. This action is irreversible.
+
+**Required permissions:** `admin:delete:users`
+
+**WARNING:** This is a hard delete and cannot be undone. Prefer banning or soft-deleting.
+
+Example:
+```graphql
+mutation DeleteUserPermanently {
+  deleteUserPermanently(userId: 123)
+}
+```
+''')
     async def delete_user_permanently(self, info: Info, user_id: int) -> bool:
-        """
-        Permanently delete a user (hard delete).
-
-        WARNING: This is irreversible!
-
-        Args:
-            user_id: ID of user to delete
-
-        Returns:
-            True if deleted
-
-        Example:
-            mutation {
-              deleteUserPermanently(userId: 123)
-            }
-        """
-        # Check admin permission
         current_user_dict = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "delete", "users"):
-            raise Exception("Admin permission required")
+            raise Exception("Permission denied: admin:delete:users required")
 
-        # Get user info before deletion (for audit log)
         target_user = db.query(UserModel).filter(UserModel.id == user_id).first()
-        if target_user:
-            username = target_user.username
-        else:
+        if not target_user:
             raise ValueError(f"User with ID {user_id} not found")
+        username = target_user.username
 
-        # Delete user
         result = AdminService.delete_user_permanently(db, user_id, admin_user)
-
-        # Log action
-        audit_service = AuditService(db)
-        audit_service.log(
-            user_id=admin_user.id,
-            action="delete_user_permanently",
-            entity_type="user",
-            entity_id=user_id,
-            description=f"Permanently deleted user {username}",
-            status="success",
-            ip_address=info.context["request"].client.host,
-            user_agent=info.context["request"].headers.get("user-agent")
+        AuditService(db).log(
+            user_id=admin_user.id, action="delete_user_permanently", entity_type="user", entity_id=user_id,
+            description=f"Permanently deleted user {username}", status="success",
+            ip_address=info.context["request"].client.host, user_agent=info.context["request"].headers.get("user-agent")
         )
-
         return result
 
-    @strawberry.mutation
-    async def bulk_assign_role(
-        self,
-        info: Info,
-        user_ids: List[int],
-        role_name: str
-    ) -> BulkOperationResult:
-        """
-        Assign role to multiple users.
+    @strawberry.mutation(description='''Assigns a role to multiple users at once.
 
-        Args:
-            user_ids: List of user IDs
-            role_name: Role name to assign
+**Required permissions:** `admin:update:users`
 
-        Returns:
-            Result with count of users updated
-
-        Example:
-            mutation {
-              bulkAssignRole(userIds: [1, 2, 3], roleName: "editor") {
-                success
-                count
-                message
-              }
-            }
-        """
-        # Check admin permission
+Example:
+```graphql
+mutation BulkAssignRole {
+  bulkAssignRole(userIds: [10, 20, 30], roleName: "editor") {
+    success
+    count
+    message
+  }
+}
+```
+''')
+    async def bulk_assign_role(self, info: Info, user_ids: List[int], role_name: str) -> BulkOperationResult:
         current_user_dict = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
-            raise Exception("Admin permission required")
+            raise Exception("Permission denied: admin:update:users required")
 
-        # Assign role
         count = AdminService.bulk_assign_role(db, user_ids, role_name, admin_user)
-
-        # Log action
-        audit_service = AuditService(db)
-        audit_service.log(
-            user_id=admin_user.id,
-            action="bulk_assign_role",
-            entity_type="role",
-            description=f"Assigned role {role_name} to {count} users",
-            status="success",
-            ip_address=info.context["request"].client.host,
-            user_agent=info.context["request"].headers.get("user-agent")
+        AuditService(db).log(
+            user_id=admin_user.id, action="bulk_assign_role", entity_type="role",
+            description=f"Assigned role '{role_name}' to {count} users", status="success",
+            ip_address=info.context["request"].client.host, user_agent=info.context["request"].headers.get("user-agent")
         )
+        return BulkOperationResult(success=True, count=count, message=f"Assigned role '{role_name}' to {count} users")
 
-        return BulkOperationResult(
-            success=True,
-            count=count,
-            message=f"Assigned role {role_name} to {count} users"
-        )
+    @strawberry.mutation(description='''Removes a role from multiple users at once.
 
-    @strawberry.mutation
-    async def bulk_remove_role(
-        self,
-        info: Info,
-        user_ids: List[int],
-        role_name: str
-    ) -> BulkOperationResult:
-        """
-        Remove role from multiple users.
+**Required permissions:** `admin:update:users`
 
-        Args:
-            user_ids: List of user IDs
-            role_name: Role name to remove
-
-        Returns:
-            Result with count of users updated
-
-        Example:
-            mutation {
-              bulkRemoveRole(userIds: [1, 2, 3], roleName: "editor") {
-                success
-                count
-                message
-              }
-            }
-        """
-        # Check admin permission
+Example:
+```graphql
+mutation BulkRemoveRole {
+  bulkRemoveRole(userIds: [10, 20, 30], roleName: "editor") {
+    success
+    count
+    message
+  }
+}
+```
+''')
+    async def bulk_remove_role(self, info: Info, user_ids: List[int], role_name: str) -> BulkOperationResult:
         current_user_dict = await get_required_user(info)
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
         admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not PermissionService.check_permission(admin_user, "admin", "update", "users"):
-            raise Exception("Admin permission required")
+            raise Exception("Permission denied: admin:update:users required")
 
-        # Remove role
         count = AdminService.bulk_remove_role(db, user_ids, role_name, admin_user)
-
-        # Log action
-        audit_service = AuditService(db)
-        audit_service.log(
-            user_id=admin_user.id,
-            action="bulk_remove_role",
-            entity_type="role",
-            description=f"Removed role {role_name} from {count} users",
-            status="success",
-            ip_address=info.context["request"].client.host,
-            user_agent=info.context["request"].headers.get("user-agent")
+        AuditService(db).log(
+            user_id=admin_user.id, action="bulk_remove_role", entity_type="role",
+            description=f"Removed role '{role_name}' from {count} users", status="success",
+            ip_address=info.context["request"].client.host, user_agent=info.context["request"].headers.get("user-agent")
         )
-
-        return BulkOperationResult(
-            success=True,
-            count=count,
-            message=f"Removed role {role_name} from {count} users"
-        )
+        return BulkOperationResult(success=True, count=count, message=f"Removed role '{role_name}' from {count} users")
+'''

@@ -6,8 +6,11 @@ import os
 from starlette.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
-# Импортируем наше приложение
-from app import app
+# Импортируем компоненты приложения
+from core.database import engine
+from core.init_db import init_database
+from auth.utils.jwt_handler import jwt_handler
+import app as app_module
 
 
 @pytest.fixture

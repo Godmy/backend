@@ -1,102 +1,133 @@
-from typing import List, Optional
+'''"""
+GraphQL schemas for managing languages.
+"""
 
+from typing import List, Optional
 import strawberry
 
+# ============================================================================
+# Types
+# ============================================================================
 
-@strawberry.type
+@strawberry.type(description="Represents a language available for translations.")
 class Language:
-    """GraphQL тип для языка"""
+    id: int = strawberry.field(description="Unique identifier for the language.")
+    code: str = strawberry.field(description="The language code (e.g., 'en', 'ru'). Must be unique.")
+    name: str = strawberry.field(description="The full name of the language (e.g., 'English', 'Русский').")
 
-    id: int
-    code: str
-    name: str
+# ============================================================================
+# Inputs
+# ============================================================================
 
-
-@strawberry.input
+@strawberry.input(description="Input for creating a new language.")
 class LanguageInput:
-    """Входные данные для создания языка"""
+    code: str = strawberry.field(description="The language code (e.g., 'fr').")
+    name: str = strawberry.field(description="The full name of the language (e.g., 'Français').")
 
-    code: str
-    name: str
-
-
-@strawberry.input
+@strawberry.input(description="Input for updating an existing language.")
 class LanguageUpdateInput:
-    """Входные данные для обновления языка"""
+    code: Optional[str] = strawberry.field(default=None, description="The new language code.")
+    name: Optional[str] = strawberry.field(default=None, description="The new full name.")
 
-    code: Optional[str] = None
-    name: Optional[str] = None
-
+# ============================================================================
+# Queries
+# ============================================================================
 
 @strawberry.type
 class LanguageQuery:
-    """GraphQL запросы для языков"""
+    """GraphQL queries for retrieving languages."""
 
-    @strawberry.field
-    def languages(self, info: strawberry.Info = None) -> List[Language]:
-        """Получить список всех языков"""
+    @strawberry.field(description='''Get a list of all available languages.
+
+Example:
+```graphql
+query GetLanguages {
+  languages {
+    id
+    code
+    name
+  }
+}
+```
+''')
+    def languages(self, info: strawberry.Info) -> List[Language]:
         from languages.services.language_service import LanguageService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = LanguageService(db)
-        languages = service.get_all()
+        languages_db = service.get_all()
+        return [Language(id=lang.id, code=lang.code, name=lang.name) for lang in languages_db]
 
-        return [Language(id=lang.id, code=lang.code, name=lang.name) for lang in languages]
-
-    @strawberry.field
-    def language(self, language_id: int, info: strawberry.Info = None) -> Optional[Language]:
-        """Получить язык по ID"""
+    @strawberry.field(description="Get a single language by its unique ID.")
+    def language(self, language_id: int, info: strawberry.Info) -> Optional[Language]:
         from languages.services.language_service import LanguageService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = LanguageService(db)
-        lang = service.get_by_id(language_id)
+        lang_db = service.get_by_id(language_id)
+        return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name) if lang_db else None
 
-        if not lang:
-            return None
-
-        return Language(id=lang.id, code=lang.code, name=lang.name)
-
+# ============================================================================
+# Mutations
+# ============================================================================
 
 @strawberry.type
 class LanguageMutation:
-    """GraphQL мутации для языков"""
+    """GraphQL mutations for managing languages."""
 
-    @strawberry.mutation
-    def create_language(self, input: LanguageInput, info: strawberry.Info = None) -> Language:
-        """Создать новый язык"""
+    @strawberry.mutation(description='''Create a new language.
+
+Example:
+```graphql
+mutation CreateItalianLanguage {
+  createLanguage(input: { code: "it", name: "Italiano" }) {
+    id
+    code
+    name
+  }
+}
+```
+''')
+    def create_language(self, info: strawberry.Info, input: LanguageInput) -> Language:
         from languages.services.language_service import LanguageService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = LanguageService(db)
-        language = service.create(code=input.code, name=input.name)
+        lang_db = service.create(code=input.code, name=input.name)
+        return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name)
 
-        return Language(id=language.id, code=language.code, name=language.name)
+    @strawberry.mutation(description='''Update an existing language.
 
-    @strawberry.mutation
-    def update_language(self, language_id: int, input: LanguageUpdateInput, info: strawberry.Info = None) -> Language:
-        """Обновить язык"""
+Example:
+```graphql
+mutation UpdateRussianLanguage {
+  updateLanguage(languageId: 1, input: { name: "Русский" }) {
+    id
+    name
+  }
+}
+```
+''')
+    def update_language(self, info: strawberry.Info, language_id: int, input: LanguageUpdateInput) -> Language:
         from languages.services.language_service import LanguageService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = LanguageService(db)
-        language = service.update(language_id, code=input.code, name=input.name)
-
-        if not language:
+        lang_db = service.update(language_id, code=input.code, name=input.name)
+        if not lang_db:
             raise Exception("Language not found")
+        return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name)
 
-        return Language(id=language.id, code=language.code, name=language.name)
+    @strawberry.mutation(description='''Soft delete a language. This is a reversible action.
 
-    @strawberry.mutation
-    def delete_language(self, language_id: int, info: strawberry.Info = None) -> bool:
-        """Удалить язык"""
+A language cannot be deleted if it is currently associated with any translations.
+
+Example:
+```graphql
+mutation DeleteLanguage {
+  deleteLanguage(languageId: 10)
+}
+```
+''')
+    def delete_language(self, info: strawberry.Info, language_id: int) -> bool:
         from languages.services.language_service import LanguageService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = LanguageService(db)
         return service.delete(language_id)
+'''

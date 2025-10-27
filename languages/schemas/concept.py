@@ -1,196 +1,209 @@
-from typing import List, Optional
+'''"""
+GraphQL schemas for managing concepts, which form the hierarchical structure of the ontology.
+"""
 
+from typing import List, Optional
 import strawberry
 
+# ============================================================================
+# Types
+# ============================================================================
 
-@strawberry.type
+@strawberry.type(description="Represents a language associated with a dictionary entry.")
 class ConceptLanguage:
-    """GraphQL тип для языка в контексте концепции"""
+    code: str = strawberry.field(description="The language code (e.g., 'en', 'ru').")
 
-    code: str
-
-
-@strawberry.type
+@strawberry.type(description="Represents a translation (dictionary entry) for a concept.")
 class ConceptDictionary:
-    """GraphQL тип для словаря в контексте концепции"""
+    name: str = strawberry.field(description="The name of the concept in this language.")
+    description: Optional[str] = strawberry.field(description="A detailed description in this language.")
+    language: ConceptLanguage = strawberry.field(description="The language of this translation.")
 
-    name: str
-    description: Optional[str]
-    language: ConceptLanguage
+@strawberry.type(description='''Represents a concept in the ontology\'s hierarchy.
 
-
-@strawberry.type
+Concepts use a materialized path pattern (e.g., \'science.physics.relativity\') to represent their position.
+''')
 class Concept:
-    """GraphQL тип для концепции"""
+    id: int = strawberry.field(description="Unique identifier for the concept.")
+    parent_id: Optional[int] = strawberry.field(description="The ID of the parent concept. Null for root concepts.")
+    path: str = strawberry.field(description="The materialized path (e.g., 'colors.red').")
+    depth: int = strawberry.field(description="The depth in the hierarchy (0 for root concepts).")
+    dictionaries: List[ConceptDictionary] = strawberry.field(
+        description="List of translations for this concept.",
+        default_factory=list
+    )
 
-    id: int
-    parent_id: Optional[int]
-    path: str
-    depth: int
-    dictionaries: List[ConceptDictionary] = strawberry.field(default_factory=list)
+# ============================================================================
+# Inputs
+# ============================================================================
 
-
-@strawberry.input
+@strawberry.input(description="Input for creating a new concept.")
 class ConceptInput:
-    """Входные данные для создания концепции"""
+    path: str = strawberry.field(description="Materialized path. Must include parent's path (e.g., 'parent.child').")
+    depth: int = strawberry.field(description="Depth of the concept (should be parent.depth + 1).")
+    parent_id: Optional[int] = strawberry.field(default=None, description="The ID of the parent concept. Null to create a root concept.")
 
-    path: str
-    depth: int
-    parent_id: Optional[int] = None
-
-
-@strawberry.input
+@strawberry.input(description="Input for updating an existing concept.")
 class ConceptUpdateInput:
-    """Входные данные для обновления концепции"""
+    path: Optional[str] = strawberry.field(default=None, description="The new materialized path.")
+    depth: Optional[int] = strawberry.field(default=None, description="The new depth.")
+    parent_id: Optional[int] = strawberry.field(default=None, description="The new parent ID.")
 
-    path: Optional[str] = None
-    depth: Optional[int] = None
-    parent_id: Optional[int] = None
-
+# ============================================================================
+# Queries
+# ============================================================================
 
 @strawberry.type
 class ConceptQuery:
-    """GraphQL запросы для концепций"""
+    """GraphQL queries for retrieving concepts."""
 
-    @strawberry.field
+    @strawberry.field(description='''Get a list of concepts. Can be filtered by parent or depth.
+
+- Providing `parentId` fetches direct children of a concept.
+- Providing `depth: 0` fetches only root concepts.
+- Providing no arguments fetches all concepts.
+
+Example (get children of concept 1):
+```graphql
+query GetChildConcepts {
+  concepts(parentId: 1) {
+    id
+    path
+    depth
+  }
+}
+```
+''')
     def concepts(
-        self,
-        depth: Optional[int] = None,
-        parent_id: Optional[int] = None,
-        info: strawberry.Info = None
+        self, info: strawberry.Info, depth: Optional[int] = None, parent_id: Optional[int] = None
     ) -> List[Concept]:
-        """Получить список концепций с опциональной фильтрацией"""
         from languages.services.concept_service import ConceptService
-        from sqlalchemy.orm import joinedload
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = ConceptService(db)
 
-        # Determine which service method to call based on filters
         if depth is not None and depth == 0:
-            # Get root concepts (depth = 0, no parent)
-            concepts = service.get_root_concepts()
+            concepts_db = service.get_root_concepts()
         elif parent_id is not None:
-            # Get children of specific parent
-            concepts = service.get_children(parent_id)
+            concepts_db = service.get_children(parent_id)
         else:
-            # Get all concepts
-            concepts = service.get_all()
+            concepts_db = service.get_all()
 
-        # Convert to GraphQL types with dictionaries
-        return [
-            Concept(
-                id=c.id,
-                parent_id=c.parent_id,
-                path=c.path,
-                depth=c.depth,
-                dictionaries=[
-                    ConceptDictionary(
-                        name=d.name,
-                        description=d.description,
-                        language=ConceptLanguage(code=d.language.code)
-                    )
-                    for d in c.dictionaries
-                ]
-            )
-            for c in concepts
-        ]
+        return [self._map_concept_to_gql(c) for c in concepts_db]
 
-    @strawberry.field
-    def concept(self, concept_id: int, info: strawberry.Info = None) -> Optional[Concept]:
-        """Получить концепцию по ID"""
+    @strawberry.field(description='''Get a single concept by its unique ID, including its translations.
+
+Example:
+```graphql
+query GetConceptDetails {
+  concept(conceptId: 1) {
+    id
+    path
+    dictionaries {
+      name
+      description
+      language {
+        code
+      }
+    }
+  }
+}
+```
+''')
+    def concept(self, concept_id: int, info: strawberry.Info) -> Optional[Concept]:
         from languages.services.concept_service import ConceptService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = ConceptService(db)
-        concept = service.get_by_id(concept_id)
+        concept_db = service.get_by_id(concept_id)
+        return self._map_concept_to_gql(concept_db) if concept_db else None
 
-        if not concept:
-            return None
-
+    def _map_concept_to_gql(self, concept_db) -> Concept:
         return Concept(
-            id=concept.id,
-            parent_id=concept.parent_id,
-            path=concept.path,
-            depth=concept.depth,
+            id=concept_db.id,
+            parent_id=concept_db.parent_id,
+            path=concept_db.path,
+            depth=concept_db.depth,
             dictionaries=[
                 ConceptDictionary(
                     name=d.name,
                     description=d.description,
                     language=ConceptLanguage(code=d.language.code)
                 )
-                for d in concept.dictionaries
+                for d in concept_db.dictionaries
             ]
         )
 
+# ============================================================================
+# Mutations
+# ============================================================================
 
 @strawberry.type
 class ConceptMutation:
-    """GraphQL мутации для концепций"""
+    """GraphQL mutations for creating, updating, and deleting concepts."""
 
-    @strawberry.mutation
-    def create_concept(self, input: ConceptInput, info: strawberry.Info = None) -> Concept:
-        """Создать новую концепцию"""
+    @strawberry.mutation(description='''Create a new concept.
+
+To create a root concept, set `parentId` to `null` and `depth` to `0`.
+To create a child, provide the `parentId` and set `depth` to `parent.depth + 1`.
+
+Example (create a root concept):
+```graphql
+mutation CreateRootConcept {
+  createConcept(input: {
+    path: "sports"
+    depth: 0
+    parentId: null
+  }) {
+    id
+    path
+    depth
+  }
+}
+```
+''')
+    def create_concept(self, info: strawberry.Info, input: ConceptInput) -> Concept:
         from languages.services.concept_service import ConceptService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = ConceptService(db)
-        concept = service.create(path=input.path, depth=input.depth, parent_id=input.parent_id)
+        concept_db = service.create(path=input.path, depth=input.depth, parent_id=input.parent_id)
+        return ConceptQuery._map_concept_to_gql(self, concept_db)
 
-        return Concept(
-            id=concept.id,
-            parent_id=concept.parent_id,
-            path=concept.path,
-            depth=concept.depth,
-            dictionaries=[
-                ConceptDictionary(
-                    name=d.name,
-                    description=d.description,
-                    language=ConceptLanguage(code=d.language.code)
-                )
-                for d in concept.dictionaries
-            ]
-        )
+    @strawberry.mutation(description='''Update an existing concept\'s path, depth, or parent.
 
-    @strawberry.mutation
-    def update_concept(self, concept_id: int, input: ConceptUpdateInput, info: strawberry.Info = None) -> Concept:
-        """Обновить концепцию"""
+Example:
+```graphql
+mutation UpdateConceptPath {
+  updateConcept(conceptId: 5, input: { path: "games.boardgames" }) {
+    id
+    path
+  }
+}
+```
+''')
+    def update_concept(self, info: strawberry.Info, concept_id: int, input: ConceptUpdateInput) -> Concept:
         from languages.services.concept_service import ConceptService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = ConceptService(db)
-        concept = service.update(
+        concept_db = service.update(
             concept_id, path=input.path, depth=input.depth, parent_id=input.parent_id
         )
-
-        if not concept:
+        if not concept_db:
             raise Exception("Concept not found")
+        return ConceptQuery._map_concept_to_gql(self, concept_db)
 
-        return Concept(
-            id=concept.id,
-            parent_id=concept.parent_id,
-            path=concept.path,
-            depth=concept.depth,
-            dictionaries=[
-                ConceptDictionary(
-                    name=d.name,
-                    description=d.description,
-                    language=ConceptLanguage(code=d.language.code)
-                )
-                for d in concept.dictionaries
-            ]
-        )
+    @strawberry.mutation(description='''Soft delete a concept. This is a reversible action.
 
-    @strawberry.mutation
-    def delete_concept(self, concept_id: int, info: strawberry.Info = None) -> bool:
-        """Удалить концепцию"""
+All child concepts and associated translations will also be soft-deleted.
+
+Example:
+```graphql
+mutation DeleteConcept {
+  deleteConcept(conceptId: 10)
+}
+```
+''')
+    def delete_concept(self, info: strawberry.Info, concept_id: int) -> bool:
         from languages.services.concept_service import ConceptService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = ConceptService(db)
         return service.delete(concept_id)
+'''

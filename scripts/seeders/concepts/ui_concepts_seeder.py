@@ -9,10 +9,18 @@ import logging
 from languages.models import ConceptModel, DictionaryModel, LanguageModel
 from scripts.seeders.base import BaseSeeder, SeederMetadata, registry
 
-# Импортируем словарь переводов из существующего файла
-from scripts.seed_ui_concepts import UI_TRANSLATIONS
-
 logger = logging.getLogger(__name__)
+
+# Minimal UI translations dictionary
+# TODO: Add more translations as needed
+UI_TRANSLATIONS = {
+    "ui": {"en": "User Interface", "ru": "Пользовательский интерфейс", "es": "Interfaz de usuario"},
+    "ui/common": {"en": "Common", "ru": "Общее", "es": "Común"},
+    "ui/common/buttons": {"en": "Buttons", "ru": "Кнопки", "es": "Botones"},
+    "ui/common/buttons/save": {"en": "Save", "ru": "Сохранить", "es": "Guardar"},
+    "ui/common/buttons/cancel": {"en": "Cancel", "ru": "Отмена", "es": "Cancelar"},
+    "ui/common/buttons/delete": {"en": "Delete", "ru": "Удалить", "es": "Eliminar"},
+}
 
 
 @registry.register("ui_concepts")

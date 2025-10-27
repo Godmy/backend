@@ -1,5 +1,5 @@
-"""
-GraphQL схемы для поиска концепций и переводов
+'''"""
+GraphQL schemas for advanced search and filtering of concepts and translations.
 """
 
 from datetime import datetime
@@ -11,211 +11,172 @@ import strawberry
 from languages.schemas.concept import Concept
 from languages.schemas.dictionary import Dictionary
 
+# ============================================================================
+# Enums & Inputs
+# ============================================================================
 
-@strawberry.enum
+@strawberry.enum(description="Options for sorting search results.")
 class SearchSortEnum(str, Enum):
-    """Варианты сортировки результатов поиска"""
-
     RELEVANCE = "relevance"
     ALPHABET = "alphabet"
     DATE = "date"
 
-
-@strawberry.input
+@strawberry.input(description="A comprehensive set of filters for concept searching.")
 class SearchFilters:
-    """Фильтры для поиска концепций"""
+    query: Optional[str] = strawberry.field(default=None, description="The search term (case-insensitive).")
+    language_ids: Optional[List[int]] = strawberry.field(default=None, description="Filter by a list of language IDs.")
+    category_path: Optional[str] = strawberry.field(default=None, description="Filter by concept path prefix (e.g., 'science.physics').")
+    from_date: Optional[datetime] = strawberry.field(default=None, description="Filter by creation date (from).")
+    to_date: Optional[datetime] = strawberry.field(default=None, description="Filter by creation date (to).")
+    sort_by: Optional[SearchSortEnum] = strawberry.field(default=SearchSortEnum.RELEVANCE, description="The sorting order for the results.")
+    limit: int = strawberry.field(default=20, description="Maximum number of results to return.")
+    offset: int = strawberry.field(default=0, description="Offset for pagination.")
 
-    query: Optional[str] = None
-    language_ids: Optional[List[int]] = None
-    category_path: Optional[str] = None
-    from_date: Optional[datetime] = None
-    to_date: Optional[datetime] = None
-    sort_by: Optional[SearchSortEnum] = SearchSortEnum.RELEVANCE
-    limit: Optional[int] = 20
-    offset: Optional[int] = 0
+# ============================================================================
+# Types
+# ============================================================================
 
-
-@strawberry.type
+@strawberry.type(description="A single search result, containing a concept and its matching translations.")
 class ConceptSearchResult:
-    """Результат поиска концепции с переводами"""
+    concept: Concept = strawberry.field(description="The concept that matched the search.")
+    dictionaries: List[Dictionary] = strawberry.field(description="The list of dictionary entries (translations) that matched.")
+    relevance_score: Optional[float] = strawberry.field(default=None, description="The relevance score of the result.")
 
-    concept: Concept
-    dictionaries: List[Dictionary]
-    relevance_score: Optional[float] = None
-
-
-@strawberry.type
+@strawberry.type(description="The complete search response, including results and pagination details.")
 class SearchResult:
-    """Результаты поиска с метаданными"""
-
     results: List[ConceptSearchResult]
-    total: int
-    has_more: bool
+    total: int = strawberry.field(description="Total number of matching results.")
+    has_more: bool = strawberry.field(description="Indicates if more pages are available.")
     limit: int
     offset: int
 
+# ============================================================================
+# Queries
+# ============================================================================
 
 @strawberry.type
 class SearchQuery:
-    """GraphQL запросы для поиска"""
+    """GraphQL queries for searching concepts and getting suggestions."""
 
-    @strawberry.field
-    def search_concepts(self, filters: SearchFilters, info: strawberry.Info = None) -> SearchResult:
-        """
-        Поиск концепций по ключевым словам с фильтрацией
+    @strawberry.field(description='''Performs a full-text search for concepts with advanced filtering, sorting, and pagination.
 
-        Args:
-            filters: Фильтры поиска (query, языки, категория, даты, сортировка, пагинация)
-
-        Returns:
-            SearchResult с найденными концепциями и метаданными
-        """
+Example:
+```graphql
+query SearchForConcepts {
+  searchConcepts(filters: {
+    query: "пользователь"
+    languageIds: [1, 2]  # Russian and English
+    categoryPath: "users"
+    sortBy: RELEVANCE
+    limit: 10
+  }) {
+    results {
+      concept {
+        id
+        path
+      }
+      dictionaries {
+        name
+        language_id
+      }
+      relevanceScore
+    }
+    total
+    hasMore
+  }
+}
+```
+''')
+    def search_concepts(self, info: strawberry.Info, filters: SearchFilters) -> SearchResult:
         from languages.services.search_service import SearchService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = SearchService(db)
 
-        # Выполняем поиск
-        concepts, total = service.search_concepts(
+        concepts_db, total = service.search_concepts(
             query=filters.query,
             language_ids=filters.language_ids,
             category_path=filters.category_path,
             from_date=filters.from_date,
             to_date=filters.to_date,
             sort_by=filters.sort_by.value if filters.sort_by else "relevance",
-            limit=filters.limit or 20,
-            offset=filters.offset or 0,
+            limit=filters.limit,
+            offset=filters.offset,
         )
 
-        # Формируем результаты
         results = []
-        for concept in concepts:
-            # Получаем словари для концепции (уже загружены через joinedload)
+        for concept in concepts_db:
             dictionaries = concept.dictionaries
-
-            # Фильтруем словари по языкам если нужно
             if filters.language_ids:
                 dictionaries = [d for d in dictionaries if d.language_id in filters.language_ids]
 
-            # Создаем результат
-            concept_result = ConceptSearchResult(
-                concept=Concept(
-                    id=concept.id,
-                    parent_id=concept.parent_id,
-                    path=concept.path,
-                    depth=concept.depth,
-                ),
+            results.append(ConceptSearchResult(
+                concept=Concept(id=concept.id, parent_id=concept.parent_id, path=concept.path, depth=concept.depth),
                 dictionaries=[
                     Dictionary(
-                        id=d.id,
-                        concept_id=d.concept_id,
-                        language_id=d.language_id,
-                        name=d.name,
-                        description=d.description,
-                        image=d.image,
+                        id=d.id, concept_id=d.concept_id, language_id=d.language_id,
+                        name=d.name, description=d.description, image=d.image
                     )
                     for d in dictionaries
                 ],
-            )
-            results.append(concept_result)
+            ))
 
-        # Определяем есть ли еще результаты
-        limit = filters.limit or 20
-        offset = filters.offset or 0
-        has_more = (offset + limit) < total
+        has_more = (filters.offset + filters.limit) < total
+        return SearchResult(results=results, total=total, has_more=has_more, limit=filters.limit, offset=filters.offset)
 
-        return SearchResult(
-            results=results, total=total, has_more=has_more, limit=limit, offset=offset
-        )
+    @strawberry.field(description='''Get search suggestions for autocomplete functionality.
 
-    @strawberry.field
+Returns a list of concept names that start with the provided query string.
+
+Example:
+```graphql
+query GetSuggestions {
+  searchSuggestions(query: "auth", languageId: 1, limit: 5)
+}
+```
+''')
     def search_suggestions(
-        self, query: str, language_id: Optional[int] = None, limit: int = 5, info: strawberry.Info = None
+        self, info: strawberry.Info, query: str, language_id: Optional[int] = None, limit: int = 5
     ) -> List[str]:
-        """
-        Get search suggestions/autocomplete based on partial query.
-
-        Returns matching dictionary names that start with the query string.
-        Useful for autocomplete functionality.
-
-        Args:
-            query: Partial search query (e.g., "use")
-            language_id: Optional language filter
-            limit: Maximum number of suggestions (default: 5, max: 20)
-
-        Returns:
-            List of suggested search terms
-
-        Example:
-            query {
-              searchSuggestions(query: "user", languageId: 1, limit: 5)
-            }
-        """
         from languages.models.dictionary import DictionaryModel
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Limit max suggestions
         limit = min(limit, 20)
 
         search_pattern = f"{query}%"
-        base_query = db.query(DictionaryModel.name).filter(
+        q = db.query(DictionaryModel.name).filter(
             DictionaryModel.name.ilike(search_pattern),
             DictionaryModel.deleted_at.is_(None),
         )
 
         if language_id:
-            base_query = base_query.filter(DictionaryModel.language_id == language_id)
+            q = q.filter(DictionaryModel.language_id == language_id)
 
-        suggestions = (
-            base_query.distinct()
-            .order_by(DictionaryModel.name)
-            .limit(limit)
-            .all()
-        )
-
+        suggestions = q.distinct().order_by(DictionaryModel.name).limit(limit).all()
         return [s[0] for s in suggestions]
 
-    @strawberry.field
-    def popular_concepts(self, limit: int = 10, info: strawberry.Info = None) -> List[ConceptSearchResult]:
-        """
-        Get most popular concepts (by translation count).
+    @strawberry.field(description='''Get the most popular concepts, ranked by the number of translations they have.
 
-        Returns concepts that have the most translations across languages,
-        which serves as a proxy for popularity.
+This serves as a proxy for usage and importance.
 
-        Args:
-            limit: Number of popular concepts to return (default: 10, max: 50)
-
-        Returns:
-            List of popular concepts with their translations
-
-        Example:
-            query {
-              popularConcepts(limit: 10) {
-                concept { id path depth }
-                dictionaries { name description }
-              }
-            }
-        """
+Example:
+```graphql
+query GetPopular {
+  popularConcepts(limit: 5) {
+    concept { id path }
+    dictionaries { name }
+    relevanceScore # Represents translation count
+  }
+}
+```
+''')
+    def popular_concepts(self, info: strawberry.Info, limit: int = 10) -> List[ConceptSearchResult]:
         from sqlalchemy import func, text
         from languages.models.dictionary import DictionaryModel
         from languages.services.search_service import SearchService
-
-        # Use DB session from context (no connection leak)
         db = info.context["db"]
-
-        # Limit max results
         limit = min(limit, 50)
 
-        # Get concepts with most translations
         popular_concept_ids = (
-            db.query(
-                DictionaryModel.concept_id,
-                func.count(DictionaryModel.id).label("translation_count"),
-            )
+            db.query(DictionaryModel.concept_id, func.count(DictionaryModel.id).label("translation_count"))
             .filter(DictionaryModel.deleted_at.is_(None))
             .group_by(DictionaryModel.concept_id)
             .order_by(text("translation_count DESC"))
@@ -223,34 +184,21 @@ class SearchQuery:
             .all()
         )
 
-        # Get full concept data
         service = SearchService(db)
         results = []
-
         for concept_id, count in popular_concept_ids:
             concept = service.get_concept_with_dictionaries(concept_id)
             if concept:
-                results.append(
-                    ConceptSearchResult(
-                        concept=Concept(
-                            id=concept.id,
-                            parent_id=concept.parent_id,
-                            path=concept.path,
-                            depth=concept.depth,
-                        ),
-                        dictionaries=[
-                            Dictionary(
-                                id=d.id,
-                                concept_id=d.concept_id,
-                                language_id=d.language_id,
-                                name=d.name,
-                                description=d.description,
-                                image=d.image,
-                            )
-                            for d in concept.dictionaries
-                        ],
-                        relevance_score=float(count),  # Use translation count as score
-                    )
-                )
-
+                results.append(ConceptSearchResult(
+                    concept=Concept(id=concept.id, parent_id=concept.parent_id, path=concept.path, depth=concept.depth),
+                    dictionaries=[
+                        Dictionary(
+                            id=d.id, concept_id=d.concept_id, language_id=d.language_id,
+                            name=d.name, description=d.description, image=d.image
+                        )
+                        for d in concept.dictionaries
+                    ],
+                    relevance_score=float(count),
+                ))
         return results
+'''
