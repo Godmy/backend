@@ -198,6 +198,8 @@ class UserMutation:
 
 ## Data Flow
 
+### Query Flow (with Caching)
+
 ```
 ┌─────────────────────┐
 │  GraphQL Request    │
@@ -215,35 +217,83 @@ class UserMutation:
            ▼
 ┌─────────────────────┐
 │  Services Layer     │
-│  - Business logic   │
-│  - Validation       │
-│  - DB operations    │
+│  (@cached decorator)│
 └──────────┬──────────┘
            │
-           ▼
-┌─────────────────────┐
-│  Models Layer       │
-│  - Database query   │
-│  - ORM operations   │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  PostgreSQL         │
-│  (database)         │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Services Layer     │
-│  - Format response  │
-└──────────┬──────────┘
+      ┌────▼────┐
+      │ Redis   │
+      │ Cache?  │
+      └────┬────┘
+       Hit │ Miss
+     ┌─────┴─────┐
+     │           ▼
+     │    ┌─────────────────────┐
+     │    │  Models Layer       │
+     │    │  - Database query   │
+     │    └──────────┬──────────┘
+     │               │
+     │               ▼
+     │    ┌─────────────────────┐
+     │    │  PostgreSQL         │
+     │    │  (database)         │
+     │    └──────────┬──────────┘
+     │               │
+     │               ▼
+     │    ┌─────────────────────┐
+     │    │  Cache Result       │
+     │    │  (Redis, TTL-based) │
+     │    └──────────┬──────────┘
+     │               │
+     └───────────────┘
            │
            ▼
 ┌─────────────────────┐
 │  Schemas Layer      │
 │  - Transform to     │
 │    GraphQL type     │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  GraphQL Response   │
+│  (to client)        │
+└─────────────────────┘
+```
+
+### Mutation Flow (with Cache Invalidation)
+
+```
+┌─────────────────────┐
+│ GraphQL Mutation    │
+│ (from client)       │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Schemas Layer      │
+│  - Parse input      │
+│  - Validate         │
+│  - Authorize        │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Services Layer     │
+│  - Business logic   │
+│  - DB operations    │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  PostgreSQL         │
+│  - Write data       │
+│  - Commit           │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Invalidate Cache   │
+│  (Redis pattern)    │
 └──────────┬──────────┘
            │
            ▼
@@ -588,24 +638,58 @@ engine = create_engine(
 )
 ```
 
-### Caching with Redis
+### Caching Strategy
+
+МультиПУЛЬТ implements a **two-tier caching strategy**:
+
+#### 1. HTTP-Level Caching (Client-Side)
+
+- Cache-Control headers for browser caching
+- ETag support for conditional requests (304 Not Modified)
+- Configured in `CacheControlMiddleware`
+
+```http
+GET /graphql
+Cache-Control: max-age=60
+ETag: "abc123"
+```
+
+See [HTTP Caching Documentation](features/http_caching.md)
+
+#### 2. Service-Level Caching (Redis)
+
+- Application-level caching for expensive queries
+- Automatic key generation and serialization
+- Graceful fallback when Redis unavailable
+- Pattern-based cache invalidation
 
 ```python
-from core.redis import redis_client
+from core.decorators.cache import cached
 
-# Cache expensive queries
-def get_popular_concepts():
-    cached = redis_client.get("popular_concepts")
-    if cached:
-        return json.loads(cached)
-
-    # Expensive query
-    concepts = db.query(Concept).order_by(Concept.views.desc()).limit(10).all()
-
-    # Cache for 5 minutes
-    redis_client.setex("popular_concepts", 300, json.dumps(concepts))
-    return concepts
+class LanguageService:
+    @cached(key_prefix="language:list", ttl=3600)  # 1 hour
+    async def get_all(self) -> List[LanguageModel]:
+        return self.db.query(LanguageModel).all()
 ```
+
+**Current Implementations:**
+- **Languages list:** 1 hour TTL (~90% response time reduction)
+- **Concepts list:** 5 minutes TTL (~95% response time reduction)
+
+**Cache Invalidation:**
+```python
+from core.services.cache_service import invalidate_language_cache
+
+async def create_language(self, code: str, name: str):
+    language = LanguageModel(code=code, name=name)
+    self.db.add(language)
+    self.db.commit()
+    # Invalidate cache after mutation
+    await invalidate_language_cache()
+    return language
+```
+
+See [Redis Caching Documentation](features/redis_caching.md) for complete guide.
 
 ---
 
