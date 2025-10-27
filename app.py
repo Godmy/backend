@@ -192,7 +192,7 @@ async def detailed_health_check(request):
             status_code=503
         )
 
-    health_status = HealthCheckService.get_full_health_status()
+    health_status = await HealthCheckService.get_full_health_status()
 
     # Set appropriate HTTP status code
     status_code = 200
