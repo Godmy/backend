@@ -32,9 +32,7 @@ class DictionaryModel(SoftDeleteMixin, BaseModel):
     __table_args__ = (
         # Unique constraint and index for concept-language pair
         Index('ix_dictionaries_concept_language', 'concept_id', 'language_id', unique=True),
-        # Index for searching dictionaries by name
-        Index('ix_dictionaries_name', 'name'),
-        # Index for soft delete queries
+        # Index for soft delete queries (name index already defined in Column)
         Index('ix_dictionaries_deleted', 'deleted_at'),
     )
 
