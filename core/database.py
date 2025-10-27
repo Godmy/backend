@@ -23,6 +23,21 @@ engine = create_engine(
     connect_args={"connect_timeout": 10, "application_name": "attractors_app"},
 )
 
+# Setup query profiling (after engine creation)
+# This will automatically log queries in DEBUG mode and monitor slow queries
+try:
+    from core.services.query_profiler import setup_query_profiling
+    setup_query_profiling(
+        engine,
+        enabled=True,
+        slow_query_threshold_ms=100,
+        log_all_queries=settings.DEBUG
+    )
+except ImportError:
+    logger.warning("Query profiler not available, skipping query profiling setup")
+except Exception as e:
+    logger.error(f"Failed to setup query profiling: {e}", exc_info=True)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
 
 # Создаем базовый класс для моделей

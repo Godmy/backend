@@ -336,6 +336,314 @@ def restore_db(input: str, confirm: bool):
 
 
 # ==============================================================================
+# Advanced Backup Commands
+# ==============================================================================
+
+@cli.command()
+@click.option("--output", default=None, help="Output file path (default: auto-generated)")
+@click.option("--compress/--no-compress", default=True, help="Compress backup with gzip")
+@click.option("--upload-s3/--no-upload-s3", default=False, help="Upload to S3 if configured")
+def backup_advanced(output: Optional[str], compress: bool, upload_s3: bool):
+    """Create advanced database backup with compression and S3 support"""
+    header("Creating Advanced Backup")
+
+    try:
+        from core.services.backup_service import BackupService
+
+        backup_service = BackupService()
+        metadata = backup_service.create_backup(
+            output_path=output,
+            compress=compress,
+            upload_to_s3=upload_s3
+        )
+
+        success(f"Backup created: {metadata.filename}")
+        info(f"  Size: {metadata.size_bytes / (1024 * 1024):.2f} MB")
+        info(f"  Compressed: {'Yes' if metadata.compressed else 'No'}")
+        info(f"  Checksum: {metadata.checksum[:16]}...")
+        if metadata.s3_key:
+            info(f"  S3 Key: {metadata.s3_key}")
+
+    except Exception as e:
+        error(f"Advanced backup failed: {str(e)}")
+        sys.exit(1)
+
+
+@cli.command()
+def list_backups():
+    """List all available backups"""
+    header("Available Backups")
+
+    try:
+        from core.services.backup_service import BackupService
+
+        backup_service = BackupService()
+        backups = backup_service.list_backups()
+
+        if not backups:
+            warning("No backups found")
+            return
+
+        info(f"Found {len(backups)} backups:\n")
+        for backup in backups:
+            size_mb = backup.size_bytes / (1024 * 1024)
+            click.echo(f"  {backup.filename}")
+            click.echo(f"    Created: {backup.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+            click.echo(f"    Size: {size_mb:.2f} MB")
+            click.echo(f"    Type: {backup.backup_type}")
+            if backup.s3_key:
+                click.echo(f"    S3: {backup.s3_key}")
+            click.echo()
+
+    except Exception as e:
+        error(f"Failed to list backups: {str(e)}")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option("--daily", default=7, help="Keep last N daily backups (default: 7)")
+@click.option("--weekly", default=4, help="Keep last N weekly backups (default: 4)")
+@click.option("--monthly", default=12, help="Keep last N monthly backups (default: 12)")
+@click.option("--dry-run", is_flag=True, help="Show what would be deleted without deleting")
+def apply_retention(daily: int, weekly: int, monthly: int, dry_run: bool):
+    """Apply backup retention policy"""
+    header("Applying Backup Retention Policy")
+
+    if dry_run:
+        warning("DRY RUN MODE - No backups will be deleted")
+
+    try:
+        from core.services.backup_service import BackupService
+
+        backup_service = BackupService()
+        result = backup_service.apply_retention_policy(
+            daily=daily,
+            weekly=weekly,
+            monthly=monthly,
+            dry_run=dry_run
+        )
+
+        info(f"Retention policy: {daily} daily, {weekly} weekly, {monthly} monthly")
+        success(f"Kept: {len(result['kept'])} backups")
+        warning(f"Deleted: {len(result['deleted'])} backups")
+
+        if result['deleted']:
+            info("\nDeleted backups:")
+            for filename in result['deleted']:
+                info(f"  - {filename}")
+
+    except Exception as e:
+        error(f"Failed to apply retention policy: {str(e)}")
+        sys.exit(1)
+
+
+# ==============================================================================
+# Data Migration Commands
+# ==============================================================================
+
+@cli.command()
+@click.option("--entities", required=True, help="Comma-separated list of entities to export (e.g., users,concepts)")
+@click.option("--output", required=True, help="Output file path")
+@click.option("--format", default="json", type=click.Choice(["json", "csv"]), help="Output format")
+@click.option("--date-from", default=None, help="Filter by created date (YYYY-MM-DD)")
+@click.option("--date-to", default=None, help="Filter by created date (YYYY-MM-DD)")
+@click.option("--anonymize", is_flag=True, help="Anonymize sensitive data (emails, passwords)")
+@click.option("--dry-run", is_flag=True, help="Show what would be exported without creating file")
+def export_data(entities: str, output: str, format: str, date_from: Optional[str], date_to: Optional[str], anonymize: bool, dry_run: bool):
+    """Export data selectively with filters and transformations"""
+    header("Exporting Data")
+
+    if dry_run:
+        warning("DRY RUN MODE - No file will be created")
+
+    try:
+        settings = get_settings()
+        engine = create_engine(settings.database_url)
+        SessionLocal = sessionmaker(bind=engine)
+        db = SessionLocal()
+
+        try:
+            from core.services.migration_service import MigrationService, anonymize_emails, anonymize_passwords
+
+            # Parse entities
+            entity_list = [e.strip() for e in entities.split(",")]
+
+            # Parse date range
+            date_range = None
+            if date_from or date_to:
+                from datetime import datetime
+                start = datetime.fromisoformat(date_from) if date_from else datetime(2000, 1, 1)
+                end = datetime.fromisoformat(date_to) if date_to else datetime.now()
+                date_range = (start, end)
+
+            # Build transformation function
+            transform_fn = None
+            if anonymize:
+                def transform_chain(record):
+                    record = anonymize_emails(record)
+                    record = anonymize_passwords(record)
+                    return record
+                transform_fn = transform_chain
+
+            # Export data
+            migration = MigrationService(db)
+            stats = migration.export_data(
+                entities=entity_list,
+                output_path=output,
+                output_format=format,
+                date_range=date_range,
+                transform_fn=transform_fn,
+                dry_run=dry_run
+            )
+
+            success(f"Export completed: {stats['total_records']} records")
+            info("\nRecords per entity:")
+            for entity, entity_stats in stats['entities'].items():
+                info(f"  {entity}: {entity_stats['count']}")
+
+            if not dry_run:
+                info(f"\nOutput file: {output}")
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        error(f"Export failed: {str(e)}")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option("--input", required=True, help="Input file path")
+@click.option("--format", default="json", type=click.Choice(["json", "csv"]), help="Input format")
+@click.option("--entities", default=None, help="Comma-separated list of entities to import (default: all)")
+@click.option("--snapshot", is_flag=True, default=True, help="Create rollback snapshot before import")
+@click.option("--dry-run", is_flag=True, help="Validate import without making changes")
+def import_data(input: str, format: str, entities: Optional[str], snapshot: bool, dry_run: bool):
+    """Import data with rollback support"""
+    header("Importing Data")
+
+    if dry_run:
+        warning("DRY RUN MODE - No data will be imported")
+
+    # Check if file exists
+    if not os.path.exists(input):
+        error(f"File not found: {input}")
+        sys.exit(1)
+
+    try:
+        settings = get_settings()
+        engine = create_engine(settings.database_url)
+        SessionLocal = sessionmaker(bind=engine)
+        db = SessionLocal()
+
+        try:
+            from core.services.migration_service import MigrationService
+
+            # Parse entities
+            entity_list = None
+            if entities:
+                entity_list = [e.strip() for e in entities.split(",")]
+
+            # Import data
+            migration = MigrationService(db)
+            stats = migration.import_data(
+                input_path=input,
+                input_format=format,
+                entities=entity_list,
+                create_snapshot=snapshot,
+                dry_run=dry_run
+            )
+
+            success(f"Import completed: {stats['total_records']} records")
+            info("\nRecords per entity:")
+            for entity, entity_stats in stats['entities'].items():
+                info(f"  {entity}: {entity_stats['count']}")
+
+            if stats.get('snapshot_id'):
+                info(f"\nRollback snapshot: {stats['snapshot_id']}")
+                info("Use 'rollback-migration' command to undo this import if needed")
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        error(f"Import failed: {str(e)}")
+        sys.exit(1)
+
+
+@cli.command()
+def list_snapshots():
+    """List all migration snapshots"""
+    header("Migration Snapshots")
+
+    try:
+        settings = get_settings()
+        engine = create_engine(settings.database_url)
+        SessionLocal = sessionmaker(bind=engine)
+        db = SessionLocal()
+
+        try:
+            from core.services.migration_service import MigrationService
+
+            migration = MigrationService(db)
+            snapshots = migration.list_snapshots()
+
+            if not snapshots:
+                warning("No snapshots found")
+                return
+
+            info(f"Found {len(snapshots)} snapshots:\n")
+            for snapshot in snapshots:
+                click.echo(f"  {snapshot.snapshot_id}")
+                click.echo(f"    Created: {snapshot.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+                click.echo(f"    Records: {snapshot.record_count}")
+                click.echo(f"    Entities: {', '.join(snapshot.entities)}")
+                click.echo()
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        error(f"Failed to list snapshots: {str(e)}")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option("--snapshot-id", required=True, help="Snapshot ID to rollback to")
+@click.option("--confirm", is_flag=True, help="Skip confirmation prompt")
+def rollback_migration(snapshot_id: str, confirm: bool):
+    """Rollback to a migration snapshot"""
+    header("Rolling Back Migration")
+
+    if not confirm:
+        warning("This will REPLACE current data with snapshot data!")
+        if not click.confirm("Are you sure you want to continue?"):
+            info("Rollback cancelled")
+            return
+
+    try:
+        settings = get_settings()
+        engine = create_engine(settings.database_url)
+        SessionLocal = sessionmaker(bind=engine)
+        db = SessionLocal()
+
+        try:
+            from core.services.migration_service import MigrationService
+
+            migration = MigrationService(db)
+            migration.rollback_to_snapshot(snapshot_id)
+
+            success(f"Rollback completed: {snapshot_id}")
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        error(f"Rollback failed: {str(e)}")
+        sys.exit(1)
+
+
+# ==============================================================================
 # Configuration Commands
 # ==============================================================================
 
