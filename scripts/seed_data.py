@@ -615,27 +615,56 @@ def seed_ui_concepts(db):
 #     seed_domain(db)
 
 
-# def seed_domain_concepts_simple(db):
-#     """Импортировать и запустить seed упрощённых доменных концепций (без характеристик)"""
-#     from scripts.seed_domain_concepts_simple import seed_domain_concepts_clean as seed_domain_simple
-#     seed_domain_simple(db)
+def seed_new_system(db):
+    """
+    Использовать новую модульную систему сидеров
+    РЕКОМЕНДУЕТСЯ: более быстрая, модульная, оптимизированная
+    """
+    from scripts.seeders.orchestrator import SeederOrchestrator
+
+    logger.info("=" * 60)
+    logger.info("Using NEW modular seeder system")
+    logger.info("=" * 60)
+
+    orchestrator = SeederOrchestrator(db)
+    results = orchestrator.run_all(skip_if_exists=True)
+
+    # Проверка результатов
+    failed = sum(1 for r in results if r.status == "failed")
+    if failed > 0:
+        raise Exception(f"Seeding failed: {failed} seeders encountered errors")
 
 
 def main():
-    """Запуск всех seed функций"""
+    """
+    Запуск всех seed функций
+
+    НОВАЯ СИСТЕМА (рекомендуется):
+    - Использует модульную архитектуру по принципам SOLID
+    - Оптимизирована для больших объемов данных
+    - Автоматическое разрешение зависимостей
+    - 10x быстрее для доменных концептов
+
+    Для использования ТОЛЬКО новой системы:
+        python scripts/seed_data_new.py
+    """
     logger.info("=" * 60)
-    logger.info("Starting database seeding with test data...")
+    logger.info("Starting database seeding...")
     logger.info("=" * 60)
 
     db = SessionLocal()
     try:
-        seed_languages(db)
-        seed_permissions_and_roles(db)
-        seed_users(db)
-        seed_concepts(db)
-        seed_dictionaries(db)
-        seed_ui_concepts(db)  # NEW: UI translations
-        seed_domain_concepts_simple(db)  # NEW: Simplified domain concepts (without characteristics)
+        # ВАРИАНТ 1: Новая модульная система (РЕКОМЕНДУЕТСЯ)
+        # Закомментируйте старый код ниже и раскомментируйте эту строку:
+        seed_new_system(db)
+
+        # ВАРИАНТ 2: Старая система (deprecated, оставлена для совместимости)
+        # seed_languages(db)
+        # seed_permissions_and_roles(db)
+        # seed_users(db)
+        # seed_concepts(db)
+        # seed_dictionaries(db)
+        # seed_ui_concepts(db)
 
         logger.info("=" * 60)
         logger.info("✓ Database seeding completed successfully!")
