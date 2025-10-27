@@ -212,8 +212,8 @@ class TestPeriodicTasks:
         assert "old_files_cleanup" in result
         mock_cleanup_temp.assert_called_once()
 
-    @patch("tasks.periodic_tasks.engine")
-    @patch("tasks.periodic_tasks.redis_client")
+    @patch("core.database.engine")
+    @patch("core.redis_client.redis_client")
     def test_periodic_health_check_task(self, mock_redis, mock_engine):
         """Test periodic health check"""
         # Mock successful database connection
@@ -284,7 +284,7 @@ class TestCeleryConfiguration:
 class TestCeleryHealthCheck:
     """Test Celery health check in health service"""
 
-    @patch("core.services.health_service.celery_app")
+    @patch("core.celery_app.celery_app")
     def test_celery_health_check_healthy(self, mock_celery_app):
         """Test Celery health check when workers are running"""
         from core.services.health_service import HealthCheckService
@@ -301,7 +301,7 @@ class TestCeleryHealthCheck:
         assert result["status"] == "healthy"
         assert result["workers_count"] == 1
 
-    @patch("core.services.health_service.celery_app")
+    @patch("core.celery_app.celery_app")
     def test_celery_health_check_no_workers(self, mock_celery_app):
         """Test Celery health check when no workers are running"""
         from core.services.health_service import HealthCheckService
