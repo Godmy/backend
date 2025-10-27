@@ -60,3 +60,10 @@ python-json-logger
 # CLI Tool
 click
 colorama
+
+# Task Queue (for automated backups)
+celery
+redis
+
+# Cloud Storage (S3 backups)
+boto3

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from core.models.base import BaseModel
@@ -24,9 +24,17 @@ class DictionaryModel(SoftDeleteMixin, BaseModel):
         index=True,
         comment="ID языка",
     )
-    name = Column(String(255), nullable=False, comment="Название на данном языке")
+    name = Column(String(255), nullable=False, index=True, comment="Название на данном языке")
     description = Column(Text, comment="Описание")
     image = Column(String(255), comment="Путь к изображению")
+
+    # Composite indexes for common dictionary queries
+    __table_args__ = (
+        # Unique constraint and index for concept-language pair
+        Index('ix_dictionaries_concept_language', 'concept_id', 'language_id', unique=True),
+        # Index for soft delete queries (name index already defined in Column)
+        Index('ix_dictionaries_deleted', 'deleted_at'),
+    )
 
     # Связи
     concept = relationship("ConceptModel", back_populates="dictionaries")
