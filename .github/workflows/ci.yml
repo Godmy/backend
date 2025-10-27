@@ -46,7 +46,7 @@ jobs:
         DB_NAME: test_db
         DB_USER: test_user
         DB_PASSWORD: test_password
-        JWT_SECRET_KEY: test-secret-key-for-ci
+        JWT_SECRET_KEY: test-secret-key-for-ci-must-be-32-chars-minimum
       run: |
         pytest -v
     
