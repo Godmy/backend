@@ -31,6 +31,8 @@ services:
       DB_NAME: templates
       DB_USER: template_user
       DB_PASSWORD: template_password
+      # Database initialization
+      SEED_DATABASE: "false"  # Disable auto-seeding in production
     ports:
       - "8000:8000"
     depends_on:

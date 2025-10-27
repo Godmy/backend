@@ -124,6 +124,14 @@ strawberry export-schema schemas.schema:schema > schema.graphql
 
 GraphQL Playground доступен по адресу `/graphql` и содержит интерактивную документацию по API.
 
+**Новые возможности GraphQL Playground:**
+- 🔐 **Аутентификация** - опциональная аутентификация для доступа к Playground (настраивается через `GRAPHQL_PLAYGROUND_AUTH_REQUIRED`)
+- 🛡️ **Безопасность** - CORS настройки различаются для dev/prod окружений
+- 📨 **Заголовки по умолчанию** - могут быть заданы через `GRAPHQL_PLAYGROUND_DEFAULT_HEADERS`
+- 👤 **Тестовый пользователь** - получить токен для тестирования: http://localhost:8000/graphql/test-user-login (только в dev)
+- 📚 **Примеры запросов** - получить шаблоны запросов: http://localhost:8000/graphql/examples
+- 🪵 **Логирование** - запросы из Playground помечаются для отслеживания
+
 **Быстрый старт:**
 - 📖 [Quick Start Guide](docs/QUICK_START.md) - Быстрое начало работы с API
 - 📚 [GraphQL Examples](docs/graphql-examples.md) - Подробные примеры всех запросов
@@ -299,7 +307,6 @@ backend/
 │   ├── seed_data.py     # Инициализация данных
 │   └── README.md        # Описание тестовых данных
 ├── tests/               # Тесты
-│   ├── conftest.py            # Фикстуры pytest
 │   ├── test_app.py            # Тесты приложения
 │   ├── test_oauth.py          # Тесты OAuth
 │   ├── test_email_service.py  # Тесты email
@@ -515,6 +522,8 @@ docker-compose -f docker-compose.prod.yml up -d
 **DevOps:** [DEPLOYMENT.md](DEPLOYMENT.md) → [CHANGELOG.md](CHANGELOG.md)
 
 **Контрибьюторам:** [BACKLOG.md](BACKLOG.md) → [CONTRIBUTING.md](CONTRIBUTING.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
+
+**GraphQL API:** [GraphQL Playground Guide](docs/GRAPHQL_PLAYGROUND_GUIDE.md) → [GraphQL Examples](docs/graphql-examples.md)
 
 ## Лицензия
 

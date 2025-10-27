@@ -981,7 +981,6 @@ mypy . --ignore-missing-imports
 
 ```
 tests/
-├── conftest.py              # Shared fixtures
 ├── test_app.py             # Application tests
 ├── test_auth.py            # Authentication tests
 ├── test_concept.py         # Concept tests
@@ -1054,47 +1053,6 @@ async def test_create_resource_mutation(client: AsyncClient, auth_headers):
     data = response.json()
     assert "errors" not in data
     assert data["data"]["createResource"]["name"] == "Test Resource"
-```
-
-### Fixtures
-
-Use `conftest.py` for shared fixtures:
-
-```python
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from core.database import Base
-from auth.models.user import UserModel
-
-@pytest.fixture(scope="session")
-def db_engine():
-    """Create test database engine."""
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-
-@pytest.fixture
-def db_session(db_engine):
-    """Create test database session."""
-    Session = sessionmaker(bind=db_engine)
-    session = Session()
-    yield session
-    session.rollback()
-    session.close()
-
-@pytest.fixture
-def test_user(db_session):
-    """Create test user."""
-    user = UserModel(
-        username="testuser",
-        email="test@example.com",
-        password_hash="hashed_password"
-    )
-    db_session.add(user)
-    db_session.commit()
-    return user
 ```
 
 ### Test Configuration

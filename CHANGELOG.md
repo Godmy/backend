@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Enhanced Database Logging
+
+- **core/db_stats.py** - New utilities for database statistics tracking
+  - `get_table_count()` - Get record count for a specific table
+  - `get_all_table_counts()` - Get counts for all tables
+  - `log_table_statistics()` - Log formatted table statistics
+  - `log_table_change()` - Log changes in table records (before/after)
+  - `TableStatsTracker` - Class for tracking table changes over operations
+
+- **Enhanced logging throughout seeding system:**
+  - Shows table statistics BEFORE and AFTER seeding
+  - Displays records count for each operation (created/updated/skipped)
+  - Tracks performance metrics (duration, records/second)
+  - Detailed per-table logging with emoji indicators 📋 ✅ 🔄 ⊘ 📈
+
+### Changed - Database Initialization
+
+- **core/init_db.py** - Enhanced initialization logging
+  - Shows structured progress for each step (1/3, 2/3, 3/3)
+  - Displays database state before and after seeding
+  - Better error handling with clear status messages
+  - Added visual separators for readability
+
+- **scripts/seeders/base.py** - Improved BaseSeeder logging
+  - `batch_insert()` now logs: before count, after count, delta
+  - `batch_update()` now logs: table records, updates, delta
+  - Progress tracking with emoji indicators
+  - Detailed statistics per batch operation
+
+- **scripts/seeders/orchestrator.py** - Enhanced SeederOrchestrator summary
+  - Shows created/updated/skipped counts separately
+  - Calculates and displays seeding speed (records/second)
+  - Improved summary table with aligned columns
+  - Better status icons (✓ ⊘ ✗ ⋯)
+
+- **scripts/seed_data.py** - Enhanced main() function
+  - Shows database state before and after seeding
+  - Displays total seeding time and speed
+  - Better error reporting with visual indicators
+  - Structured output with consistent formatting
+
+### Fixed - Database Initialization
+
+- **cli.py** - Fixed import of non-existent `seed_database` function
+  - Removed incorrect async import from `core.init_db`
+  - Now correctly uses `scripts.seed_data.main()` for seeding
+  - Updated dry-run output to reflect domain concepts count
+
+- **docker-compose.yml / docker-compose.dev.yml** - Added missing `SEED_DATABASE` environment variable
+  - `docker-compose.dev.yml` → `SEED_DATABASE: "true"` (auto-seed in development)
+  - `docker-compose.yml` → `SEED_DATABASE: "false"` (manual seed in production)
+  - `docker-compose.prod.yml` already had this variable (no change needed)
+
+### Added - Documentation
+
+- **docs/DATABASE_INITIALIZATION.md** - Complete guide to database initialization contexts
+  - Covers 4 contexts: Application Startup, CLI Tool, Direct Script, Tests
+  - Explains `core/init_db.py` functions and architecture
+  - Documents `SEED_DATABASE` environment variable behavior
+  - Best practices for development, production, and testing
+  - Troubleshooting guide for common issues
+  - Migration notes from old seeding system
+
 ### Planned
 - Background Task Processing (Celery) (P0)
 - GraphQL Query Complexity Analysis (P2)
