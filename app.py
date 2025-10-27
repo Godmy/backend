@@ -102,13 +102,178 @@ async def get_graphql_context(request=None, response=None):
 # Note: DB session cleanup is now handled by DatabaseSessionExtension (in core.graphql_extensions)
 # which automatically closes sessions after each GraphQL request execution.
 
+from starlette.responses import HTMLResponse, JSONResponse
+from starlette.requests import Request
+
 # Create custom GraphQL app class to inject context
 class CustomGraphQL(GraphQL):
     async def get_context(self, request, response=None):
         """Override get_context to inject our custom context"""
         return await get_graphql_context(request, response)
 
-graphql_app = CustomGraphQL(schema)
+# Create GraphQL app with environment-based configuration
+GRAPHQL_PLAYGROUND_ENABLED = os.getenv("GRAPHQL_PLAYGROUND_ENABLED", "true").lower() == "true"
+GRAPHQL_PLAYGROUND_AUTH_REQUIRED = os.getenv("GRAPHQL_PLAYGROUND_AUTH_REQUIRED", "false").lower() == "true"
+
+class SecureGraphQL(GraphQL):
+    """
+    A custom GraphQL app that provides additional security for the Playground
+    and allows conditional authentication
+    """
+    
+    def __init__(self, schema, **kwargs):
+        super().__init__(schema, **kwargs)
+    
+    async def __call__(self, scope, receive, send):
+        from core.structured_logging import get_logger
+        logger = get_logger(__name__)
+        
+        request = Request(scope)
+        
+        # Check if this is a request for the GraphiQL interface
+        if scope['type'] == 'http' and scope['method'] == 'GET':
+            if GRAPHQL_PLAYGROUND_AUTH_REQUIRED:
+                # Check for authorization header
+                auth_header = request.headers.get('Authorization')
+                
+                # For development purposes, we can bypass auth with a special header
+                if not auth_header and not (os.getenv("ENVIRONMENT", "development").lower() == "development"):
+                    # In production or when auth is required, return error
+                    response = JSONResponse(
+                        status_code=401,
+                        content={"error": "Authentication required for GraphQL Playground"}
+                    )
+                    await response(scope, receive, send)
+                    return
+                
+                # Validate if we have a proper Bearer token
+                if auth_header and auth_header.startswith("Bearer "):
+                    token = auth_header.split(" ")[1]
+                    try:
+                        from auth.utils.jwt_handler import jwt_handler
+                        payload = jwt_handler.verify_token(token)
+                        
+                        # If token is invalid, allow to access but show warning in playground
+                        # Or validate against your user system if needed
+                    except Exception as e:
+                        # Token is invalid, but we'll still allow access to playground
+                        # for debugging purposes, just log this
+                        logger.warning(f"Invalid token provided for GraphQL Playground: {e}")
+        
+        # Check if this request is coming from GraphQL Playground
+        is_playground_request = (
+            request.headers.get('X-GraphQL-Client') == 'Playground' or
+            request.headers.get('X-GraphQL-Request-Source') == 'Playground' or
+            'graphiql' in request.headers.get('user-agent', '').lower()
+        )
+        
+        # Log the request if it's from Playground
+        if is_playground_request:
+            logger.info(
+                "GraphQL Playground request",
+                extra={
+                    "event": "graphql_playground_request",
+                    "path": request.url.path,
+                    "method": request.method,
+                    "headers": dict(request.headers),
+                    "user_agent": request.headers.get('user-agent'),
+                }
+            )
+        
+        # Call the original ASGI app
+        await super().__call__(scope, receive, send)
+
+    def get_graphiql_html(self, **kwargs) -> str:
+        """Override to customize the GraphiQL interface with default headers"""
+        # Get default headers from environment variables
+        default_headers_str = os.getenv("GRAPHQL_PLAYGROUND_DEFAULT_HEADERS", "{}")
+        try:
+            import json
+            default_headers = json.loads(default_headers_str)
+        except json.JSONDecodeError:
+            default_headers = {"Content-Type": "application/json"}
+        
+        # Add JavaScript to set default headers in the GraphiQL interface
+        graphiql_with_default_headers = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>GraphQL Playground</title>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/graphiql@2/graphiql.min.css" />
+        </head>
+        <body style="margin: 0;">
+            <div id="graphiql" style="height: 100vh;"></div>
+            
+            <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/graphiql@2/graphiql.min.js"></script>
+            
+            <script>
+                // Default headers from environment
+                const defaultHeaders = {default_headers_str or '{{"Content-Type": "application/json"}}'};
+                
+                // Enhance fetcher to add custom headers and tracking
+                const fetcher = GraphiQL.createFetcher({{
+                    url: '{kwargs.get('endpoint', '/graphql')}',
+                    subscriptionUrl: '{kwargs.get('subscription_endpoint', '')}',
+                    headers: {{
+                        ...defaultHeaders,
+                        'X-GraphQL-Client': 'Playground',
+                        'X-GraphQL-Request-Source': 'Playground'
+                    }}
+                }});
+                
+                ReactDOM.render(
+                    React.createElement(GraphiQL, {{
+                        fetcher: fetcher,
+                        defaultEditorToolsVisibility: true,
+                        headers: defaultHeaders
+                    }}),
+                    document.getElementById('graphiql')
+                );
+            </script>
+        </body>
+        </html>
+        """
+        return graphiql_with_default_headers
+
+async def process_graphql_operation(self, request, *args, **kwargs):
+    """
+    Override to add logging for GraphQL Playground requests
+    """
+    # Check if this request is coming from GraphQL Playground
+    is_playground_request = (
+        request.headers.get('X-GraphQL-Client') == 'Playground' or
+        request.headers.get('X-GraphQL-Request-Source') == 'Playground' or
+        'graphiql' in request.headers.get('user-agent', '').lower()
+    )
+    
+    from core.structured_logging import get_logger
+    logger = get_logger(__name__)
+    
+    # Log the request if it's from Playground
+    if is_playground_request:
+        logger.info(
+            "GraphQL Playground request",
+            extra={
+                "event": "graphql_playground_request",
+                "path": request.url.path,
+                "method": request.method,
+                "headers": dict(request.headers),
+                "user_agent": request.headers.get('user-agent'),
+            }
+        )
+    
+    # Process the original request
+    return await super(SecureGraphQL, self).__call__(request.scope, request.receive, request.send)
+
+
+# Use the secure GraphQL implementation
+graphql_app = SecureGraphQL(
+    schema,
+    graphiql=GRAPHQL_PLAYGROUND_ENABLED,  # Enable/disable GraphQL Playground (GraphiQL)
+)
 
 # Создаем Starlette приложение с CORS
 app = Starlette()
@@ -138,12 +303,20 @@ allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
 
 logger.info(f"CORS allowed origins from env: {allowed_origins}")
 
-# For SSR, allow all origins (since it's server-to-server communication)
-# Using wildcard "*" for allow_origins to support SSR requests
+# Configure CORS based on environment - more restrictive for production
+is_development = os.getenv("ENVIRONMENT", "development").lower() == "development"
+if is_development:
+    cors_allow_origins = ["*"]  # Allow all origins in development
+    cors_allow_credentials = False
+else:
+    # In production, only allow specified origins
+    cors_allow_origins = allowed_origins
+    cors_allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins to support SSR
-    allow_credentials=False,  # Must be False when using allow_origins=["*"]
+    allow_origins=cors_allow_origins,
+    allow_credentials=cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -273,6 +446,165 @@ async def serve_export(request):
         return JSONResponse({"error": "File not found"}, status_code=404)
 
     return FileResponse(file_path)
+
+
+# Test user login endpoint for GraphQL Playground
+@app.route("/graphql/test-user-login")
+async def test_user_login(request):
+    """
+    Generate a test user JWT token for use in GraphQL Playground.
+    This provides an easy way to test authenticated GraphQL queries.
+    """
+    from auth.models.user import User
+    from auth.utils.jwt_handler import jwt_handler
+    from core.database import SessionLocal
+    
+    # Check if we're in development mode
+    is_development = os.getenv("ENVIRONMENT", "development").lower() == "development"
+    if not is_development:
+        return JSONResponse(
+            {"error": "Test user login is only available in development environment"},
+            status_code=403
+        )
+    
+    # Create or get a test user
+    db = SessionLocal()
+    try:
+        # Try to find an existing test user
+        test_user = db.query(User).filter(User.username == "test_user").first()
+        
+        if not test_user:
+            # Create a test user if one doesn't exist
+            from auth.services.user_service import UserService
+            from auth.models.user import User
+            from core.database import hash_password
+            import uuid
+
+            test_user = User(
+                id=str(uuid.uuid4()),
+                username="test_user",
+                email="test@example.com",
+                password=hash_password("test_password"),  # Use default test password
+                is_active=True,
+                is_verified=True
+            )
+            db.add(test_user)
+            db.commit()
+            db.refresh(test_user)
+        
+        # Generate JWT token for the test user
+        access_token = jwt_handler.generate_token(
+            test_user.id,
+            test_user.username,
+            test_user.email,
+            token_type="access"
+        )
+        
+        refresh_token = jwt_handler.generate_token(
+            test_user.id, 
+            test_user.username,
+            test_user.email,
+            token_type="refresh"
+        )
+        
+        return JSONResponse({
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "user": {
+                "id": test_user.id,
+                "username": test_user.username,
+                "email": test_user.email
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error creating/generating test user token: {e}")
+        return JSONResponse(
+            {"error": "Failed to generate test user token"},
+            status_code=500
+        )
+    finally:
+        db.close()
+
+
+# GraphQL query examples endpoint for GraphQL Playground
+@app.route("/graphql/examples")
+async def graphql_examples(request):
+    """
+    Provides common GraphQL query and mutation examples for use in GraphQL Playground.
+    """
+    examples = {
+        "queries": {
+            "getAllLanguages": {
+                "description": "Get all available languages",
+                "query": """query GetAllLanguages {
+  languages {
+    id
+    name
+    code
+    is_active
+  }
+}"""
+            },
+            "getConceptsByLanguage": {
+                "description": "Get concepts for a specific language",
+                "query": """query GetConceptsByLanguage($languageId: ID!) {
+  concepts(languageId: $languageId) {
+    id
+    name
+    description
+    translations {
+      language {
+        code
+      }
+      value
+    }
+  }
+}"""
+            },
+            "searchConcepts": {
+                "description": "Search concepts by name or description",
+                "query": """query SearchConcepts($searchTerm: String!) {
+  searchConcepts(query: $searchTerm) {
+    id
+    name
+    description
+    language {
+      name
+    }
+  }
+}"""
+            }
+        },
+        "mutations": {
+            "createLanguage": {
+                "description": "Create a new language",
+                "query": """mutation CreateLanguage($name: String!, $code: String!) {
+  createLanguage(input: {name: $name, code: $code}) {
+    id
+    name
+    code
+    is_active
+  }
+}"""
+            },
+            "createConcept": {
+                "description": "Create a new concept",
+                "query": """mutation CreateConcept($name: String!, $description: String!, $languageId: ID!) {
+  createConcept(input: {name: $name, description: $description, languageId: $languageId}) {
+    id
+    name
+    description
+    language {
+      id
+      name
+    }
+  }
+}"""
+            }
+        }
+    }
+    return JSONResponse(examples)
 
 
 if __name__ == "__main__":

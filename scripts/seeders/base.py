@@ -136,6 +136,14 @@ class BaseSeeder(ABC):
         total = len(records)
         created = 0
 
+        # Получаем количество записей ДО операции
+        table_name = model_class.__tablename__
+        count_before = self.db.query(model_class).count()
+
+        self.logger.info(f"  📋 Table: {table_name}")
+        self.logger.info(f"     Records before: {count_before:,}")
+        self.logger.info(f"     Records to insert: {total:,}")
+
         for i in range(0, total, batch_size):
             batch = records[i : i + batch_size]
             self.db.bulk_insert_mappings(model_class, batch)
@@ -146,9 +154,16 @@ class BaseSeeder(ABC):
             if total > batch_size:
                 progress = (created / total) * 100
                 self.logger.info(
-                    f"  Progress: {created}/{total} ({progress:.1f}%) "
-                    f"- {model_class.__tablename__}"
+                    f"     ⏳ Progress: {created:,}/{total:,} ({progress:.1f}%)"
                 )
+
+        # Получаем количество записей ПОСЛЕ операции
+        count_after = self.db.query(model_class).count()
+        actual_created = count_after - count_before
+
+        self.logger.info(f"     ✅ Created: {actual_created:,} records")
+        self.logger.info(f"     Records after: {count_after:,}")
+        self.logger.info(f"     Delta: +{actual_created:,}")
 
         return created
 
@@ -169,6 +184,14 @@ class BaseSeeder(ABC):
         total = len(records)
         updated = 0
 
+        # Получаем количество записей ДО операции
+        table_name = model_class.__tablename__
+        count_before = self.db.query(model_class).count()
+
+        self.logger.info(f"  📋 Table: {table_name}")
+        self.logger.info(f"     Records in table: {count_before:,}")
+        self.logger.info(f"     Records to update: {total:,}")
+
         for i in range(0, total, batch_size):
             batch = records[i : i + batch_size]
             self.db.bulk_update_mappings(model_class, batch)
@@ -179,9 +202,17 @@ class BaseSeeder(ABC):
             if total > batch_size:
                 progress = (updated / total) * 100
                 self.logger.info(
-                    f"  Progress: {updated}/{total} ({progress:.1f}%) "
-                    f"- {model_class.__tablename__}"
+                    f"     ⏳ Progress: {updated:,}/{total:,} ({progress:.1f}%)"
                 )
+
+        # Получаем количество записей ПОСЛЕ операции
+        count_after = self.db.query(model_class).count()
+        delta = count_after - count_before
+
+        self.logger.info(f"     🔄 Updated: {updated:,} records")
+        self.logger.info(f"     Records after: {count_after:,}")
+        if delta != 0:
+            self.logger.info(f"     Delta: {delta:+,} (table size changed)")
 
         return updated
 

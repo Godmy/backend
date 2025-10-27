@@ -21,6 +21,23 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: templates_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - templates_network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
   app:
     build: .
     container_name: templates_app
@@ -31,19 +48,78 @@ services:
       DB_NAME: templates
       DB_USER: template_user
       DB_PASSWORD: template_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      # Database initialization
+      SEED_DATABASE: "false"  # Disable auto-seeding in production
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - templates_network
     volumes:
       - ./data:/app/data
+      - ./uploads:/app/uploads
     restart: unless-stopped
+
+  celery_worker:
+    build: .
+    container_name: templates_celery_worker
+    environment:
+      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: templates
+      DB_USER: template_user
+      DB_PASSWORD: template_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      CELERY_WORKER_CONCURRENCY: "4"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "1000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - templates_network
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    command: celery -A workers.celery_worker worker --loglevel=info --concurrency=4
+
+  celery_beat:
+    build: .
+    container_name: templates_celery_beat
+    environment:
+      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: templates
+      DB_USER: template_user
+      DB_PASSWORD: template_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - templates_network
+    restart: unless-stopped
+    command: celery -A workers.celery_worker beat --loglevel=info
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   templates_network:

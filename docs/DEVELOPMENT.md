@@ -195,7 +195,6 @@ View coverage report: `open htmlcov/index.html`
 
 ```
 tests/
-├── conftest.py           # Shared fixtures
 ├── test_app.py           # Application tests
 ├── test_auth.py          # Authentication tests
 ├── test_admin.py         # Admin functionality tests

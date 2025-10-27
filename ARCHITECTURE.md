@@ -207,7 +207,6 @@ User ──→ Role ──→ Permission
 ### Структура тестов
 ```
 tests/
-├── conftest.py          # Фикстуры pytest
 ├── test_app.py          # Интеграционные тесты API
 ├── test_language.py     # Тесты модуля languages
 └── test_auth.py         # Тесты модуля auth

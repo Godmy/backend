@@ -4,6 +4,22 @@ import strawberry
 
 
 @strawberry.type
+class ConceptLanguage:
+    """GraphQL тип для языка в контексте концепции"""
+
+    code: str
+
+
+@strawberry.type
+class ConceptDictionary:
+    """GraphQL тип для словаря в контексте концепции"""
+
+    name: str
+    description: Optional[str]
+    language: ConceptLanguage
+
+
+@strawberry.type
 class Concept:
     """GraphQL тип для концепции"""
 
@@ -11,6 +27,7 @@ class Concept:
     parent_id: Optional[int]
     path: str
     depth: int
+    dictionaries: List[ConceptDictionary] = strawberry.field(default_factory=list)
 
 
 @strawberry.input
@@ -36,17 +53,48 @@ class ConceptQuery:
     """GraphQL запросы для концепций"""
 
     @strawberry.field
-    def concepts(self, info: strawberry.Info = None) -> List[Concept]:
-        """Получить список всех концепций"""
+    def concepts(
+        self,
+        depth: Optional[int] = None,
+        parent_id: Optional[int] = None,
+        info: strawberry.Info = None
+    ) -> List[Concept]:
+        """Получить список концепций с опциональной фильтрацией"""
         from languages.services.concept_service import ConceptService
+        from sqlalchemy.orm import joinedload
 
         # Use DB session from context (no connection leak)
         db = info.context["db"]
         service = ConceptService(db)
-        concepts = service.get_all()
 
+        # Determine which service method to call based on filters
+        if depth is not None and depth == 0:
+            # Get root concepts (depth = 0, no parent)
+            concepts = service.get_root_concepts()
+        elif parent_id is not None:
+            # Get children of specific parent
+            concepts = service.get_children(parent_id)
+        else:
+            # Get all concepts
+            concepts = service.get_all()
+
+        # Convert to GraphQL types with dictionaries
         return [
-            Concept(id=c.id, parent_id=c.parent_id, path=c.path, depth=c.depth) for c in concepts
+            Concept(
+                id=c.id,
+                parent_id=c.parent_id,
+                path=c.path,
+                depth=c.depth,
+                dictionaries=[
+                    ConceptDictionary(
+                        name=d.name,
+                        description=d.description,
+                        language=ConceptLanguage(code=d.language.code)
+                    )
+                    for d in c.dictionaries
+                ]
+            )
+            for c in concepts
         ]
 
     @strawberry.field
@@ -63,7 +111,18 @@ class ConceptQuery:
             return None
 
         return Concept(
-            id=concept.id, parent_id=concept.parent_id, path=concept.path, depth=concept.depth
+            id=concept.id,
+            parent_id=concept.parent_id,
+            path=concept.path,
+            depth=concept.depth,
+            dictionaries=[
+                ConceptDictionary(
+                    name=d.name,
+                    description=d.description,
+                    language=ConceptLanguage(code=d.language.code)
+                )
+                for d in concept.dictionaries
+            ]
         )
 
 
@@ -82,7 +141,18 @@ class ConceptMutation:
         concept = service.create(path=input.path, depth=input.depth, parent_id=input.parent_id)
 
         return Concept(
-            id=concept.id, parent_id=concept.parent_id, path=concept.path, depth=concept.depth
+            id=concept.id,
+            parent_id=concept.parent_id,
+            path=concept.path,
+            depth=concept.depth,
+            dictionaries=[
+                ConceptDictionary(
+                    name=d.name,
+                    description=d.description,
+                    language=ConceptLanguage(code=d.language.code)
+                )
+                for d in concept.dictionaries
+            ]
         )
 
     @strawberry.mutation
@@ -101,7 +171,18 @@ class ConceptMutation:
             raise Exception("Concept not found")
 
         return Concept(
-            id=concept.id, parent_id=concept.parent_id, path=concept.path, depth=concept.depth
+            id=concept.id,
+            parent_id=concept.parent_id,
+            path=concept.path,
+            depth=concept.depth,
+            dictionaries=[
+                ConceptDictionary(
+                    name=d.name,
+                    description=d.description,
+                    language=ConceptLanguage(code=d.language.code)
+                )
+                for d in concept.dictionaries
+            ]
         )
 
     @strawberry.mutation
