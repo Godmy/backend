@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for Admin operations.
 
 Provides admin-only queries and mutations for user management and system stats.
@@ -95,7 +95,7 @@ class UserFilters:
 class AdminQuery:
     """Admin-only queries for system management."""
 
-    @strawberry.field(description='''Get a paginated list of all users with advanced filtering.
+    @strawberry.field(description="""Get a paginated list of all users with advanced filtering.
 
 **Required permissions:** `admin:read:users`
 
@@ -115,7 +115,7 @@ query GetAllUsers {
   }
 }
 ```
-''')
+""")
     async def all_users(
         self, info: Info, limit: int = 50, offset: int = 0, filters: Optional[UserFilters] = None
     ) -> AllUsersResponse:
@@ -142,7 +142,7 @@ query GetAllUsers {
 
         return AllUsersResponse(users=admin_users, total=total, has_more=(offset + len(users)) < total)
 
-    @strawberry.field(description='''Get a comprehensive dashboard of system statistics.
+    @strawberry.field(description="""Get a comprehensive dashboard of system statistics.
 
 **Required permissions:** `admin:read:system`
 
@@ -158,7 +158,7 @@ query GetSystemStats {
   }
 }
 ```
-''')
+""")
     async def system_stats(self, info: Info) -> SystemStats:
         current_user_dict = await get_required_user(info)
         db = info.context["db"]
@@ -183,7 +183,7 @@ query GetSystemStats {
 class AdminMutation:
     """Admin-only mutations for system management."""
 
-    @strawberry.mutation(description='''Bans a user, setting their `isActive` status to `false`.
+    @strawberry.mutation(description="""Bans a user, setting their `isActive` status to `false`.
 
 **Required permissions:** `admin:update:users`
 
@@ -197,7 +197,7 @@ mutation BanUser {
   }
 }
 ```
-''')
+""")
     async def ban_user(self, info: Info, user_id: int, reason: Optional[str] = None) -> AdminUser:
         current_user_dict = await get_required_user(info)
         db = info.context["db"]
@@ -221,7 +221,7 @@ mutation BanUser {
             roles=[ur.role.name for ur in user.roles if ur.role]
         )
 
-    @strawberry.mutation(description='''Unbans a user, setting their `isActive` status to `true`.
+    @strawberry.mutation(description="""Unbans a user, setting their `isActive` status to `true`.
 
 **Required permissions:** `admin:update:users`
 
@@ -235,7 +235,7 @@ mutation UnbanUser {
   }
 }
 ```
-''')
+""")
     async def unban_user(self, info: Info, user_id: int) -> AdminUser:
         current_user_dict = await get_required_user(info)
         db = info.context["db"]
@@ -259,7 +259,7 @@ mutation UnbanUser {
             roles=[ur.role.name for ur in user.roles if ur.role]
         )
 
-    @strawberry.mutation(description='''Permanently deletes a user from the database. This action is irreversible.
+    @strawberry.mutation(description="""Permanently deletes a user from the database. This action is irreversible.
 
 **Required permissions:** `admin:delete:users`
 
@@ -271,7 +271,7 @@ mutation DeleteUserPermanently {
   deleteUserPermanently(userId: 123)
 }
 ```
-''')
+""")
     async def delete_user_permanently(self, info: Info, user_id: int) -> bool:
         current_user_dict = await get_required_user(info)
         db = info.context["db"]
@@ -292,7 +292,7 @@ mutation DeleteUserPermanently {
         )
         return result
 
-    @strawberry.mutation(description='''Assigns a role to multiple users at once.
+    @strawberry.mutation(description="""Assigns a role to multiple users at once.
 
 **Required permissions:** `admin:update:users`
 
@@ -306,7 +306,7 @@ mutation BulkAssignRole {
   }
 }
 ```
-''')
+""")
     async def bulk_assign_role(self, info: Info, user_ids: List[int], role_name: str) -> BulkOperationResult:
         current_user_dict = await get_required_user(info)
         db = info.context["db"]
@@ -322,7 +322,7 @@ mutation BulkAssignRole {
         )
         return BulkOperationResult(success=True, count=count, message=f"Assigned role '{role_name}' to {count} users")
 
-    @strawberry.mutation(description='''Removes a role from multiple users at once.
+    @strawberry.mutation(description="""Removes a role from multiple users at once.
 
 **Required permissions:** `admin:update:users`
 
@@ -336,7 +336,7 @@ mutation BulkRemoveRole {
   }
 }
 ```
-''')
+""")
     async def bulk_remove_role(self, info: Info, user_ids: List[int], role_name: str) -> BulkOperationResult:
         current_user_dict = await get_required_user(info)
         db = info.context["db"]
@@ -351,4 +351,3 @@ mutation BulkRemoveRole {
             ip_address=info.context["request"].client.host, user_agent=info.context["request"].headers.get("user-agent")
         )
         return BulkOperationResult(success=True, count=count, message=f"Removed role '{role_name}' from {count} users")
-'''

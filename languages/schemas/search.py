@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for advanced search and filtering of concepts and translations.
 """
 
@@ -58,7 +58,7 @@ class SearchResult:
 class SearchQuery:
     """GraphQL queries for searching concepts and getting suggestions."""
 
-    @strawberry.field(description='''Performs a full-text search for concepts with advanced filtering, sorting, and pagination.
+    @strawberry.field(description="""Performs a full-text search for concepts with advanced filtering, sorting, and pagination.
 
 Example:
 ```graphql
@@ -86,7 +86,7 @@ query SearchForConcepts {
   }
 }
 ```
-''')
+""")
     def search_concepts(self, info: strawberry.Info, filters: SearchFilters) -> SearchResult:
         from languages.services.search_service import SearchService
         db = info.context["db"]
@@ -123,7 +123,7 @@ query SearchForConcepts {
         has_more = (filters.offset + filters.limit) < total
         return SearchResult(results=results, total=total, has_more=has_more, limit=filters.limit, offset=filters.offset)
 
-    @strawberry.field(description='''Get search suggestions for autocomplete functionality.
+    @strawberry.field(description="""Get search suggestions for autocomplete functionality.
 
 Returns a list of concept names that start with the provided query string.
 
@@ -133,7 +133,7 @@ query GetSuggestions {
   searchSuggestions(query: "auth", languageId: 1, limit: 5)
 }
 ```
-''')
+""")
     def search_suggestions(
         self, info: strawberry.Info, query: str, language_id: Optional[int] = None, limit: int = 5
     ) -> List[str]:
@@ -153,7 +153,7 @@ query GetSuggestions {
         suggestions = q.distinct().order_by(DictionaryModel.name).limit(limit).all()
         return [s[0] for s in suggestions]
 
-    @strawberry.field(description='''Get the most popular concepts, ranked by the number of translations they have.
+    @strawberry.field(description="""Get the most popular concepts, ranked by the number of translations they have.
 
 This serves as a proxy for usage and importance.
 
@@ -167,7 +167,7 @@ query GetPopular {
   }
 }
 ```
-''')
+""")
     def popular_concepts(self, info: strawberry.Info, limit: int = 10) -> List[ConceptSearchResult]:
         from sqlalchemy import func, text
         from languages.models.dictionary import DictionaryModel
@@ -201,4 +201,3 @@ query GetPopular {
                     relevance_score=float(count),
                 ))
         return results
-'''

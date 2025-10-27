@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for Soft Delete functionality.
 
 Provides admin-only queries and mutations for managing soft-deleted records.
@@ -39,7 +39,7 @@ class SoftDeletedRecord:
 class SoftDeleteQuery:
     """GraphQL queries for retrieving soft-deleted records."""
 
-    @strawberry.field(description='''Get a list of soft-deleted records for a given entity type.
+    @strawberry.field(description="""Get a list of soft-deleted records for a given entity type.
 
 **Required permissions:** `admin:read:system`
 
@@ -53,7 +53,7 @@ query GetDeletedConcepts {
   }
 }
 ```
-''')
+""")
     async def deleted_records(
         self, info: strawberry.Info, entity_type: SoftDeleteEntityType, limit: int = 20, offset: int = 0
     ) -> List[SoftDeletedRecord]:
@@ -95,7 +95,7 @@ query GetDeletedConcepts {
 class SoftDeleteMutation:
     """GraphQL mutations for managing soft-deleted records."""
 
-    @strawberry.mutation(description='''Restore a soft-deleted record, making it active again.
+    @strawberry.mutation(description="""Restore a soft-deleted record, making it active again.
 
 **Required permissions:** `admin:update:system`
 
@@ -105,7 +105,7 @@ mutation RestoreMyConcept {
   restoreRecord(entityType: CONCEPT, entityId: 123)
 }
 ```
-''')
+""")
     async def restore_record(self, info: strawberry.Info, entity_type: SoftDeleteEntityType, entity_id: int) -> bool:
         from auth.dependencies.auth import get_required_user
         from languages.models.concept import ConceptModel
@@ -132,7 +132,7 @@ mutation RestoreMyConcept {
         record.restore(db)
         return True
 
-    @strawberry.mutation(description='''Permanently delete a record from the database. This action is irreversible.
+    @strawberry.mutation(description="""Permanently delete a record from the database. This action is irreversible.
 
 **Required permissions:** `admin:delete:system`
 
@@ -144,7 +144,7 @@ mutation HardDeleteConcept {
   permanentDelete(entityType: CONCEPT, entityId: 123)
 }
 ```
-''')
+""")
     async def permanent_delete(self, info: strawberry.Info, entity_type: SoftDeleteEntityType, entity_id: int) -> bool:
         from auth.dependencies.auth import get_required_user
         from languages.models.concept import ConceptModel
@@ -171,4 +171,3 @@ mutation HardDeleteConcept {
         db.delete(record)
         db.commit()
         return True
-'''

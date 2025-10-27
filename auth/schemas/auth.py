@@ -75,7 +75,7 @@ class MessageResponse:
 
 @strawberry.type
 class AuthMutation:
-    @strawberry.mutation(description='''Registers a new user account.
+    @strawberry.mutation(description="""Registers a new user account.
 
 Example:
 ```graphql
@@ -92,7 +92,7 @@ mutation RegisterUser {
   }
 }
 ```
-''')
+""")
     def register(self, info, input: UserRegistrationInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
         from auth.services.token_service import token_service
@@ -120,7 +120,7 @@ mutation RegisterUser {
             token_type=result["token_type"],
         )
 
-    @strawberry.mutation(description='''Logs in a user with username and password.
+    @strawberry.mutation(description="""Logs in a user with username and password.
 
 Example:
 ```graphql
@@ -134,7 +134,7 @@ mutation Login {
   }
 }
 ```
-''')
+""")
     def login(self, info, input: UserLoginInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
         db = info.context["db"]
@@ -147,7 +147,7 @@ mutation Login {
             token_type=result["token_type"],
         )
 
-    @strawberry.mutation(description='''Refreshes an access token using a refresh token.
+    @strawberry.mutation(description="""Refreshes an access token using a refresh token.
 
 Example:
 ```graphql
@@ -160,7 +160,7 @@ mutation RefreshToken {
   }
 }
 ```
-''')
+""")
     def refresh_token(self, info, input: RefreshTokenInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
         result, error = AuthService.refresh_tokens(input.refresh_token)
@@ -172,7 +172,7 @@ mutation RefreshToken {
             token_type=result["token_type"],
         )
 
-    @strawberry.mutation(description='''Verifies a user\'s email address using a token from the verification email.
+    @strawberry.mutation(description="""Verifies a user's email address using a token from the verification email.
 
 Example:
 ```graphql
@@ -185,7 +185,7 @@ mutation VerifyEmail {
   }
 }
 ```
-''')
+""")
     def verify_email(self, info, input: EmailVerificationInput) -> MessageResponse:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
@@ -238,7 +238,7 @@ mutation VerifyEmail {
             )
         return MessageResponse(success=True, message="Verification email sent")
 
-    @strawberry.mutation(description='''Requests a password reset email to be sent.
+    @strawberry.mutation(description="""Requests a password reset email to be sent.
 
 Example:
 ```graphql
@@ -251,7 +251,7 @@ mutation RequestPasswordReset {
   }
 }
 ```
-''')
+""")
     def request_password_reset(self, info, input: PasswordResetRequestInput) -> MessageResponse:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
@@ -282,7 +282,7 @@ mutation RequestPasswordReset {
             )
         return MessageResponse(success=True, message="Password reset link sent to your email")
 
-    @strawberry.mutation(description='''Resets the user\'s password using a token from the reset email.
+    @strawberry.mutation(description="""Resets the user's password using a token from the reset email.
 
 Example:
 ```graphql
@@ -296,7 +296,7 @@ mutation ResetPassword {
   }
 }
 ```
-''')
+""")
     def reset_password(self, info, input: PasswordResetInput) -> MessageResponse:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
@@ -321,7 +321,7 @@ mutation ResetPassword {
         token_service.invalidate_all_user_tokens(user_id)
         return MessageResponse(success=True, message="Password reset successfully")
 
-    @strawberry.mutation(description='''Authenticates a user with a Google ID token.
+    @strawberry.mutation(description="""Authenticates a user with a Google ID token.
 
 Example:
 ```graphql
@@ -334,7 +334,7 @@ mutation LoginWithGoogle {
   }
 }
 ```
-''')
+""")
     async def login_with_google(self, info, input: GoogleAuthInput) -> AuthPayload:
         from auth.services.oauth_service import OAuthService
         db = info.context["db"]
@@ -347,7 +347,7 @@ mutation LoginWithGoogle {
             token_type=result["token_type"],
         )
 
-    @strawberry.mutation(description='''Authenticates a user with Telegram authentication data.
+    @strawberry.mutation(description="""Authenticates a user with Telegram authentication data.
 
 Example:
 ```graphql
@@ -364,7 +364,7 @@ mutation LoginWithTelegram {
   }
 }
 ```
-''')
+""")
     def login_with_telegram(self, info, input: TelegramAuthInput) -> AuthPayload:
         from auth.services.oauth_service import OAuthService
         telegram_data = {

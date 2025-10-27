@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for user and profile management.
 """
 
@@ -12,15 +12,15 @@ from auth.dependencies.auth import get_required_user
 # Types
 # ============================================================================
 
-@strawberry.type(description="Represents a user\'s profile information.")
+@strawberry.type(description="Represents a user's profile information.")
 class UserProfile:
     id: int
     first_name: Optional[str]
     last_name: Optional[str]
     bio: Optional[str] = strawberry.field(description="A short biography or description.")
-    avatar: Optional[str] = strawberry.field(description="URL of the user\'s avatar image.")
-    language: str = strawberry.field(description="The user\'s preferred language code (e.g., 'en').")
-    timezone: str = strawberry.field(description="The user\'s timezone (e.g., 'UTC').")
+    avatar: Optional[str] = strawberry.field(description="URL of the user's avatar image.")
+    language: str = strawberry.field(description="The user's preferred language code (e.g., 'en').")
+    timezone: str = strawberry.field(description="The user's timezone (e.g., 'UTC').")
 
 @strawberry.type(description="Represents a user account.")
 class User:
@@ -28,7 +28,7 @@ class User:
     username: str
     email: str
     is_active: bool = strawberry.field(description="Indicates if the user account is active.")
-    is_verified: bool = strawberry.field(description="Indicates if the user\'s email has been verified.")
+    is_verified: bool = strawberry.field(description="Indicates if the user's email has been verified.")
     profile: Optional[UserProfile]
 
 @strawberry.type(description="A generic response indicating the success or failure of a mutation.")
@@ -42,7 +42,7 @@ class SuccessResponse:
 
 @strawberry.type
 class UserQuery:
-    @strawberry.field(description='''Get information about the currently authenticated user.
+    @strawberry.field(description="""Get information about the currently authenticated user.
 
 **Requires authentication.**
 
@@ -61,7 +61,7 @@ query GetCurrentUser {
   }
 }
 ```
-''')
+""")
     async def me(self, info: Info) -> User:
         from auth.services.user_service import UserService
         current_user_dict = await get_required_user(info)
@@ -86,7 +86,7 @@ query GetCurrentUser {
 
 @strawberry.type
 class UserMutation:
-    @strawberry.mutation(description='''Update the current user\'s profile.
+    @strawberry.mutation(description="""Update the current user's profile.
 
 **Requires authentication.**
 
@@ -104,7 +104,7 @@ mutation UpdateMyProfile {
   }
 }
 ```
-''')
+""")
     async def update_profile(
         self, info: Info, first_name: Optional[str] = None, last_name: Optional[str] = None,
         bio: Optional[str] = None, language: Optional[str] = None, timezone: Optional[str] = None
@@ -121,7 +121,7 @@ mutation UpdateMyProfile {
         except ValueError as e:
             raise Exception(str(e))
 
-    @strawberry.mutation(description='''Change the current user\'s password.
+    @strawberry.mutation(description="""Change the current user's password.
 
 **Requires authentication.**
 
@@ -137,7 +137,7 @@ mutation ChangeMyPassword {
   }
 }
 ```
-''')
+""")
     async def change_password(self, info: Info, current_password: str, new_password: str) -> SuccessResponse:
         from auth.services.profile_service import ProfileService
         current_user_dict = await get_required_user(info)
@@ -148,7 +148,7 @@ mutation ChangeMyPassword {
         except ValueError as e:
             raise Exception(str(e))
 
-    @strawberry.mutation(description='''Initiate an email address change for the current user.
+    @strawberry.mutation(description="""Initiate an email address change for the current user.
 
 Sends a verification link to the new email address.
 
@@ -166,7 +166,7 @@ mutation StartEmailChange {
   }
 }
 ```
-''')
+""")
     async def request_email_change(self, info: Info, new_email: str, current_password: str) -> SuccessResponse:
         from auth.services.profile_service import ProfileService
         from core.email_service import email_service
@@ -181,7 +181,7 @@ mutation StartEmailChange {
         except ValueError as e:
             raise Exception(str(e))
 
-    @strawberry.mutation(description='''Confirm an email address change using the token from the verification email.
+    @strawberry.mutation(description="""Confirm an email address change using the token from the verification email.
 
 Example:
 ```graphql
@@ -192,7 +192,7 @@ mutation CompleteEmailChange {
   }
 }
 ```
-''')
+""")
     async def confirm_email_change(self, info: Info, token: str) -> SuccessResponse:
         from auth.services.profile_service import ProfileService
         db = info.context["db"]
@@ -202,7 +202,7 @@ mutation CompleteEmailChange {
         except ValueError as e:
             raise Exception(str(e))
 
-    @strawberry.mutation(description='''Soft-delete the current user\'s account.
+    @strawberry.mutation(description="""Soft-delete the current user's account.
 
 This is a reversible action. The account can be restored by an administrator.
 
@@ -217,7 +217,7 @@ mutation DeleteMyAccount {
   }
 }
 ```
-''')
+""")
     async def delete_account(self, info: Info, password: str) -> SuccessResponse:
         from auth.services.profile_service import ProfileService
         current_user_dict = await get_required_user(info)
@@ -227,4 +227,3 @@ mutation DeleteMyAccount {
             return SuccessResponse(success=True, message="Account deleted successfully. You will be logged out.")
         except ValueError as e:
             raise Exception(str(e))
-'''

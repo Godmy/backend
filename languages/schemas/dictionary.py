@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for managing dictionary entries, which are the translations of concepts.
 """
 
@@ -65,7 +65,7 @@ class DictionaryUpdateInput:
 class DictionaryQuery:
     """GraphQL queries for retrieving dictionary entries (translations)."""
 
-    @strawberry.field(description='''Get a list of dictionary entries, with optional filtering by concept or language.
+    @strawberry.field(description="""Get a list of dictionary entries, with optional filtering by concept or language.
 
 Example (get all translations for concept 10):
 ```graphql
@@ -77,7 +77,7 @@ query GetTranslationsForConcept {
   }
 }
 ```
-''')
+""")
     def dictionaries(
         self, info: strawberry.Info, concept_id: Optional[int] = None, language_id: Optional[int] = None
     ) -> List[Dictionary]:
@@ -123,7 +123,7 @@ query GetTranslationsForConcept {
 class DictionaryMutation:
     """GraphQL mutations for managing dictionary entries (translations)."""
 
-    @strawberry.mutation(description='''Create a new dictionary entry (translation) for a concept.
+    @strawberry.mutation(description="""Create a new dictionary entry (translation) for a concept.
 
 A concept can only have one translation per language.
 
@@ -144,7 +144,7 @@ mutation CreateTranslation {
   }
 }
 ```
-''')
+""")
     def create_dictionary(self, info: strawberry.Info, input: DictionaryInput) -> Dictionary:
         from languages.services.dictionary_service import DictionaryService
         db = info.context["db"]
@@ -152,7 +152,7 @@ mutation CreateTranslation {
         item = service.create(**input.__dict__)
         return DictionaryQuery._map_dict_to_gql(self, item)
 
-    @strawberry.mutation(description='''Update an existing dictionary entry.
+    @strawberry.mutation(description="""Update an existing dictionary entry.
 
 Example:
 ```graphql
@@ -163,7 +163,7 @@ mutation UpdateTranslation {
   }
 }
 ```
-''')
+""")
     def update_dictionary(self, info: strawberry.Info, dictionary_id: int, input: DictionaryUpdateInput) -> Dictionary:
         from languages.services.dictionary_service import DictionaryService
         db = info.context["db"]
@@ -173,7 +173,7 @@ mutation UpdateTranslation {
             raise Exception("Dictionary entry not found")
         return DictionaryQuery._map_dict_to_gql(self, item)
 
-    @strawberry.mutation(description='''Soft delete a dictionary entry. This is a reversible action.
+    @strawberry.mutation(description="""Soft delete a dictionary entry. This is a reversible action.
 
 Example:
 ```graphql
@@ -181,10 +181,9 @@ mutation DeleteTranslation {
   deleteDictionary(dictionaryId: 100)
 }
 ```
-''')
+""")
     def delete_dictionary(self, info: strawberry.Info, dictionary_id: int) -> bool:
         from languages.services.dictionary_service import DictionaryService
         db = info.context["db"]
         service = DictionaryService(db)
         return service.delete(dictionary_id)
-'''

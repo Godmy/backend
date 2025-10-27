@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for role and permission management.
 """
 
@@ -12,9 +12,9 @@ from auth.models.user import UserModel
 from auth.models.role import RoleModel, UserRoleModel
 from auth.models.permission import PermissionModel
 
-# ============================================================================
+# ============================================================================ 
 # Types
-# ============================================================================
+# ============================================================================ 
 
 @strawberry.type(description="Represents a single permission.")
 class Permission:
@@ -31,9 +31,9 @@ class Role:
     description: Optional[str]
     permissions: List[Permission]
 
-# ============================================================================
+# ============================================================================ 
 # Inputs
-# ============================================================================
+# ============================================================================ 
 
 @strawberry.input(description="Input for creating or adding a permission.")
 class PermissionInput:
@@ -51,16 +51,16 @@ class RoleUpdateInput:
     name: Optional[str] = strawberry.field(default=None, description="The new name for the role.")
     description: Optional[str] = strawberry.field(default=None, description="The new description for the role.")
 
-# ============================================================================
+# ============================================================================ 
 # Queries
-# ============================================================================
+# ============================================================================ 
 
 @strawberry.type
 class RoleQuery:
-    @strawberry.field(description='''Get a list of all roles and their permissions.
+    @strawberry.field(description="""Get a list of all roles and their permissions.
 
 **Required permissions:** `admin:read:roles`
-''')
+""")
     async def roles(self, info: Info) -> List[Role]:
         current_user = await get_required_user(info)
         db = info.context["db"]
@@ -71,10 +71,10 @@ class RoleQuery:
         roles_db = db.query(RoleModel).all()
         return [self._map_role_to_gql(role) for role in roles_db]
 
-    @strawberry.field(description='''Get a single role by its ID.
+    @strawberry.field(description="""Get a single role by its ID.
 
 **Required permissions:** `admin:read:roles`
-''')
+""")
     async def role(self, info: Info, role_id: int) -> Role:
         current_user = await get_required_user(info)
         db = info.context["db"]
@@ -100,16 +100,16 @@ class RoleQuery:
             permissions=[Permission(id=p.id, role_id=p.role_id, resource=p.resource, action=p.action, scope=p.scope) for p in role_db.permissions]
         )
 
-# ============================================================================
+# ============================================================================ 
 # Mutations
-# ============================================================================
+# ============================================================================ 
 
 @strawberry.type
 class RoleMutation:
-    @strawberry.mutation(description='''Create a new role.
+    @strawberry.mutation(description="""Create a new role.
 
 **Required permissions:** `admin:create:roles`
-''')
+""")
     async def create_role(self, info: Info, input: RoleInput) -> Role:
         current_user = await get_required_user(info)
         db = info.context["db"]
@@ -126,10 +126,10 @@ class RoleMutation:
         db.refresh(role)
         return Role(id=role.id, name=role.name, description=role.description, permissions=[])
 
-    @strawberry.mutation(description='''Update an existing role\'s name or description.
+    @strawberry.mutation(description="""Update an existing role's name or description.
 
 **Required permissions:** `admin:update:roles`
-''')
+""")
     async def update_role(self, info: Info, role_id: int, input: RoleUpdateInput) -> Role:
         current_user = await get_required_user(info)
         db = info.context["db"]
@@ -151,10 +151,10 @@ class RoleMutation:
         db.refresh(role)
         return RoleQuery._map_role_to_gql(self, role)
 
-    @strawberry.mutation(description='''Add a permission to a role.
+    @strawberry.mutation(description="""Add a permission to a role.
 
 **Required permissions:** `admin:update:roles`
-''')
+""")
     async def add_permission_to_role(self, info: Info, role_id: int, input: PermissionInput) -> Role:
         current_user = await get_required_user(info)
         db = info.context["db"]
@@ -174,10 +174,10 @@ class RoleMutation:
         db.refresh(role)
         return RoleQuery._map_role_to_gql(self, role)
 
-    @strawberry.mutation(description='''Assign a role to a user.
+    @strawberry.mutation(description="""Assign a role to a user.
 
 **Required permissions:** `admin:update:users`
-''')
+""")
     async def assign_role_to_user(self, info: Info, user_id: int, role_name: str) -> bool:
         from auth.services.user_service import UserService
         current_user = await get_required_user(info)
@@ -190,10 +190,10 @@ class RoleMutation:
             raise Exception("Failed to assign role to user. User or role may not exist.")
         return True
 
-    @strawberry.mutation(description='''Remove a role from a user.
+    @strawberry.mutation(description="""Remove a role from a user.
 
 **Required permissions:** `admin:update:users`
-''')
+""")
     async def remove_role_from_user(self, info: Info, user_id: int, role_name: str) -> bool:
         current_user = await get_required_user(info)
         db = info.context["db"]
@@ -213,4 +213,3 @@ class RoleMutation:
             db.delete(user_role)
             db.commit()
         return True
-'''

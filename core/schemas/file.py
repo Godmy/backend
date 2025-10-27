@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for file uploads and management.
 """
 
@@ -57,7 +57,7 @@ class UploadFileInput:
 class FileQuery:
     """GraphQL queries for retrieving file information."""
 
-    @strawberry.field(description='''Get a list of files uploaded by the current user.
+    @strawberry.field(description="""Get a list of files uploaded by the current user.
 
 Example:
 ```graphql
@@ -70,7 +70,7 @@ query GetMyAvatars {
   }
 }
 ```
-''')
+""")
     def my_files(self, info: Info, file_type: Optional[str] = None, limit: int = 50) -> List[FileType]:
         user = info.context.get("user")
         if not user: raise Exception("Authentication required")
@@ -98,7 +98,7 @@ query GetMyAvatars {
 class FileMutation:
     """GraphQL mutations for file management."""
 
-    @strawberry.mutation(description='''Upload a user avatar. The file is automatically associated with the current user\'s profile.
+    @strawberry.mutation(description="""Upload a user avatar. The file is automatically associated with the current user's profile.
 
 This mutation requires a multipart form-data request.
 
@@ -113,8 +113,8 @@ mutation UploadAvatar($file: Upload!) {
 }
 ```
 Variables:
-`{ "file": null }` (and then attach the file via the client\'s upload mechanism)
-''')
+`{ "file": null }` (and then attach the file via the client's upload mechanism)
+""")
     async def upload_avatar(self, info: Info, file: Upload) -> FileType:
         user = info.context.get("user")
         if not user: raise Exception("Authentication required")
@@ -133,7 +133,7 @@ Variables:
         except (ValueError, PermissionError) as e:
             raise Exception(str(e))
 
-    @strawberry.mutation(description='''Upload a generic file with optional entity association.
+    @strawberry.mutation(description="""Upload a generic file with optional entity association.
 
 This mutation requires a multipart form-data request.
 
@@ -151,7 +151,7 @@ mutation UploadDocument($file: Upload!) {
   }
 }
 ```
-''')
+""")
     async def upload_file(self, info: Info, input: UploadFileInput) -> FileType:
         user = info.context.get("user")
         if not user: raise Exception("Authentication required")
@@ -169,7 +169,7 @@ mutation UploadDocument($file: Upload!) {
         except (ValueError, PermissionError) as e:
             raise Exception(str(e))
 
-    @strawberry.mutation(description='''Delete a file. Users can only delete their own files.
+    @strawberry.mutation(description="""Delete a file. Users can only delete their own files.
 
 Example:
 ```graphql
@@ -177,7 +177,7 @@ mutation DeleteMyFile {
   deleteFile(fileId: 45)
 }
 ```
-''')
+""")
     def delete_file(self, info: Info, file_id: int) -> bool:
         user = info.context.get("user")
         if not user: raise Exception("Authentication required")
@@ -187,4 +187,3 @@ mutation DeleteMyFile {
             return service.delete_file(file_id, user.id)
         except (ValueError, PermissionError) as e:
             raise Exception(str(e))
-'''

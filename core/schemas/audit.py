@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for viewing audit logs.
 """
 
@@ -75,7 +75,7 @@ class AuditLogsFilterInput:
 class AuditLogQuery:
     """GraphQL queries for viewing audit logs."""
 
-    @strawberry.field(description='''Get a paginated list of all audit logs with advanced filtering.
+    @strawberry.field(description="""Get a paginated list of all audit logs with advanced filtering.
 
 **Required permissions:** `admin:read:system`
 
@@ -93,7 +93,7 @@ query GetAuditLogs {
   }
 }
 ```
-''')
+""")
     def audit_logs(
         self, info: Info, filters: Optional[AuditLogsFilterInput] = None, limit: int = 100, offset: int = 0
     ) -> AuditLogsPaginated:
@@ -116,7 +116,7 @@ query GetAuditLogs {
             has_more=(offset + limit) < total,
         )
 
-    @strawberry.field(description='''Get a paginated list of the current user\'s own audit logs.
+    @strawberry.field(description="""Get a paginated list of the current user's own audit logs.
 
 Example:
 ```graphql
@@ -130,7 +130,7 @@ query GetMyLogs {
   }
 }
 ```
-''')
+""")
     def my_audit_logs(
         self, info: Info, action: Optional[str] = None, limit: int = 50, offset: int = 0
     ) -> AuditLogsPaginated:
@@ -140,7 +140,7 @@ query GetMyLogs {
 
         db: Session = info.context["db"]
         service = AuditService(db)
-        logs, total = service.get_logs(user_id=user_dict[\'id\'], action=action, limit=limit, offset=offset)
+        logs, total = service.get_logs(user_id=user_dict['id'], action=action, limit=limit, offset=offset)
 
         return AuditLogsPaginated(
             logs=[AuditLogType.from_model(log) for log in logs],
@@ -148,9 +148,9 @@ query GetMyLogs {
             has_more=(offset + limit) < total,
         )
 
-    @strawberry.field(description='''Get activity statistics for a specific user, grouped by action type.
+    @strawberry.field(description="""Get activity statistics for a specific user, grouped by action type.
 
-If `userId` is not provided, returns stats for the current user. Requires admin privileges to view other users\' stats.
+If `userId` is not provided, returns stats for the current user. Requires admin privileges to view other users' stats.
 
 **Required permissions (for other users):** `admin:read:users`
 
@@ -163,7 +163,7 @@ query GetUserActivity {
   }
 }
 ```
-''')
+""")
     def user_activity(
         self, info: Info, user_id: Optional[int] = None, days: int = 30
     ) -> List[UserActivityType]:
@@ -171,15 +171,14 @@ query GetUserActivity {
         if not user_dict:
             raise Exception("Authentication required")
 
-        target_user_id = user_id if user_id is not None else user_dict[\'id\']
+        target_user_id = user_id if user_id is not None else user_dict['id']
         
         db: Session = info.context["db"]
-        if target_user_id != user_dict[\'id\']:
+        if target_user_id != user_dict['id']:
             user = db.query(UserModel).filter(UserModel.id == user_dict["id"]).first()
             if not PermissionService.check_permission(user, "admin", "read", "users"):
-                raise Exception("Admin privileges required to view other users\' activity")
+                raise Exception("Admin privileges required to view other users' activity")
 
         service = AuditService(db)
         activity = service.get_user_activity(target_user_id, days)
         return [UserActivityType(action=item["action"], count=item["count"]) for item in activity]
-'''

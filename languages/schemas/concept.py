@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for managing concepts, which form the hierarchical structure of the ontology.
 """
 
@@ -19,10 +19,10 @@ class ConceptDictionary:
     description: Optional[str] = strawberry.field(description="A detailed description in this language.")
     language: ConceptLanguage = strawberry.field(description="The language of this translation.")
 
-@strawberry.type(description='''Represents a concept in the ontology\'s hierarchy.
+@strawberry.type(description="""Represents a concept in the ontology's hierarchy.
 
-Concepts use a materialized path pattern (e.g., \'science.physics.relativity\') to represent their position.
-''')
+Concepts use a materialized path pattern (e.g., 'science.physics.relativity') to represent their position.
+""")
 class Concept:
     id: int = strawberry.field(description="Unique identifier for the concept.")
     parent_id: Optional[int] = strawberry.field(description="The ID of the parent concept. Null for root concepts.")
@@ -57,7 +57,7 @@ class ConceptUpdateInput:
 class ConceptQuery:
     """GraphQL queries for retrieving concepts."""
 
-    @strawberry.field(description='''Get a list of concepts. Can be filtered by parent or depth.
+    @strawberry.field(description="""Get a list of concepts. Can be filtered by parent or depth.
 
 - Providing `parentId` fetches direct children of a concept.
 - Providing `depth: 0` fetches only root concepts.
@@ -73,7 +73,7 @@ query GetChildConcepts {
   }
 }
 ```
-''')
+""")
     def concepts(
         self, info: strawberry.Info, depth: Optional[int] = None, parent_id: Optional[int] = None
     ) -> List[Concept]:
@@ -90,7 +90,7 @@ query GetChildConcepts {
 
         return [self._map_concept_to_gql(c) for c in concepts_db]
 
-    @strawberry.field(description='''Get a single concept by its unique ID, including its translations.
+    @strawberry.field(description="""Get a single concept by its unique ID, including its translations.
 
 Example:
 ```graphql
@@ -108,7 +108,7 @@ query GetConceptDetails {
   }
 }
 ```
-''')
+""")
     def concept(self, concept_id: int, info: strawberry.Info) -> Optional[Concept]:
         from languages.services.concept_service import ConceptService
         db = info.context["db"]
@@ -140,7 +140,7 @@ query GetConceptDetails {
 class ConceptMutation:
     """GraphQL mutations for creating, updating, and deleting concepts."""
 
-    @strawberry.mutation(description='''Create a new concept.
+    @strawberry.mutation(description="""Create a new concept.
 
 To create a root concept, set `parentId` to `null` and `depth` to `0`.
 To create a child, provide the `parentId` and set `depth` to `parent.depth + 1`.
@@ -159,7 +159,7 @@ mutation CreateRootConcept {
   }
 }
 ```
-''')
+""")
     def create_concept(self, info: strawberry.Info, input: ConceptInput) -> Concept:
         from languages.services.concept_service import ConceptService
         db = info.context["db"]
@@ -167,7 +167,7 @@ mutation CreateRootConcept {
         concept_db = service.create(path=input.path, depth=input.depth, parent_id=input.parent_id)
         return ConceptQuery._map_concept_to_gql(self, concept_db)
 
-    @strawberry.mutation(description='''Update an existing concept\'s path, depth, or parent.
+    @strawberry.mutation(description="""Update an existing concept's path, depth, or parent.
 
 Example:
 ```graphql
@@ -178,7 +178,7 @@ mutation UpdateConceptPath {
   }
 }
 ```
-''')
+""")
     def update_concept(self, info: strawberry.Info, concept_id: int, input: ConceptUpdateInput) -> Concept:
         from languages.services.concept_service import ConceptService
         db = info.context["db"]
@@ -190,7 +190,7 @@ mutation UpdateConceptPath {
             raise Exception("Concept not found")
         return ConceptQuery._map_concept_to_gql(self, concept_db)
 
-    @strawberry.mutation(description='''Soft delete a concept. This is a reversible action.
+    @strawberry.mutation(description="""Soft delete a concept. This is a reversible action.
 
 All child concepts and associated translations will also be soft-deleted.
 
@@ -200,10 +200,9 @@ mutation DeleteConcept {
   deleteConcept(conceptId: 10)
 }
 ```
-''')
+""")
     def delete_concept(self, info: strawberry.Info, concept_id: int) -> bool:
         from languages.services.concept_service import ConceptService
         db = info.context["db"]
         service = ConceptService(db)
         return service.delete(concept_id)
-'''

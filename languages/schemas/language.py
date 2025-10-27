@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for managing languages.
 """
 
@@ -37,7 +37,7 @@ class LanguageUpdateInput:
 class LanguageQuery:
     """GraphQL queries for retrieving languages."""
 
-    @strawberry.field(description='''Get a list of all available languages.
+    @strawberry.field(description="""Get a list of all available languages.
 
 Example:
 ```graphql
@@ -49,7 +49,7 @@ query GetLanguages {
   }
 }
 ```
-''')
+""")
     def languages(self, info: strawberry.Info) -> List[Language]:
         from languages.services.language_service import LanguageService
         db = info.context["db"]
@@ -73,7 +73,7 @@ query GetLanguages {
 class LanguageMutation:
     """GraphQL mutations for managing languages."""
 
-    @strawberry.mutation(description='''Create a new language.
+    @strawberry.mutation(description="""Create a new language.
 
 Example:
 ```graphql
@@ -85,7 +85,7 @@ mutation CreateItalianLanguage {
   }
 }
 ```
-''')
+""")
     def create_language(self, info: strawberry.Info, input: LanguageInput) -> Language:
         from languages.services.language_service import LanguageService
         db = info.context["db"]
@@ -93,7 +93,7 @@ mutation CreateItalianLanguage {
         lang_db = service.create(code=input.code, name=input.name)
         return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name)
 
-    @strawberry.mutation(description='''Update an existing language.
+    @strawberry.mutation(description="""Update an existing language.
 
 Example:
 ```graphql
@@ -104,7 +104,7 @@ mutation UpdateRussianLanguage {
   }
 }
 ```
-''')
+""")
     def update_language(self, info: strawberry.Info, language_id: int, input: LanguageUpdateInput) -> Language:
         from languages.services.language_service import LanguageService
         db = info.context["db"]
@@ -114,7 +114,7 @@ mutation UpdateRussianLanguage {
             raise Exception("Language not found")
         return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name)
 
-    @strawberry.mutation(description='''Soft delete a language. This is a reversible action.
+    @strawberry.mutation(description="""Soft delete a language. This is a reversible action.
 
 A language cannot be deleted if it is currently associated with any translations.
 
@@ -124,10 +124,9 @@ mutation DeleteLanguage {
   deleteLanguage(languageId: 10)
 }
 ```
-''')
+""")
     def delete_language(self, info: strawberry.Info, language_id: int) -> bool:
         from languages.services.language_service import LanguageService
         db = info.context["db"]
         service = LanguageService(db)
         return service.delete(language_id)
-'''

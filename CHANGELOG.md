@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Documentation
+- **GraphQL Schema Documentation** - Enhanced GraphQL schema with detailed descriptions and examples
+  - All queries and mutations now include comprehensive descriptions.
+  - Examples for common operations are embedded directly in the schema.
+  - Required permissions are explicitly stated for protected fields.
+  - Improves developer experience in GraphQL Playground.
+
 ### Added - Enhanced Database Logging
 
 - **core/db_stats.py** - New utilities for database statistics tracking

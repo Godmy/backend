@@ -1,4 +1,4 @@
-'''"""
+"""
 GraphQL schemas for data import and export jobs.
 """
 
@@ -112,7 +112,7 @@ class ImportOptionsInput:
 
 @strawberry.type
 class ImportExportQuery:
-    @strawberry.field(description='''Get the status and details of a specific import/export job.
+    @strawberry.field(description="""Get the status and details of a specific import/export job.
 
 Users can only view their own jobs.
 
@@ -128,7 +128,7 @@ query GetJobStatus {
   }
 }
 ```
-''')
+""")
     def import_job(self, info: Info, job_id: int) -> Optional[ImportExportJobType]:
         user = info.context.get("user")
         if not user: raise Exception("Authentication required")
@@ -136,7 +136,7 @@ query GetJobStatus {
         job = db.query(ImportExportJobModel).filter_by(id=job_id, user_id=user.id).first()
         return ImportExportJobType.from_model(job) if job else None
 
-    @strawberry.field(description='''Get a list of the current user\'s import/export jobs.
+    @strawberry.field(description="""Get a list of the current user's import/export jobs.
 
 Example:
 ```graphql
@@ -149,7 +149,7 @@ query GetMyJobs {
   }
 }
 ```
-''')
+""")
     def my_import_export_jobs(
         self, info: Info, job_type: Optional[str] = None, limit: int = 20, offset: int = 0
     ) -> List[ImportExportJobType]:
@@ -167,7 +167,7 @@ query GetMyJobs {
 
 @strawberry.type
 class ImportExportMutation:
-    @strawberry.mutation(description='''Initiate a background job to export data to a file (JSON, CSV, or XLSX).
+    @strawberry.mutation(description="""Initiate a background job to export data to a file (JSON, CSV, or XLSX).
 
 **Required permissions (for users):** `admin:read:users`
 
@@ -180,7 +180,7 @@ mutation ExportConcepts {
   }
 }
 ```
-''')
+""")
     def export_data(
         self, info: Info, entity_type: EntityTypeEnum, format: ExportFormatEnum, filters: Optional[ExportFiltersInput] = None
     ) -> ExportDataPayload:
@@ -201,7 +201,7 @@ mutation ExportConcepts {
         export_service.process_export(job.id)
         return ExportDataPayload(job_id=job.id, status=JobStatusEnum(job.status.value))
 
-    @strawberry.mutation(description='''Initiate a background job to import data from a file (JSON, CSV, or XLSX).
+    @strawberry.mutation(description="""Initiate a background job to import data from a file (JSON, CSV, or XLSX).
 
 This mutation requires a multipart form-data request.
 
@@ -221,7 +221,7 @@ mutation ImportConcepts($file: Upload!) {
   }
 }
 ```
-''')
+""")
     async def import_data(
         self, info: Info, file: Upload, entity_type: EntityTypeEnum, options: Optional[ImportOptionsInput] = None
     ) -> ImportDataPayload:
@@ -251,4 +251,3 @@ mutation ImportConcepts($file: Upload!) {
             message = f"Import failed: {job.error_message}"
 
         return ImportDataPayload(job_id=job.id, status=JobStatusEnum(job.status.value), message=message)
-'''
