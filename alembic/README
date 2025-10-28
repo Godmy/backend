@@ -58,3 +58,58 @@ docker-compose -f docker-compose.dev.yml up -d --build
 
 
   docker-compose -f docker-compose.dev.yml restart backend
+
+
+    1. Проверить оставшиеся контейнеры:
+
+   1 docker ps -a
+
+   2. Проверить, какие контейнеры используют сеть:
+
+   1 docker network ls
+   2 docker network inspect humansontology_app_network
+
+   3. Удалить оставшиеся контейнеры:
+
+   1 docker container prune
+
+   4. Принудительно удалить сеть (если она больше не нужна):
+
+   1 docker network rm humansontology_app_network
+
+   5. Если проблема повторяется, можно добавить опцию принудительной остановки:
+
+   1 docker-compose down -t 0 --remove-orphans
+
+   6. Для полной очистки можно использовать:
+
+   1 docker system prune -a --volumes
+
+
+✦ Для запуска Docker Compose с полной пересборкой без кэша используйте следующую команду:
+
+   1 docker-compose -f docker-compose.dev.yml up -d --build --force-recreate --no-cache
+
+   ✦ Вы правы, флаг --no-cache не поддерживается командой docker-compose. Этот флаг используется в docker build, но не в docker-compose up. Правильная команда для пересборки без кэша в
+  docker-compose:
+
+   1 docker-compose -f docker-compose.dev.yml build --no-cache
+   2 docker-compose -f docker-compose.dev.yml up -d --force-recreate
+
+  Или пошагово:
+
+   1. Сначала соберите без кэша:
+
+   1 docker-compose -f docker-compose.dev.yml build --no-cache
+
+   2. Затем запустите с пересозданием:                                                                                                                                                                             
+                                                                                                                                                                                                                   
+   1 docker-compose -f docker-compose.dev.yml up -d --force-recreate
+
+  Альтернативно, можно использовать и без --no-cache (так как --force-recreate все равно пересоздаст контейнеры):
+
+   1 docker-compose -f docker-compose.dev.yml up -d --build --force-recreate
+
+  Эта команда:
+   - --build - пересобирает образы перед запуском
+   - --force-recreate - принудительно пересоздает контейнеры, даже если образ не изменился

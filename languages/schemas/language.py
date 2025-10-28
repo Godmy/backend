@@ -50,11 +50,11 @@ query GetLanguages {
 }
 ```
 """)
-    def languages(self, info: strawberry.Info) -> List[Language]:
+    async def languages(self, info: strawberry.Info) -> List[Language]:
         from languages.services.language_service import LanguageService
         db = info.context["db"]
         service = LanguageService(db)
-        languages_db = service.get_all()
+        languages_db = await service.get_all()
         return [Language(id=lang.id, code=lang.code, name=lang.name) for lang in languages_db]
 
     @strawberry.field(description="Get a single language by its unique ID.")

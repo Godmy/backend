@@ -51,9 +51,16 @@ class RoleUpdateInput:
     name: Optional[str] = strawberry.field(default=None, description="The new name for the role.")
     description: Optional[str] = strawberry.field(default=None, description="The new description for the role.")
 
-# ============================================================================ 
+# ============================================================================
 # Queries
-# ============================================================================ 
+# ============================================================================
+
+def _map_role_to_gql(role_db: RoleModel) -> Role:
+    """Helper function to map RoleModel to GraphQL Role type"""
+    return Role(
+        id=role_db.id, name=role_db.name, description=role_db.description,
+        permissions=[Permission(id=p.id, role_id=p.role_id, resource=p.resource, action=p.action, scope=p.scope) for p in role_db.permissions]
+    )
 
 @strawberry.type
 class RoleQuery:
@@ -69,7 +76,7 @@ class RoleQuery:
             raise Exception("Insufficient permissions")
 
         roles_db = db.query(RoleModel).all()
-        return [self._map_role_to_gql(role) for role in roles_db]
+        return [_map_role_to_gql(role) for role in roles_db]
 
     @strawberry.field(description="""Get a single role by its ID.
 
@@ -84,7 +91,7 @@ class RoleQuery:
 
         role_db = db.query(RoleModel).filter(RoleModel.id == role_id).first()
         if not role_db: raise Exception("Role not found")
-        return self._map_role_to_gql(role_db)
+        return _map_role_to_gql(role_db)
 
     @strawberry.field(description="Get the roles assigned to the current user.")
     async def my_roles(self, info: Info) -> List[Role]:
@@ -92,13 +99,7 @@ class RoleQuery:
         db = info.context["db"]
         user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not user: raise Exception("User not found")
-        return [self._map_role_to_gql(user_role.role) for user_role in user.roles]
-
-    def _map_role_to_gql(self, role_db: RoleModel) -> Role:
-        return Role(
-            id=role_db.id, name=role_db.name, description=role_db.description,
-            permissions=[Permission(id=p.id, role_id=p.role_id, resource=p.resource, action=p.action, scope=p.scope) for p in role_db.permissions]
-        )
+        return [_map_role_to_gql(user_role.role) for user_role in user.roles if user_role.role is not None]
 
 # ============================================================================ 
 # Mutations
@@ -149,7 +150,9 @@ class RoleMutation:
 
         db.commit()
         db.refresh(role)
-        return RoleQuery._map_role_to_gql(self, role)
+        # Create a temporary RoleQuery instance to access the mapping method
+        role_query = RoleQuery()
+        return role_query._map_role_to_gql(role)
 
     @strawberry.mutation(description="""Add a permission to a role.
 
@@ -172,7 +175,9 @@ class RoleMutation:
         db.add(permission)
         db.commit()
         db.refresh(role)
-        return RoleQuery._map_role_to_gql(self, role)
+        # Create a temporary RoleQuery instance to access the mapping method
+        role_query = RoleQuery()
+        return role_query._map_role_to_gql(role)
 
     @strawberry.mutation(description="""Assign a role to a user.
 
