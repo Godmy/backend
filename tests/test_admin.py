@@ -317,6 +317,11 @@ class TestDashboardGraphQL:
 
         query = """
         query {
+          counts: dashboardStats {
+            concepts
+            languages
+            dictionaries
+          }
           concepts { id }
           languages { id }
           dictionaries { id }
@@ -330,6 +335,10 @@ class TestDashboardGraphQL:
         assert "errors" not in payload
 
         data = payload.get("data", {})
+        counts = data.get("counts") or {}
+        assert counts.get("concepts", 0) > 0
+        assert counts.get("languages", 0) > 0
+        assert counts.get("dictionaries", 0) > 0
         assert isinstance(data.get("concepts"), list) and len(data["concepts"]) > 0
         assert isinstance(data.get("languages"), list) and len(data["languages"]) > 0
         assert isinstance(data.get("dictionaries"), list) and len(data["dictionaries"]) > 0

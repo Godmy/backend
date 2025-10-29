@@ -23,6 +23,7 @@ from languages.schemas import (
     LanguageMutation,
     LanguageQuery,
     SearchQuery,
+    DashboardQuery,
 )
 
 
@@ -38,6 +39,7 @@ class Query(
     AuditLogQuery,
     ImportExportQuery,
     SoftDeleteQuery,
+    DashboardQuery,
     AdminQuery,
 ):
     pass

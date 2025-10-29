@@ -6,6 +6,7 @@ from .concept import Concept, ConceptMutation, ConceptQuery
 from .dictionary import Dictionary, DictionaryMutation, DictionaryQuery
 from .language import Language, LanguageMutation, LanguageQuery
 from .search import ConceptSearchResult, SearchFilters, SearchQuery, SearchResult
+from .dashboard import DashboardCounts, DashboardQuery
 
 __all__ = [
     "Language",
@@ -21,4 +22,6 @@ __all__ = [
     "SearchResult",
     "ConceptSearchResult",
     "SearchFilters",
+    "DashboardCounts",
+    "DashboardQuery",
 ]
