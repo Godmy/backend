@@ -114,6 +114,9 @@ docker-compose -f docker-compose.dev.yml up -d --build
    - --build - пересобирает образы перед запуском
    - --force-recreate - принудительно пересоздает контейнеры, даже если образ не изменился
 
+Включить: docker-compose -f docker-compose.dev.yml up -d --build
+Выключить: docker-compose -f docker-compose.dev.yml down -v --remove-orphans
+
 
    npm install -g @openai/codex
 

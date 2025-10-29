@@ -74,7 +74,7 @@ query GetChildConcepts {
 }
 ```
 """)
-    def concepts(
+    async def concepts(
         self, info: strawberry.Info, depth: Optional[int] = None, parent_id: Optional[int] = None
     ) -> List[Concept]:
         from languages.services.concept_service import ConceptService
@@ -86,9 +86,9 @@ query GetChildConcepts {
         elif parent_id is not None:
             concepts_db = service.get_children(parent_id)
         else:
-            concepts_db = service.get_all()
+            concepts_db = await service.get_all()
 
-        return [self._map_concept_to_gql(c) for c in concepts_db]
+        return [ConceptQuery._map_concept_to_gql(c) for c in concepts_db]
 
     @strawberry.field(description="""Get a single concept by its unique ID, including its translations.
 
@@ -114,22 +114,53 @@ query GetConceptDetails {
         db = info.context["db"]
         service = ConceptService(db)
         concept_db = service.get_by_id(concept_id)
-        return self._map_concept_to_gql(concept_db) if concept_db else None
+        return ConceptQuery._map_concept_to_gql(concept_db) if concept_db else None
 
-    def _map_concept_to_gql(self, concept_db) -> Concept:
-        return Concept(
-            id=concept_db.id,
-            parent_id=concept_db.parent_id,
-            path=concept_db.path,
-            depth=concept_db.depth,
-            dictionaries=[
-                ConceptDictionary(
-                    name=d.name,
-                    description=d.description,
-                    language=ConceptLanguage(code=d.language.code)
+    @staticmethod
+    def _map_concept_to_gql(concept_db) -> Concept:
+        if isinstance(concept_db, dict):
+            dictionaries_raw = concept_db.get("dictionaries") or []
+            concept_id = concept_db.get("id")
+            parent_id = concept_db.get("parent_id")
+            path = concept_db.get("path")
+            depth = concept_db.get("depth")
+        else:
+            dictionaries_raw = concept_db.dictionaries
+            concept_id = concept_db.id
+            parent_id = concept_db.parent_id
+            path = concept_db.path
+            depth = concept_db.depth
+
+        dictionaries = []
+        for item in dictionaries_raw:
+            if isinstance(item, dict):
+                language_data = item.get("language")
+                if isinstance(language_data, dict):
+                    language_code = language_data.get("code", "")
+                else:
+                    language_code = item.get("language_code", "")
+                dictionaries.append(
+                    ConceptDictionary(
+                        name=item.get("name"),
+                        description=item.get("description"),
+                        language=ConceptLanguage(code=language_code or "")
+                    )
                 )
-                for d in concept_db.dictionaries
-            ]
+            else:
+                dictionaries.append(
+                    ConceptDictionary(
+                        name=item.name,
+                        description=item.description,
+                        language=ConceptLanguage(code=item.language.code if item.language else "")
+                    )
+                )
+
+        return Concept(
+            id=concept_id,
+            parent_id=parent_id,
+            path=path,
+            depth=depth,
+            dictionaries=dictionaries
         )
 
 # ============================================================================

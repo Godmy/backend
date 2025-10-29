@@ -6,6 +6,7 @@ Tests User Story #8 - Admin Panel Features (P1)
 
 import pytest
 from starlette.testclient import TestClient
+from uuid import uuid4
 
 
 class TestAdminService:
@@ -272,15 +273,141 @@ class TestAdminGraphQL:
         assert data["data"]["bulkAssignRole"]["count"] >= 0
 
 
+class TestDashboardGraphQL:
+    """Ensure public dashboard queries return populated collections."""
+
+    def test_dashboard_collections(self, client: TestClient, db_session):
+        """`concepts`, `languages` и `dictionaries` должны возвращать списки, а не null."""
+        from datetime import datetime
+
+        from languages.models.language import LanguageModel
+        from languages.models.concept import ConceptModel
+        from languages.models.dictionary import DictionaryModel
+
+        unique_suffix = uuid4().hex[:6]
+        now = datetime.utcnow()
+
+        language = LanguageModel(
+            code=f"test-{unique_suffix}",
+            name=f"Test Lang {unique_suffix}",
+            created_at=now,
+            updated_at=now
+        )
+        db_session.add(language)
+        db_session.flush()
+
+        concept = ConceptModel(
+            path=f"test.path.{unique_suffix}",
+            depth=0,
+            created_at=now,
+            updated_at=now
+        )
+        db_session.add(concept)
+        db_session.flush()
+
+        dictionary = DictionaryModel(
+            concept_id=concept.id,
+            language_id=language.id,
+            name=f"Test Dictionary {unique_suffix}",
+            created_at=now,
+            updated_at=now
+        )
+        db_session.add(dictionary)
+        db_session.commit()
+
+        query = """
+        query {
+          concepts { id }
+          languages { id }
+          dictionaries { id }
+        }
+        """
+
+        response = client.post("/graphql", json={"query": query})
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert "errors" not in payload
+
+        data = payload.get("data", {})
+        assert isinstance(data.get("concepts"), list) and len(data["concepts"]) > 0
+        assert isinstance(data.get("languages"), list) and len(data["languages"]) > 0
+        assert isinstance(data.get("dictionaries"), list) and len(data["dictionaries"]) > 0
+
+
+@pytest.fixture
+def client():
+    """Создаёт тестовый GraphQL клиент поверх Starlette приложения."""
+    import os
+    from pathlib import Path
+
+    from dotenv import load_dotenv
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=True)
+
+    import core.init_db as init_db
+    from core import database as db_module
+
+    test_engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+    db_module.engine = test_engine
+    db_module.SessionLocal = TestingSessionLocal
+    db_module.Base.metadata.bind = test_engine
+
+    # Ensure models are imported so metadata is populated
+    from auth.models import permission, profile, role, user  # noqa: F401
+    from core.models import audit_log, file  # noqa: F401
+    from languages.models import concept, dictionary, language  # noqa: F401
+
+    db_module.Base.metadata.create_all(bind=test_engine)
+
+    init_db.wait_for_db = lambda *args, **kwargs: True
+    init_db.create_tables = lambda *args, **kwargs: None
+    init_db.import_all_models = lambda *args, **kwargs: None
+    init_db.init_database = lambda *args, **kwargs: None
+
+    import core.starlette_config as starlette_config
+
+    starlette_config.init_database = lambda *args, **kwargs: None
+
+    from app import app
+
+    return TestClient(app)
+
+
+@pytest.fixture
+def db_session():
+    """Возвращает SQLAlchemy сессию, привязанную к нашему тестовому движку."""
+    from core.database import SessionLocal
+
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
 @pytest.fixture
 def admin_user(db_session):
     """Create an admin user for testing."""
     from auth.models.user import UserModel
     from auth.models.role import RoleModel, UserRoleModel
-    from auth.utils.password import hash_password
+    from auth.utils import hash_password
 
     # Get admin role
     admin_role = db_session.query(RoleModel).filter(RoleModel.name == "admin").first()
+    if not admin_role:
+        admin_role = RoleModel(name="admin", description="Administrator")
+        db_session.add(admin_role)
+        db_session.flush()
 
     # Create admin user
     user = UserModel(

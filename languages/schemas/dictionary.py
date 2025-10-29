@@ -94,7 +94,7 @@ query GetTranslationsForConcept {
         else:
             items = service.get_all()
 
-        return [self._map_dict_to_gql(d) for d in items]
+        return [DictionaryQuery._map_dict_to_gql(d) for d in items]
 
     @strawberry.field(description="Get a single dictionary entry by its unique ID.")
     def dictionary(self, info: strawberry.Info, dictionary_id: int) -> Optional[Dictionary]:
@@ -102,9 +102,10 @@ query GetTranslationsForConcept {
         db = info.context["db"]
         service = DictionaryService(db)
         item = service.get_by_id(dictionary_id)
-        return self._map_dict_to_gql(item) if item else None
+        return DictionaryQuery._map_dict_to_gql(item) if item else None
 
-    def _map_dict_to_gql(self, item_db) -> Dictionary:
+    @staticmethod
+    def _map_dict_to_gql(item_db) -> Dictionary:
         # Handle both model objects and dicts (from cache)
         if isinstance(item_db, dict):
             return Dictionary(
