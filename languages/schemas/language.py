@@ -55,7 +55,15 @@ query GetLanguages {
         db = info.context["db"]
         service = LanguageService(db)
         languages_db = await service.get_all()
-        return [Language(id=lang.id, code=lang.code, name=lang.name) for lang in languages_db]
+        # Handle both model objects and dicts (from cache)
+        return [
+            Language(
+                id=lang.get("id") if isinstance(lang, dict) else lang.id,
+                code=lang.get("code") if isinstance(lang, dict) else lang.code,
+                name=lang.get("name") if isinstance(lang, dict) else lang.name
+            )
+            for lang in languages_db
+        ]
 
     @strawberry.field(description="Get a single language by its unique ID.")
     def language(self, language_id: int, info: strawberry.Info) -> Optional[Language]:

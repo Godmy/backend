@@ -9,9 +9,8 @@ from auth.models.user import UserModel
 
 class PermissionService:
     @staticmethod
-    def check_permission(db: Session, user_id: int, resource: str, action: str) -> bool:
+    def check_permission(user: UserModel, resource: str, action: str, scope: str = None) -> bool:
         """Проверка прав доступа пользователя"""
-        user = db.query(UserModel).filter(UserModel.id == user_id).first()
         if not user:
             return False
 

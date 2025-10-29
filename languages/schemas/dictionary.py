@@ -105,6 +105,16 @@ query GetTranslationsForConcept {
         return self._map_dict_to_gql(item) if item else None
 
     def _map_dict_to_gql(self, item_db) -> Dictionary:
+        # Handle both model objects and dicts (from cache)
+        if isinstance(item_db, dict):
+            return Dictionary(
+                id=item_db.get("id"),
+                concept_id=item_db.get("concept_id"),
+                language_id=item_db.get("language_id"),
+                name=item_db.get("name"),
+                description=item_db.get("description"),
+                image=item_db.get("image"),
+            )
         return Dictionary(
             id=item_db.id,
             concept_id=item_db.concept_id,

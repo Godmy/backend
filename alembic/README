@@ -39,7 +39,7 @@ docker-compose logs app
 docker exec -it attractors_db psql -U attractor_user -d attractors -c "SELECT version();"
 
 # Установка клода в терминал
-npm install -g @anthropic-ai/claude-code
+
 
 # Удалим том базы данных и перезапустим:
 docker-compose down -v
@@ -113,3 +113,8 @@ docker-compose -f docker-compose.dev.yml up -d --build
   Эта команда:
    - --build - пересобирает образы перед запуском
    - --force-recreate - принудительно пересоздает контейнеры, даже если образ не изменился
+
+
+   npm install -g @openai/codex
+
+   npm i run-deepseek-cli
