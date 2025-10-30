@@ -89,7 +89,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             # Log exception
             logger.error(
                 f"[{request_id}] Request failed: {request.method} {request.url.path} - {str(e)}",
-                exc_info=True
+                exc_info=True,
+                extra={
+                    "method": request.method,
+                    "path": str(request.url.path),
+                    "stage": "exception",
+                }
             )
             raise
 
@@ -159,7 +164,15 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 log_parts.append(f"body_error={str(e)}")
 
-        logger.info(" ".join(log_parts))
+        log_extra = {
+            "method": request.method,
+            "path": str(request.url.path),
+            "stage": "request",
+        }
+        if user_id:
+            log_extra["user_id"] = user_id
+
+        logger.info(" ".join(log_parts), extra=log_extra)
 
     async def _log_response(
         self,
@@ -187,13 +200,23 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             headers = dict(response.headers)
             log_parts.append(f"response_headers={json.dumps(headers)}")
 
+        log_extra = {
+            "method": request.method,
+            "path": str(request.url.path),
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+            "stage": "response",
+        }
+        if user_id:
+            log_extra["user_id"] = user_id
+
         # Choose log level based on status code
         if response.status_code >= 500:
-            logger.error(" ".join(log_parts))
+            logger.error(" ".join(log_parts), extra=log_extra)
         elif response.status_code >= 400:
-            logger.warning(" ".join(log_parts))
+            logger.warning(" ".join(log_parts), extra=log_extra)
         else:
-            logger.info(" ".join(log_parts))
+            logger.info(" ".join(log_parts), extra=log_extra)
 
     def _mask_sensitive_data(self, data: dict) -> dict:
         """Mask sensitive fields in data."""

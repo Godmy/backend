@@ -21,7 +21,7 @@ class DashboardCounts:
 class DashboardQuery:
     """Public Dashboard helper queries."""
 
-    @strawberry.field(description="Get aggregated counts used by the dashboard widgets.")
+    @strawberry.field(name="dashboardStats", description="Get aggregated counts used by the dashboard widgets.")
     def dashboard_stats(self, info: Info) -> DashboardCounts:
         db = info.context["db"]
 

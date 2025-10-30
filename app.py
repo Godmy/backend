@@ -28,11 +28,14 @@ if __name__ == "__main__":
     setup_graceful_shutdown(shutdown_timeout=shutdown_timeout)
     logger.info("Graceful shutdown configured with %ss timeout", shutdown_timeout)
 
+    suppress_uvicorn_access = os.getenv("LOG_SUPPRESS_UVICORN_ACCESS", "true").lower() == "true"
+
     uvicorn.run(
         "app:app",
         host="0.0.0.0",
         port=8000,
         reload=False,
         timeout_graceful_shutdown=shutdown_timeout,
+        access_log=not suppress_uvicorn_access,
+        log_config=None,
     )
-

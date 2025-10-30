@@ -133,6 +133,10 @@ def setup_logging(
         LOG_FORMAT: "json" or "text" (default: json)
         LOG_ROTATION_SIZE_MB: Max file size in MB before rotation (default: 10)
         LOG_ROTATION_BACKUP_COUNT: Number of backup files (default: 5)
+        LOG_FILE_ENABLED: Enable file logging (default: true)
+        LOG_CONSOLE_FORMAT: Text format for console logs (default: "%(asctime)s %(levelname)s [%(request_id)s] %(message)s")
+        LOG_CONSOLE_JSON: Use JSON formatting for console logs (default: false)
+        LOG_SUPPRESS_UVICORN_ACCESS: Disable Uvicorn access logs (default: true)
     """
     # Get configuration from environment
     log_level = log_level or os.getenv("LOG_LEVEL", "INFO").upper()
@@ -165,13 +169,27 @@ def setup_logging(
 
     # Create formatters
     if use_json:
-        # JSON formatter
+        # JSON formatter for file handlers
         json_format = "%(timestamp)s %(level)s %(name)s %(message)s"
-        formatter = CustomJsonFormatter(json_format)
+        file_formatter = CustomJsonFormatter(json_format)
     else:
-        # Text formatter with context
+        # Text formatter with context for file handlers
         text_format = "[%(request_id)s] [user:%(user_id)s] %(levelname)s - %(name)s - %(message)s"
-        formatter = FallbackFormatter(text_format)
+        file_formatter = FallbackFormatter(text_format)
+
+    console_use_json = os.getenv("LOG_CONSOLE_JSON", "false").lower() == "true"
+    if console_use_json and not use_json:
+        # Respect request but JSON formatter unavailable, fallback to text
+        console_use_json = False
+
+    if console_use_json:
+        console_formatter = file_formatter
+    else:
+        console_format = os.getenv(
+            "LOG_CONSOLE_FORMAT",
+            "%(asctime)s %(levelname)s [%(request_id)s] %(message)s"
+        )
+        console_formatter = FallbackFormatter(console_format)
 
     # Get root logger
     root_logger = logging.getLogger()
@@ -183,11 +201,11 @@ def setup_logging(
     # Console handler (always enabled for Docker/Kubernetes)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(getattr(logging, log_level))
-    console_handler.setFormatter(formatter)
+    console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
 
-    # File handlers (optional, disabled in containerized environments)
-    enable_file_logging = os.getenv("LOG_FILE_ENABLED", "false").lower() == "true"
+    # File handlers (enabled by default for observability)
+    enable_file_logging = os.getenv("LOG_FILE_ENABLED", "true").lower() == "true"
 
     if enable_file_logging:
         # App log (all logs)
@@ -197,7 +215,7 @@ def setup_logging(
             backupCount=rotation_backup_count
         )
         app_handler.setLevel(logging.DEBUG)
-        app_handler.setFormatter(formatter)
+        app_handler.setFormatter(file_formatter)
         root_logger.addHandler(app_handler)
 
         # Access log (INFO and below)
@@ -208,7 +226,7 @@ def setup_logging(
         )
         access_handler.setLevel(logging.INFO)
         access_handler.addFilter(lambda record: record.levelno <= logging.INFO)
-        access_handler.setFormatter(formatter)
+        access_handler.setFormatter(file_formatter)
         root_logger.addHandler(access_handler)
 
         # Error log (WARNING and above)
@@ -218,8 +236,28 @@ def setup_logging(
             backupCount=rotation_backup_count
         )
         error_handler.setLevel(logging.WARNING)
-        error_handler.setFormatter(formatter)
+        error_handler.setFormatter(file_formatter)
         root_logger.addHandler(error_handler)
+
+    # Harmonize uvicorn loggers to avoid duplicated noisy output
+    suppress_uvicorn_access = os.getenv("LOG_SUPPRESS_UVICORN_ACCESS", "true").lower() == "true"
+    uvicorn_log_level = getattr(logging, log_level)
+
+    for logger_name in ("uvicorn", "uvicorn.error"):
+        uvicorn_logger = logging.getLogger(logger_name)
+        uvicorn_logger.handlers.clear()
+        uvicorn_logger.setLevel(uvicorn_log_level)
+        uvicorn_logger.propagate = True
+
+    uvicorn_access_logger = logging.getLogger("uvicorn.access")
+    uvicorn_access_logger.handlers.clear()
+    if suppress_uvicorn_access:
+        uvicorn_access_logger.propagate = False
+        uvicorn_access_logger.disabled = True
+    else:
+        uvicorn_access_logger.disabled = False
+        uvicorn_access_logger.setLevel(uvicorn_log_level)
+        uvicorn_access_logger.propagate = True
 
     # Log startup message
     logger = logging.getLogger(__name__)
