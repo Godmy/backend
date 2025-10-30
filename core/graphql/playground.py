@@ -1,4 +1,4 @@
-import os
+﻿import os
 from typing import Any
 
 from starlette.requests import Request
@@ -15,14 +15,14 @@ GRAPHQL_PLAYGROUND_AUTH_REQUIRED = os.getenv("GRAPHQL_PLAYGROUND_AUTH_REQUIRED",
 
 logger = get_logger(__name__)
 
-GRAPHIQL_HTML = '''<!DOCTYPE html>
+GRAPHIQL_HTML = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>HumansOntology GraphQL Playground</title>
     <link rel="stylesheet" href="https://unpkg.com/graphiql@3.8.3/graphiql.min.css" />
     <style>
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         #toolbar {
             background: #1a202c;
             color: white;
@@ -53,30 +53,15 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             font-weight: 500;
             transition: all 0.2s;
         }
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
+        .btn-primary { background: #3b82f6; color: white; }
         .btn-primary:hover { background: #2563eb; }
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
+        .btn-success { background: #10b981; color: white; }
         .btn-success:hover { background: #059669; }
-        .btn-warning {
-            background: #f59e0b;
-            color: white;
-        }
+        .btn-warning { background: #f59e0b; color: white; }
         .btn-warning:hover { background: #d97706; }
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
+        .btn-secondary { background: #6b7280; color: white; }
         .btn-secondary:hover { background: #4b5563; }
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
+        .btn-danger { background: #ef4444; color: white; }
         .btn-danger:hover { background: #dc2626; }
         select {
             padding: 6px 12px;
@@ -94,30 +79,24 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             font-size: 12px;
             font-weight: 500;
         }
-        .status-authenticated {
-            background: #dcfce7;
-            color: #166534;
-        }
-        .status-anonymous {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        .status-authenticated { background: #dcfce7; color: #166534; }
+        .status-anonymous { background: #fee2e2; color: #991b1b; }
         #graphiql { height: calc(100vh - 60px); }
     </style>
 </head>
 <body>
     <div id="toolbar">
-        <h1>�?� HumansOntology API</h1>
+        <h1>HumansOntology API</h1>
 
         <div class="btn-group">
-            <button class="btn btn-success" onclick="quickLogin('admin')">�?'' Admin</button>
-            <button class="btn btn-primary" onclick="quickLogin('moderator')">�?'R Moderator</button>
-            <button class="btn btn-warning" onclick="quickLogin('editor')">�??��? Editor</button>
-            <button class="btn btn-secondary" onclick="quickLogin('testuser')">�?'� Testuser</button>
+            <button class="btn btn-success" onclick="quickLogin('admin')">Login as Admin</button>
+            <button class="btn btn-primary" onclick="quickLogin('moderator')">Login as Moderator</button>
+            <button class="btn btn-warning" onclick="quickLogin('editor')">Login as Editor</button>
+            <button class="btn btn-secondary" onclick="quickLogin('testuser')">Login as Testuser</button>
         </div>
 
         <select id="examples" onchange="loadExample()">
-            <option value="">�?"? Load Example...</option>
+            <option value="">Load Example…</option>
             <optgroup label="Authentication">
                 <option value="auth.login">Login</option>
                 <option value="auth.register">Register</option>
@@ -152,7 +131,7 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             </optgroup>
         </select>
 
-        <button class="btn btn-danger" onclick="logout()">�??� Logout</button>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
 
         <div id="status" class="status-anonymous">Anonymous</div>
     </div>
@@ -169,11 +148,10 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
         let examplesData = null;
         let graphiqlInstance = null;
 
-        // Update status display
         function updateStatus() {
             const statusEl = document.getElementById('status');
             if (currentToken && currentUser) {
-                statusEl.textContent = `�?" ${currentUser.username} (${currentUser.roles?.join(', ') || 'user'})`;
+                statusEl.textContent = `Signed in as ${currentUser.username} (${currentUser.roles?.join(', ') || 'user'})`;
                 statusEl.className = 'status-authenticated';
             } else {
                 statusEl.textContent = 'Anonymous';
@@ -181,7 +159,6 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             }
         }
 
-        // Quick login function
         async function quickLogin(username) {
             try {
                 const response = await fetch(`/graphql/quick-login?user=${username}`);
@@ -193,9 +170,7 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
                     localStorage.setItem('graphql_token', currentToken);
                     localStorage.setItem('graphql_user', JSON.stringify(currentUser));
                     updateStatus();
-                    alert(`�?" Logged in as ${username}\\n\\nToken copied to headers automatically!`);
-
-                    // Reload GraphiQL with new token
+                    alert(`Logged in as ${username}. Token copied to headers automatically.`);
                     initGraphiQL();
                 } else {
                     alert('Login failed: ' + (data.error || 'Unknown error'));
@@ -205,18 +180,16 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             }
         }
 
-        // Logout function
         function logout() {
             currentToken = '';
             currentUser = null;
             localStorage.removeItem('graphql_token');
             localStorage.removeItem('graphql_user');
             updateStatus();
-            alert('�?" Logged out');
+            alert('Logged out');
             initGraphiQL();
         }
 
-        // Load examples from API
         async function loadExamples() {
             try {
                 const response = await fetch('/graphql/examples');
@@ -226,7 +199,6 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             }
         }
 
-        // Load selected example
         function loadExample() {
             const select = document.getElementById('examples');
             const value = select.value;
@@ -236,17 +208,15 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             const example = examplesData[category]?.[name];
 
             if (example && graphiqlInstance) {
-                // Update query editor
                 graphiqlInstance.setState({
                     query: example.query
                 });
-                alert(`�?" Loaded: ${example.description}`);
+                alert(`Loaded example: ${example.description}`);
             }
 
             select.value = '';
         }
 
-        // Initialize GraphiQL
         function initGraphiQL() {
             const headers = currentToken
                 ? { 'Authorization': `Bearer ${currentToken}` }
@@ -271,14 +241,13 @@ GRAPHIQL_HTML = '''<!DOCTYPE html>
             );
         }
 
-        // Initialize on load
         updateStatus();
         loadExamples();
         initGraphiQL();
     </script>
 </body>
 </html>
-'''
+"""
 
 
 def _is_playground_request(request: Request) -> bool:
@@ -291,9 +260,7 @@ def _is_playground_request(request: Request) -> bool:
 
 
 class SecureGraphQL(GraphQL):
-    """
-    Custom GraphQL ASGI app with additional security checks for the Playground.
-    """
+    """Custom GraphQL ASGI app with additional security checks for the Playground."""
 
     async def get_context(self, request: Any, response: Any = None) -> dict:
         return await get_graphql_context(request, response)
@@ -360,4 +327,3 @@ __all__ = [
     "GRAPHQL_PLAYGROUND_ENABLED",
     "SecureGraphQL",
 ]
-

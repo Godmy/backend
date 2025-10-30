@@ -47,7 +47,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def parse_arguments():
+def parse_arguments(argv=None):
     """Парсинг аргументов командной строки"""
     parser = argparse.ArgumentParser(
         description="Database seeding with modular architecture",
@@ -87,12 +87,12 @@ Examples:
         help="Verbose logging",
     )
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main():
+def main(argv=None):
     """Главная функция"""
-    args = parse_arguments()
+    args = parse_arguments(argv)
 
     # Настройка уровня логирования
     if args.verbose:
@@ -122,18 +122,19 @@ def main():
         failed = sum(1 for r in results if r.status == "failed")
         if failed > 0:
             logger.error(f"Seeding completed with {failed} failures")
-            sys.exit(1)
+            return 1
         else:
             logger.info("Seeding completed successfully!")
-            sys.exit(0)
+            return 0
 
     except Exception as e:
         logger.error(f"Fatal error during seeding: {e}", exc_info=True)
         db.rollback()
-        sys.exit(1)
+        return 1
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
+
