@@ -5,7 +5,7 @@ from typing import Optional
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 
-from core.init_db import init_database
+from core.init_db import init_database as legacy_init_database
 from core.middleware import (
     CacheControlMiddleware,
     PrometheusMiddleware,
@@ -17,6 +17,11 @@ from core.middleware import (
 from core.sentry import init_sentry
 from core.structured_logging import setup_logging
 from core.routes import register_routes as register_http_routes
+
+try:
+    from backend.hooks.database import init_database as backend_init_database
+except ModuleNotFoundError:
+    backend_init_database = None
 
 
 class StarletteConfig:
@@ -46,7 +51,18 @@ class StarletteConfig:
 
     def initialize_database(self) -> None:
         """Инициализирует базу данных (включая сидирование при необходимости)."""
-        init_database(seed=self.seed_database)
+        kwargs = {"seed": self.seed_database}
+
+        if backend_init_database is not None:
+            backend_init_database(
+                stage="app",
+                original=legacy_init_database,
+                config=self,
+                args=(),
+                kwargs=kwargs,
+            )
+        else:
+            legacy_init_database(**kwargs)
 
     def create_app(
         self, graphql_app: object, logger: Optional[Logger] = None

@@ -36,7 +36,17 @@ from sqlalchemy.orm import Session, sessionmaker
 init(autoreset=True)
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
+current_dir = Path(__file__).resolve().parent
+repo_root = current_dir.parents[1]
+
+sys.path.insert(0, str(current_dir))
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+try:
+    from backend.hooks.database import init_database as backend_init_database
+except ModuleNotFoundError:
+    backend_init_database = None
 
 from auth.models.user import User
 from auth.models.role import Role
@@ -822,5 +832,19 @@ def stats():
 # Main Entry Point
 # ==============================================================================
 
+
+def _invoke_backend_database_hook() -> None:
+    if backend_init_database is None:
+        return
+
+    try:
+        from core.init_db import init_database as legacy_init_database
+    except Exception:
+        return
+
+    backend_init_database(stage="cli", original=legacy_init_database)
+
+
 if __name__ == "__main__":
+    _invoke_backend_database_hook()
     cli()
