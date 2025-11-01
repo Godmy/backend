@@ -1,3 +1,20 @@
+---
+id: T032
+title: Enhanced Health Checks
+type: task
+state: wip
+priority: 85
+effort: S
+story_points: 5
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [health-checks, monitoring, devops, kubernetes]
+ai_summary: >
+  Реализовать расширенные проверки состояния системы (БД, Redis, Celery)
+  с Kubernetes-совместимыми эндпоинтами для надежного мониторинга.
+---
+
 ### #32 - Enhanced Health Checks
 
 **User Story:**

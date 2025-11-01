@@ -1,3 +1,21 @@
+---
+id: T033
+title: API Documentation Generator (OpenAPI/Swagger)
+type: task
+state: new
+priority: 70
+effort: S
+story_points: 5
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [documentation, api, openapi, swagger, graphql]
+ai_summary: >
+  Настроить автоматическую генерацию документации API в формате
+  OpenAPI 3.0 из GraphQL-схемы, с предоставлением интерактивного
+  интерфейса Swagger UI.
+---
+
 ### #33 - API Documentation Generator (OpenAPI/Swagger)
 
 **User Story:**

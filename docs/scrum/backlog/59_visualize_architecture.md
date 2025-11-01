@@ -1,3 +1,20 @@
+---
+id: T059
+title: Визуализировать архитектуру с помощью Mermaid
+type: task
+state: new
+priority: 65
+effort: S
+story_points: 5
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [documentation, architecture, mermaid, visualization]
+ai_summary: >
+  Создать и встроить диаграммы Mermaid.js в документацию для
+  визуализации архитектуры, потоков данных и взаимодействия компонентов.
+---
+
 ### #59 - Визуализировать архитектуру с помощью Mermaid
 
 **User Story:**

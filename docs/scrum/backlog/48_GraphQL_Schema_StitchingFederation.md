@@ -1,3 +1,21 @@
+---
+id: T048
+title: GraphQL Schema Stitching/Federation
+type: task
+state: new
+priority: 75
+effort: L
+story_points: 13
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [graphql, architecture, microservices, federation, stitching]
+ai_summary: >
+  Внедрить Apollo Federation для объединения нескольких GraphQL-схем
+  в единый API, обеспечивая возможность работы с микросервисной
+  архитектурой.
+---
+
 ### #48 - GraphQL Schema Stitching/Federation
 
 **User Story:**

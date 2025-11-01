@@ -1,3 +1,21 @@
+---
+id: T062
+title: Провести аудит и консолидировать документацию
+type: task
+state: new
+priority: 75
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [documentation, audit, refactoring, dx]
+ai_summary: >
+  Провести полный аудит .md файлов в проекте для выявления и
+  устранения дублирующейся и устаревшей информации, с последующей
+  консолидацией.
+---
+
 ### #62 - Провести аудит и консолидировать документацию
 
 **User Story:**

@@ -1,3 +1,21 @@
+---
+id: F029
+title: Multi-Tenancy Support
+type: feature
+state: new
+priority: 75
+effort: XL
+story_points: 21
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [multi-tenancy, saas, architecture]
+ai_summary: >
+  Реализовать поддержку multi-tenancy для изоляции данных разных
+  организаций, включая идентификацию тенанта и разграничение доступа
+  на уровне запросов.
+---
+
 ### #29 - Multi-Tenancy Support
 
 **User Story:**

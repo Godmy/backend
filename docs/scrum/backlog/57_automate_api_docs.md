@@ -1,3 +1,20 @@
+---
+id: T057
+title: Автоматизировать генерацию документации API
+type: task
+state: new
+priority: 70
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [documentation, api, codegen, graphql]
+ai_summary: >
+  Внедрить инструмент для автоматической генерации документации
+  GraphQL API из схемы, чтобы заменить ручное документирование.
+---
+
 ### #57 - Автоматизировать генерацию документации API
 
 **User Story:**

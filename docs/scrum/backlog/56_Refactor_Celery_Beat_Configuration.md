@@ -1,3 +1,20 @@
+---
+id: T056
+title: Refactor Celery Beat Configuration
+type: task
+state: new
+priority: 60
+effort: S
+story_points: 3
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [refactoring, celery, config, devops]
+ai_summary: >
+  Провести рефакторинг конфигурации Celery Beat, объединив все
+  расписания периодических задач в один файл для упрощения управления.
+---
+
 ### #56 - Refactor Celery Beat Configuration
 
 **User Story:**

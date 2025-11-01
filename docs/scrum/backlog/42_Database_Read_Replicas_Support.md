@@ -1,3 +1,21 @@
+---
+id: T042
+title: Database Read Replicas Support
+type: task
+state: new
+priority: 75
+effort: L
+story_points: 13
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [database, scalability, performance, read-replicas]
+ai_summary: >
+  Внедрить поддержку реплик чтения базы данных для масштабирования
+  read-операций, с автоматической маршрутизацией запросов и мониторингом
+  лага репликации.
+---
+
 ### #42 - Database Read Replicas Support
 
 **User Story:**

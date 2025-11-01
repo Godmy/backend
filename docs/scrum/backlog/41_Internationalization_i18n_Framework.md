@@ -1,3 +1,20 @@
+---
+id: T041
+title: Internationalization (i18n) Framework
+type: task
+state: new
+priority: 70
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [i18n, internationalization, localization]
+ai_summary: >
+  Реализовать фреймворк для интернационализации (i18n) на бэкенде
+  для перевода системных сообщений, ошибок GraphQL и email-уведомлений.
+---
+
 ### #41 - Internationalization (i18n) Framework
 
 **User Story:**

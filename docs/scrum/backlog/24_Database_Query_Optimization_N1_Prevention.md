@@ -1,3 +1,21 @@
+---
+id: T024
+title: Database Query Optimization & N+1 Prevention
+type: task
+state: new
+priority: 80
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [performance, database, n+1, optimization, dataloader]
+ai_summary: >
+  Оптимизировать запросы к базе данных для предотвращения проблемы N+1,
+  используя SQLAlchemy eager loading (joinedload/subqueryload) и
+  интеграцию с GraphQL DataLoader.
+---
+
 ### #24 - Database Query Optimization & N+1 Prevention
 
 **User Story:**

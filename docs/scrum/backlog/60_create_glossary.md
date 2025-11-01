@@ -1,3 +1,20 @@
+---
+id: T060
+title: Создать глоссарий проекта
+type: task
+state: new
+priority: 60
+effort: S
+story_points: 3
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [documentation, glossary, onboarding]
+ai_summary: >
+  Создать и наполнить глоссарий специфичных для проекта терминов для
+  ускорения онбординга новых членов команды.
+---
+
 ### #60 - Создать глоссарий проекта
 
 **User Story:**

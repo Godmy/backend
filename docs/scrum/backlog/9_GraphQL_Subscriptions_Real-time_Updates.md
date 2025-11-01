@@ -1,3 +1,20 @@
+---
+id: F009
+title: GraphQL Subscriptions (Real-time Updates)
+type: feature
+state: new
+priority: 80
+effort: L
+story_points: 13
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [graphql, subscriptions, real-time, websockets, redis]
+ai_summary: >
+  Реализовать GraphQL Subscriptions для обновлений в реальном времени,
+  используя WebSocket и Redis pub/sub для распределенной системы.
+---
+
 ### #9 - GraphQL Subscriptions (Real-time Updates)
 
 **User Story:**

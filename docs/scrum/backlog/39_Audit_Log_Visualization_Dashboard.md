@@ -1,3 +1,21 @@
+---
+id: F039
+title: Audit Log Visualization Dashboard
+type: feature
+state: new
+priority: 75
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [audit, logging, visualization, dashboard, grafana, kibana]
+ai_summary: >
+  Создать дашборд в Grafana/Kibana для визуализации audit-логов,
+  позволяющий фильтровать события и настраивать алерты на
+  подозрительную активность.
+---
+
 ### #39 - Audit Log Visualization Dashboard
 
 **User Story:**

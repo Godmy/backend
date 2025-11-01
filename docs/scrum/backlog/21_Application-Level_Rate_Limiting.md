@@ -1,3 +1,20 @@
+---
+id: T021
+title: Application-Level Rate Limiting
+type: task
+state: wip
+priority: 85
+effort: M
+story_points: 8
+created: 2025-10-26
+updated: 2025-11-01
+owner: backend-team
+tags: [security, rate-limiting, middleware, redis]
+ai_summary: >
+  Внедрить rate limiting на уровне приложения для защиты от злоупотреблений
+  GraphQL, с использованием Redis и настройкой лимитов для разных эндпоинтов.
+---
+
 ### #21 - Application-Level Rate Limiting 🎯
 
 **User Story:**

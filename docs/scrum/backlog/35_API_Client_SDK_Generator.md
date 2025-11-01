@@ -1,3 +1,20 @@
+---
+id: T035
+title: API Client SDK Generator
+type: task
+state: new
+priority: 65
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [sdk, codegen, graphql-code-generator, typescript, python]
+ai_summary: >
+  Настроить GraphQL Code Generator для автоматической генерации
+  клиентских SDK (TypeScript и Python) из GraphQL-схемы.
+---
+
 ### #35 - API Client SDK Generator
 
 **User Story:**

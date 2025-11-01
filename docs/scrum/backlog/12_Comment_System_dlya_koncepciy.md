@@ -1,3 +1,20 @@
+---
+id: F012
+title: Comment System для концепций
+type: feature
+state: new
+priority: 70
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [comments, collaboration, social]
+ai_summary: >
+  Реализовать систему комментирования для концепций с поддержкой
+  вложенности, упоминаний (@username) и форматирования Markdown.
+---
+
 ### #12 - Comment System для концепций
 
 **User Story:**

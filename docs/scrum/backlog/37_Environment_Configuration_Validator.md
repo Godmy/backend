@@ -1,3 +1,20 @@
+---
+id: T037
+title: Environment Configuration Validator
+type: task
+state: new
+priority: 85
+effort: S
+story_points: 5
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [config, validation, devops, pydantic]
+ai_summary: >
+  Реализовать валидацию переменных окружения (.env) при старте
+  приложения для предотвращения ошибок конфигурации в рантайме (fail-fast).
+---
+
 ### #37 - Environment Configuration Validator
 
 **User Story:**

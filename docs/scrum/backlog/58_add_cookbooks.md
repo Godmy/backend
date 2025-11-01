@@ -1,3 +1,20 @@
+---
+id: T058
+title: Добавить "Cookbooks" (сборники рецептов)
+type: task
+state: new
+priority: 60
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [documentation, cookbooks, guides, dx]
+ai_summary: >
+  Создать сборник практических руководств (Cookbooks) для выполнения
+  типовых задач разработки в проекте.
+---
+
 ### #58 - Добавить "Cookbooks" (сборники рецептов)
 
 **User Story:**

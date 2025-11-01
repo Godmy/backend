@@ -1,3 +1,21 @@
+---
+id: F045
+title: Service Health Dashboard
+type: feature
+state: new
+priority: 80
+effort: M
+story_points: 8
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [monitoring, dashboard, grafana, prometheus, devops]
+ai_summary: >
+  Создать дашборд в Grafana для мониторинга здоровья сервиса в реальном
+  времени, отслеживая ключевые метрики (request rate, latency) и
+  настраивая алерты.
+---
+
 ### #45 - Service Health Dashboard
 
 **User Story:**

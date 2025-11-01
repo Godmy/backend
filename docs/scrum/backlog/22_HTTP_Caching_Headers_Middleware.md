@@ -1,3 +1,21 @@
+---
+id: T022
+title: HTTP Caching Headers Middleware
+type: task
+state: wip
+priority: 80
+effort: M
+story_points: 8
+created: 2025-10-26
+updated: 2025-11-01
+owner: backend-team
+tags: [performance, caching, http, middleware, etag]
+ai_summary: >
+  Реализовать middleware для управления HTTP-кешированием (Cache-Control,
+  ETag, 304 Not Modified) для снижения нагрузки на сервер и ускорения
+  ответов API.
+---
+
 ### #22 - HTTP Caching Headers Middleware 🎯
 
 **User Story:**

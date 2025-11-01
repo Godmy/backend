@@ -1,3 +1,21 @@
+---
+id: T061
+title: Улучшить файл CONTRIBUTING.md
+type: task
+state: new
+priority: 60
+effort: S
+story_points: 3
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [documentation, contributing, community, dx]
+ai_summary: >
+  Дополнить CONTRIBUTING.md подробными инструкциями по процессу
+  контрибьюции: правила именования веток/коммитов, запуск тестов и
+  процесс код-ревью.
+---
+
 ### #61 - Улучшить файл CONTRIBUTING.md
 
 **User Story:**

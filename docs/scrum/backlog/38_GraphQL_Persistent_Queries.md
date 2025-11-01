@@ -1,3 +1,21 @@
+---
+id: T038
+title: GraphQL Persistent Queries
+type: task
+state: new
+priority: 70
+effort: S
+story_points: 5
+created: 2025-11-01
+updated: 2025-11-01
+owner: backend-team
+tags: [graphql, performance, security, persistent-queries]
+ai_summary: >
+  Внедрить поддержку персистентных GraphQL-запросов для уменьшения
+  размера трафика и повышения безопасности за счет выполнения только
+  заранее зарегистрированных запросов.
+---
+
 ### #38 - GraphQL Persistent Queries
 
 **User Story:**
