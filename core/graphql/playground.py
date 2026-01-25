@@ -95,8 +95,15 @@ GRAPHIQL_HTML = """<!DOCTYPE html>
             <button class="btn btn-secondary" onclick="quickLogin('testuser')">Login as Testuser</button>
         </div>
 
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="loadQuickQuery('auth.getCurrentUser')" title="Get Current User">👤 Me</button>
+            <button class="btn btn-secondary" onclick="loadQuickQuery('languages.getAllLanguages')" title="Get All Languages">🌍 Languages</button>
+            <button class="btn btn-secondary" onclick="loadQuickQuery('concepts.getAllConcepts')" title="Get All Concepts">💡 Concepts</button>
+            <button class="btn btn-secondary" onclick="loadQuickQuery('admin.getAllUsers')" title="Get All Users (Admin)">👥 Users</button>
+        </div>
+
         <select id="examples" onchange="loadExample()">
-            <option value="">Load Example…</option>
+            <option value="">More Examples…</option>
             <optgroup label="Authentication">
                 <option value="auth.login">Login</option>
                 <option value="auth.register">Register</option>
@@ -106,20 +113,23 @@ GRAPHIQL_HTML = """<!DOCTYPE html>
             <optgroup label="Languages">
                 <option value="languages.getAllLanguages">Get All Languages</option>
                 <option value="languages.getLanguageById">Get Language by ID</option>
+                <option value="languages.updateLanguageFlag">Update Language Flag</option>
             </optgroup>
             <optgroup label="Concepts">
+                <option value="concepts.getRootConcepts">Get Root Concepts (ui, map, db)</option>
                 <option value="concepts.getAllConcepts">Get All Concepts</option>
-                <option value="concepts.getRootConcepts">Get Root Concepts</option>
                 <option value="concepts.getConceptById">Get Concept by ID</option>
                 <option value="concepts.createConcept">Create Concept</option>
+                <option value="concepts.getSiteMap">Get Site Map with Routes</option>
             </optgroup>
             <optgroup label="Search">
-                <option value="search.searchDictionaries">Search Dictionaries</option>
+                <option value="search.searchConcepts">Search Concepts</option>
+                <option value="search.searchSuggestions">Search Suggestions</option>
             </optgroup>
             <optgroup label="Admin">
                 <option value="admin.getAllUsers">Get All Users</option>
-                <option value="admin.getStatistics">Get Statistics</option>
-                <option value="admin.updateUserStatus">Update User Status</option>
+                <option value="admin.getSystemStats">Get System Statistics</option>
+                <option value="admin.updateUserActive">Update User Status</option>
             </optgroup>
             <optgroup label="Audit">
                 <option value="audit.getAuditLogs">Get Audit Logs</option>
@@ -146,7 +156,7 @@ GRAPHIQL_HTML = """<!DOCTYPE html>
         let currentToken = localStorage.getItem('graphql_token') || '';
         let currentUser = JSON.parse(localStorage.getItem('graphql_user') || 'null');
         let examplesData = null;
-        let graphiqlInstance = null;
+        let currentQuery = '';
 
         function updateStatus() {
             const statusEl = document.getElementById('status');
@@ -207,14 +217,29 @@ GRAPHIQL_HTML = """<!DOCTYPE html>
             const [category, name] = value.split('.');
             const example = examplesData[category]?.[name];
 
-            if (example && graphiqlInstance) {
-                graphiqlInstance.setState({
-                    query: example.query
-                });
-                alert(`Loaded example: ${example.description}`);
+            if (example) {
+                currentQuery = example.query;
+                initGraphiQL();
             }
 
             select.value = '';
+        }
+
+        function loadQuickQuery(queryKey) {
+            if (!examplesData) {
+                alert('Examples not loaded yet. Please wait a moment and try again.');
+                return;
+            }
+
+            const [category, name] = queryKey.split('.');
+            const example = examplesData[category]?.[name];
+
+            if (example) {
+                currentQuery = example.query;
+                initGraphiQL();
+            } else {
+                alert(`Query '${queryKey}' not found`);
+            }
         }
 
         function initGraphiQL() {
@@ -235,8 +260,9 @@ GRAPHIQL_HTML = """<!DOCTYPE html>
                 React.createElement(GraphiQL, {
                     fetcher: fetcher,
                     defaultEditorToolsVisibility: true,
-                    headers: JSON.stringify(headers, null, 2),
-                    ref: (instance) => { graphiqlInstance = instance; }
+                    query: currentQuery,
+                    onEditQuery: (newQuery) => { currentQuery = newQuery; },
+                    headers: JSON.stringify(headers, null, 2)
                 })
             );
         }
@@ -317,8 +343,10 @@ class SecureGraphQL(GraphQL):
 
         return await super().process_graphql_operation(request, *args, **kwargs)
 
-    def get_graphiql_html(self, **kwargs: Any) -> str:  # noqa: ARG002
-        return GRAPHIQL_HTML
+    async def render_graphql_ide(self, request: Request) -> Any:
+        """Override Strawberry's default GraphiQL rendering to use custom HTML."""
+        from starlette.responses import HTMLResponse
+        return HTMLResponse(GRAPHIQL_HTML)
 
 
 __all__ = [
