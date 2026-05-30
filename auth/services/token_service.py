@@ -8,7 +8,7 @@ import logging
 import secrets
 from typing import Optional
 
-from core.redis_client import redis_client
+from core.platform.redis.client import redis_client
 
 logger = logging.getLogger(__name__)
 

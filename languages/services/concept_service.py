@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session, joinedload
 
-from core.decorators.cache import cached
+from core.platform.redis.decorators import cached
 from languages.models.concept import ConceptModel
 from languages.models.dictionary import DictionaryModel
 
@@ -68,7 +68,7 @@ class ConceptService:
     async def create(self, path: str, depth: int, parent_id: Optional[int] = None) -> ConceptModel:
         """Создать новую концепцию"""
         # Import here to avoid circular dependency
-        from core.services.cache_service import invalidate_concept_cache
+        from core.platform.redis.cache_service import invalidate_concept_cache
 
         # Проверяем существование родительской концепции
         if parent_id is not None:
@@ -100,7 +100,7 @@ class ConceptService:
     ) -> Optional[ConceptModel]:
         """Обновить концепцию"""
         # Import here to avoid circular dependency
-        from core.services.cache_service import invalidate_concept_cache
+        from core.platform.redis.cache_service import invalidate_concept_cache
 
         concept = self.get_by_id(concept_id)
         if not concept:
@@ -137,7 +137,7 @@ class ConceptService:
     async def delete(self, concept_id: int) -> bool:
         """Удалить концепцию"""
         # Import here to avoid circular dependency
-        from core.services.cache_service import invalidate_concept_cache
+        from core.platform.redis.cache_service import invalidate_concept_cache
 
         concept = self.get_by_id(concept_id)
         if not concept:

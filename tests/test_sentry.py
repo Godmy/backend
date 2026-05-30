@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.sentry import (
+from core.platform.observability.sentry import (
     add_breadcrumb,
     capture_exception,
     capture_message,

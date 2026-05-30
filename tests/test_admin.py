@@ -357,7 +357,7 @@ def client():
 
     load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=True)
 
-    import core.init_db as init_db
+    import core.platform.db.init_db as init_db
     from core import database as db_module
 
     test_engine = create_engine(
@@ -383,7 +383,7 @@ def client():
     init_db.import_all_models = lambda *args, **kwargs: None
     init_db.init_database = lambda *args, **kwargs: None
 
-    import core.starlette_config as starlette_config
+    import core.platform.http.starlette_config as starlette_config
 
     starlette_config.init_database = lambda *args, **kwargs: None
 
@@ -395,7 +395,7 @@ def client():
 @pytest.fixture
 def db_session():
     """Возвращает SQLAlchemy сессию, привязанную к нашему тестовому движку."""
-    from core.database import SessionLocal
+    from core.platform.db.database import SessionLocal
 
     session = SessionLocal()
     try:

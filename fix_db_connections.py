@@ -40,7 +40,7 @@ def fix_file(filepath: Path) -> tuple[bool, int]:
         content = re.sub(method_pattern, add_info_param, content)
 
         # Pattern 2: Replace get_db import and usage
-        # Remove "from core.database import get_db" lines
+        # Remove "from core.platform.db.database import get_db" lines
         content = re.sub(r'\s*from core\.database import get_db\n', '', content)
 
         # Replace "db = next(get_db())" with "db = info.context["db"]"

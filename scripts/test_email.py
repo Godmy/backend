@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
 
-from core.email_service import email_service
+from core.platform.email.email_service import email_service
 
 # Настройка логирования
 logging.basicConfig(

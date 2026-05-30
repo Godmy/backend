@@ -2,11 +2,9 @@
 GraphQL schemas for managing dictionary entries, which are the translations of concepts.
 """
 
-from typing import List, Optional, TYPE_CHECKING, Any
+from typing import List, Optional, Any
 import strawberry
-
-if TYPE_CHECKING:
-    from languages.schemas.concept import Concept
+from languages.schemas.concept import Concept
 
 # ============================================================================
 # Types
@@ -25,8 +23,7 @@ class Dictionary:
     concept_model: strawberry.Private[Optional[Any]] = None
 
     @strawberry.field(description="The concept this dictionary entry belongs to.")
-    def concept(self) -> Optional[strawberry.LazyType["Concept", "languages.schemas.concept"]]:
-        from languages.schemas.concept import Concept
+    def concept(self) -> Optional[Concept]:
         if not self.concept_model:
             return None
         # Map the SQLAlchemy model to the GraphQL type

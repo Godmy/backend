@@ -21,8 +21,8 @@ from unittest.mock import Mock, patch, AsyncMock
 import pytest
 from sqlalchemy.orm import Session
 
-from core.decorators.cache import cached, _serialize_value, _deserialize_value, _generate_cache_key
-from core.services.cache_service import (
+from core.platform.redis.decorators import cached, _serialize_value, _deserialize_value, _generate_cache_key
+from core.platform.redis.cache_service import (
     invalidate_cache,
     invalidate_cache_key,
     clear_all_cache,
@@ -32,7 +32,7 @@ from core.services.cache_service import (
     invalidate_language_cache,
     invalidate_concept_cache
 )
-from core.redis_client import redis_client
+from core.platform.redis.client import redis_client
 from languages.models.language import LanguageModel
 from languages.services.language_service import LanguageService
 from languages.services.concept_service import ConceptService

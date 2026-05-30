@@ -161,7 +161,7 @@ class ProfileService:
         Raises:
             ValueError: If validation fails
         """
-        from core.redis_client import redis_client
+        from core.platform.redis.client import redis_client
         import secrets
 
         user = db.query(UserModel).filter(UserModel.id == user_id).first()
@@ -203,7 +203,7 @@ class ProfileService:
         Raises:
             ValueError: If token is invalid or expired
         """
-        from core.redis_client import redis_client
+        from core.platform.redis.client import redis_client
 
         # Get data from Redis
         data = redis_client.get(f"email_change:{token}")

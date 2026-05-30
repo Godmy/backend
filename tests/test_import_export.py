@@ -17,8 +17,8 @@ from core.models.import_export_job import (
     ExportFormat,
     EntityType,
 )
-from core.services.export_service import ExportService
-from core.services.import_service import ImportService, DuplicateStrategy
+from core.domains.import_export.export_service import ExportService
+from core.domains.import_export.import_service import ImportService, DuplicateStrategy
 from languages.models.concept import ConceptModel
 from languages.models.dictionary import DictionaryModel
 from languages.models.language import LanguageModel
@@ -175,7 +175,7 @@ class TestImportService:
 
         # Подготавливаем данные
         data = [
-            {"code": "fr", "name": "French", "native_name": "Français", "rtl": False},
+            {"code": "fr", "name": "French", "native_name": "Francais", "rtl": False},
             {"code": "de", "name": "German", "native_name": "Deutsch", "rtl": False},
         ]
 

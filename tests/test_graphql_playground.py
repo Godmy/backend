@@ -7,8 +7,8 @@ from starlette.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
 # Импортируем компоненты приложения
-from core.database import engine
-from core.init_db import init_database
+from core.platform.db.database import engine
+from core.platform.db.init_db import init_database
 from auth.utils.jwt_handler import jwt_handler
 import app as app_module
 

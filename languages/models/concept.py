@@ -26,6 +26,11 @@ class ConceptModel(SoftDeleteMixin, BaseModel):
     dictionaries = relationship(
         "DictionaryModel", back_populates="concept", cascade="all, delete-orphan"
     )
+    tags = relationship(
+        "TagModel",
+        secondary="concept_tags",
+        back_populates="concepts"
+    )
 
     def __repr__(self):
         return f"<Concept(id={self.id}, path={self.path}, depth={self.depth})>"

@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from core.models.base import BaseModel
-from core.database import Base
+from core.platform.db.database import Base
 
 
 class RoleModel(BaseModel):

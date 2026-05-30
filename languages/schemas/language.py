@@ -14,6 +14,7 @@ class Language:
     id: int = strawberry.field(description="Unique identifier for the language.")
     code: str = strawberry.field(description="The language code (e.g., 'en', 'ru'). Must be unique.")
     name: str = strawberry.field(description="The full name of the language (e.g., 'English', 'Русский').")
+    flag_url: Optional[str] = strawberry.field(default=None, description="URL of the language flag (emoji or image URL).")
 
 # ============================================================================
 # Inputs
@@ -22,12 +23,14 @@ class Language:
 @strawberry.input(description="Input for creating a new language.")
 class LanguageInput:
     code: str = strawberry.field(description="The language code (e.g., 'fr').")
-    name: str = strawberry.field(description="The full name of the language (e.g., 'Français').")
+    name: str = strawberry.field(description="The full name of the language (e.g., 'Francais').")
+    flag_url: Optional[str] = strawberry.field(default=None, description="URL of the language flag (emoji or image URL).")
 
 @strawberry.input(description="Input for updating an existing language.")
 class LanguageUpdateInput:
     code: Optional[str] = strawberry.field(default=None, description="The new language code.")
     name: Optional[str] = strawberry.field(default=None, description="The new full name.")
+    flag_url: Optional[str] = strawberry.field(default=None, description="URL of the language flag.")
 
 # ============================================================================
 # Queries
@@ -60,7 +63,8 @@ query GetLanguages {
             Language(
                 id=lang.get("id") if isinstance(lang, dict) else lang.id,
                 code=lang.get("code") if isinstance(lang, dict) else lang.code,
-                name=lang.get("name") if isinstance(lang, dict) else lang.name
+                name=lang.get("name") if isinstance(lang, dict) else lang.name,
+                flag_url=lang.get("flag_url") if isinstance(lang, dict) else getattr(lang, "flag_url", None)
             )
             for lang in languages_db
         ]
@@ -71,7 +75,12 @@ query GetLanguages {
         db = info.context["db"]
         service = LanguageService(db)
         lang_db = service.get_by_id(language_id)
-        return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name) if lang_db else None
+        return Language(
+            id=lang_db.id,
+            code=lang_db.code,
+            name=lang_db.name,
+            flag_url=getattr(lang_db, "flag_url", None)
+        ) if lang_db else None
 
 # ============================================================================
 # Mutations
@@ -98,8 +107,13 @@ mutation CreateItalianLanguage {
         from languages.services.language_service import LanguageService
         db = info.context["db"]
         service = LanguageService(db)
-        lang_db = service.create(code=input.code, name=input.name)
-        return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name)
+        lang_db = service.create(code=input.code, name=input.name, flag_url=input.flag_url)
+        return Language(
+            id=lang_db.id,
+            code=lang_db.code,
+            name=lang_db.name,
+            flag_url=getattr(lang_db, "flag_url", None)
+        )
 
     @strawberry.mutation(description="""Update an existing language.
 
@@ -117,10 +131,15 @@ mutation UpdateRussianLanguage {
         from languages.services.language_service import LanguageService
         db = info.context["db"]
         service = LanguageService(db)
-        lang_db = service.update(language_id, code=input.code, name=input.name)
+        lang_db = service.update(language_id, code=input.code, name=input.name, flag_url=input.flag_url)
         if not lang_db:
             raise Exception("Language not found")
-        return Language(id=lang_db.id, code=lang_db.code, name=lang_db.name)
+        return Language(
+            id=lang_db.id,
+            code=lang_db.code,
+            name=lang_db.name,
+            flag_url=getattr(lang_db, "flag_url", None)
+        )
 
     @strawberry.mutation(description="""Soft delete a language. This is a reversible action.
 

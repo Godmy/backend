@@ -10,7 +10,8 @@ from strawberry.types import Info
 
 from auth.services.admin_service import AdminService
 from auth.services.permission_service import PermissionService
-from core.services.audit_service import AuditService
+from core.domains.audit.service import AuditService
+from core.domains.admin.table_service import TableService
 from auth.dependencies.auth import get_required_user
 from auth.models.user import UserModel
 
@@ -75,6 +76,37 @@ class BulkOperationResult:
     success: bool
     count: int = strawberry.field(description="Number of items affected.")
     message: str
+
+# ============================================================================
+# Table Management Types
+# ============================================================================
+
+@strawberry.type(description="Information about a database table.")
+class TableInfo:
+    name: str = strawberry.field(description="Name of the table.")
+    row_count: int = strawberry.field(description="Total number of rows in the table.")
+    has_soft_delete: bool = strawberry.field(description="Whether the table supports soft delete (has deleted_at column).")
+
+@strawberry.type(description="Information about a table column.")
+class ColumnInfo:
+    name: str = strawberry.field(description="Name of the column.")
+    type: str = strawberry.field(description="Data type of the column.")
+    nullable: bool = strawberry.field(description="Whether the column can be NULL.")
+    primary_key: bool = strawberry.field(description="Whether the column is a primary key.")
+    default: Optional[str] = strawberry.field(description="Default value of the column.")
+
+@strawberry.type(description="Schema information for a database table.")
+class TableSchema:
+    table_name: str = strawberry.field(description="Name of the table.")
+    columns: List[ColumnInfo] = strawberry.field(description="List of columns in the table.")
+
+@strawberry.type(description="Paginated data from a database table.")
+class TableDataResponse:
+    table_name: str = strawberry.field(description="Name of the table.")
+    columns: List[str] = strawberry.field(description="List of column names.")
+    rows: List[strawberry.scalars.JSON] = strawberry.field(description="List of rows as JSON objects.")
+    total: int = strawberry.field(description="Total number of rows matching the query.")
+    has_more: bool = strawberry.field(description="Whether more rows are available for pagination.")
 
 # ============================================================================
 # Inputs
@@ -173,6 +205,119 @@ query GetSystemStats {
             files=FileStats(total=stats["files"]["total"], total_size_bytes=stats["files"]["total_size_bytes"], total_size_mb=stats["files"]["total_size_mb"]),
             audit=AuditStats(**stats["audit"]),
             roles=stats["roles"]
+        )
+
+    @strawberry.field(description="""Get a list of all database tables with metadata.
+
+**Required permissions:** `admin:read:tables`
+
+Example:
+```graphql
+query GetAllTables {
+  allTables {
+    name
+    rowCount
+    hasSoftDelete
+  }
+}
+```
+""")
+    async def all_tables(self, info: Info) -> List[TableInfo]:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "read", "tables"):
+            raise Exception("Permission denied: admin:read:tables required")
+
+        tables_data = TableService.get_all_tables(db)
+        return [
+            TableInfo(
+                name=table["name"],
+                row_count=table["row_count"],
+                has_soft_delete=table["has_soft_delete"]
+            )
+            for table in tables_data
+        ]
+
+    @strawberry.field(description="""Get schema information for a specific table.
+
+**Required permissions:** `admin:read:tables`
+
+Example:
+```graphql
+query GetTableSchema {
+  tableSchema(tableName: "users") {
+    tableName
+    columns {
+      name
+      type
+      nullable
+      primaryKey
+      default
+    }
+  }
+}
+```
+""")
+    async def table_schema(self, info: Info, table_name: str) -> TableSchema:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "read", "tables"):
+            raise Exception("Permission denied: admin:read:tables required")
+
+        schema_data = TableService.get_table_schema(db, table_name)
+        return TableSchema(
+            table_name=schema_data["table_name"],
+            columns=[
+                ColumnInfo(
+                    name=col["name"],
+                    type=col["type"],
+                    nullable=col["nullable"],
+                    primary_key=col["primary_key"],
+                    default=col["default"]
+                )
+                for col in schema_data["columns"]
+            ]
+        )
+
+    @strawberry.field(description="""Get paginated data from a specific table.
+
+**Required permissions:** `admin:read:tables`
+
+Example:
+```graphql
+query GetTableData {
+  tableData(tableName: "users", limit: 20, offset: 0) {
+    tableName
+    columns
+    rows
+    total
+    hasMore
+  }
+}
+```
+""")
+    async def table_data(
+        self,
+        info: Info,
+        table_name: str,
+        limit: int = 50,
+        offset: int = 0
+    ) -> TableDataResponse:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "read", "tables"):
+            raise Exception("Permission denied: admin:read:tables required")
+
+        data = TableService.get_table_data(db, table_name, limit, offset)
+        return TableDataResponse(
+            table_name=data["table_name"],
+            columns=data["columns"],
+            rows=data["rows"],
+            total=data["total"],
+            has_more=data["has_more"]
         )
 
 # ============================================================================
@@ -351,3 +496,119 @@ mutation BulkRemoveRole {
             ip_address=info.context["request"].client.host, user_agent=info.context["request"].headers.get("user-agent")
         )
         return BulkOperationResult(success=True, count=count, message=f"Removed role '{role_name}' from {count} users")
+
+    # ========================================================================
+    # Table Management Mutations
+    # ========================================================================
+
+    @strawberry.mutation(description="""Create a new record in a database table.
+
+**Required permissions:** `admin:create:tables`
+
+Example:
+```graphql
+mutation CreateTableRecord {
+  createTableRecord(
+    tableName: "users"
+    data: {username: "newuser", email: "new@example.com", passwordHash: "..."}
+  )
+}
+```
+""")
+    async def create_table_record(
+        self,
+        info: Info,
+        table_name: str,
+        data: strawberry.scalars.JSON
+    ) -> strawberry.scalars.JSON:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not PermissionService.check_permission(admin_user, "admin", "create", "tables"):
+            raise Exception("Permission denied: admin:create:tables required")
+
+        created_record = TableService.create_record(db, table_name, data)
+
+        AuditService(db).log(
+            user_id=admin_user.id, action="create_table_record", entity_type="table",
+            entity_id=None, description=f"Created record in table '{table_name}'", status="success",
+            ip_address=info.context["request"].client.host,
+            user_agent=info.context["request"].headers.get("user-agent")
+        )
+
+        return created_record
+
+    @strawberry.mutation(description="""Update an existing record in a database table.
+
+**Required permissions:** `admin:update:tables`
+
+Example:
+```graphql
+mutation UpdateTableRecord {
+  updateTableRecord(
+    tableName: "users"
+    recordId: 123
+    data: {email: "updated@example.com"}
+  )
+}
+```
+""")
+    async def update_table_record(
+        self,
+        info: Info,
+        table_name: str,
+        record_id: int,
+        data: strawberry.scalars.JSON
+    ) -> strawberry.scalars.JSON:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not PermissionService.check_permission(admin_user, "admin", "update", "tables"):
+            raise Exception("Permission denied: admin:update:tables required")
+
+        updated_record = TableService.update_record(db, table_name, record_id, data)
+
+        AuditService(db).log(
+            user_id=admin_user.id, action="update_table_record", entity_type="table",
+            entity_id=record_id, description=f"Updated record {record_id} in table '{table_name}'",
+            status="success", ip_address=info.context["request"].client.host,
+            user_agent=info.context["request"].headers.get("user-agent")
+        )
+
+        return updated_record
+
+    @strawberry.mutation(description="""Delete a record from a database table.
+
+**Required permissions:** `admin:delete:tables`
+
+Performs soft delete if table has deleted_at column, otherwise hard delete.
+
+Example:
+```graphql
+mutation DeleteTableRecord {
+  deleteTableRecord(tableName: "users", recordId: 123)
+}
+```
+""")
+    async def delete_table_record(
+        self,
+        info: Info,
+        table_name: str,
+        record_id: int
+    ) -> bool:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        admin_user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not PermissionService.check_permission(admin_user, "admin", "delete", "tables"):
+            raise Exception("Permission denied: admin:delete:tables required")
+
+        result = TableService.delete_record(db, table_name, record_id)
+
+        AuditService(db).log(
+            user_id=admin_user.id, action="delete_table_record", entity_type="table",
+            entity_id=record_id, description=f"Deleted record {record_id} from table '{table_name}'",
+            status="success", ip_address=info.context["request"].client.host,
+            user_agent=info.context["request"].headers.get("user-agent")
+        )
+
+        return result

@@ -7,9 +7,9 @@ Background tasks for asynchronous email delivery with retry logic.
 from typing import List, Optional, Union
 
 from celery import Task
-from core.celery_app import celery_app
-from core.email_service import email_service
-from core.structured_logging import get_logger
+from core.platform.celery.app import celery_app
+from core.platform.email.email_service import email_service
+from core.platform.logging.structured_logging import get_logger
 
 logger = get_logger(__name__)
 

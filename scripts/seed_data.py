@@ -35,7 +35,7 @@ import sys
 # Добавляем корневую директорию в путь
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.database import SessionLocal
+from core.platform.db.database import SessionLocal
 from scripts.seeders.orchestrator import SeederOrchestrator
 
 # Настройка логирования

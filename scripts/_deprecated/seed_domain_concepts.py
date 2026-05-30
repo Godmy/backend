@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
 
-from core.database import SessionLocal
+from core.platform.db.database import SessionLocal
 from languages.models import ConceptModel, DictionaryModel, LanguageModel
 
 logging.basicConfig(level=logging.INFO)

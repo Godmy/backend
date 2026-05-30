@@ -14,8 +14,8 @@ from sqlalchemy.orm import Session
 from core.models.import_export_job import (
     ImportExportJobModel, JobStatus, JobType, ExportFormat, EntityType
 )
-from core.services.export_service import ExportService
-from core.services.import_service import ImportService
+from core.domains.import_export.export_service import ExportService
+from core.domains.import_export.import_service import ImportService
 
 # ============================================================================
 # Enums

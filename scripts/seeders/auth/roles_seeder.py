@@ -221,9 +221,66 @@ class RolesSeeder(BaseSeeder):
             ]
         )
 
-        # Admin - полный доступ
-        permissions_data.append(
-            {"role_id": roles["admin"].id, "resource": "*", "action": "*", "scope": "all"}
+        # Admin - полный доступ + специфичные права для таблиц
+        # Explicit table management permissions для безопасности
+        permissions_data.extend(
+            [
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "read",
+                    "scope": "users",
+                },
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "read",
+                    "scope": "system",
+                },
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "read",
+                    "scope": "tables",
+                },
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "create",
+                    "scope": "tables",
+                },
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "update",
+                    "scope": "tables",
+                },
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "delete",
+                    "scope": "tables",
+                },
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "update",
+                    "scope": "users",
+                },
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "admin",
+                    "action": "delete",
+                    "scope": "users",
+                },
+                # Universal wildcard access для backward compatibility
+                {
+                    "role_id": roles["admin"].id,
+                    "resource": "*",
+                    "action": "*",
+                    "scope": "all",
+                },
+            ]
         )
 
         # Batch insert прав доступа

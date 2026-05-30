@@ -6,7 +6,7 @@ Tests User Story #20 - Request ID & Distributed Tracing (P0)
 
 import pytest
 from starlette.testclient import TestClient
-from core.context import (
+from core.platform.observability.context import (
     get_request_id,
     set_request_id,
     get_user_id,
@@ -14,7 +14,7 @@ from core.context import (
     clear_context,
     RequestContextFilter
 )
-from core.tracing import with_request_context, TracingHelper
+from core.platform.observability.tracing import with_request_context, TracingHelper
 import logging
 
 

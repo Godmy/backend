@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from core.decorators.cache import cached
+from core.platform.redis.decorators import cached
 from languages.models.language import LanguageModel
 
 
@@ -29,17 +29,17 @@ class LanguageService:
         """Получить язык по коду"""
         return self.db.query(LanguageModel).filter(LanguageModel.code == code).first()
 
-    async def create(self, code: str, name: str) -> LanguageModel:
+    async def create(self, code: str, name: str, flag_url: Optional[str] = None) -> LanguageModel:
         """Создать новый язык"""
         # Import here to avoid circular dependency
-        from core.services.cache_service import invalidate_language_cache
+        from core.platform.redis.cache_service import invalidate_language_cache
 
         # Проверяем уникальность кода
         existing = self.get_by_code(code)
         if existing:
             raise ValueError(f"Language with code '{code}' already exists")
 
-        language = LanguageModel(code=code, name=name)
+        language = LanguageModel(code=code, name=name, flag_url=flag_url)
         self.db.add(language)
         self.db.commit()
         self.db.refresh(language)
@@ -50,11 +50,11 @@ class LanguageService:
         return language
 
     async def update(
-        self, language_id: int, code: Optional[str] = None, name: Optional[str] = None
+        self, language_id: int, code: Optional[str] = None, name: Optional[str] = None, flag_url: Optional[str] = None
     ) -> Optional[LanguageModel]:
         """Обновить язык"""
         # Import here to avoid circular dependency
-        from core.services.cache_service import invalidate_language_cache
+        from core.platform.redis.cache_service import invalidate_language_cache
 
         language = self.get_by_id(language_id)
         if not language:
@@ -70,6 +70,9 @@ class LanguageService:
         if name is not None:
             language.name = name
 
+        if flag_url is not None:
+            language.flag_url = flag_url
+
         self.db.commit()
         self.db.refresh(language)
 
@@ -81,7 +84,7 @@ class LanguageService:
     async def delete(self, language_id: int) -> bool:
         """Удалить язык"""
         # Import here to avoid circular dependency
-        from core.services.cache_service import invalidate_language_cache
+        from core.platform.redis.cache_service import invalidate_language_cache
 
         language = self.get_by_id(language_id)
         if not language:

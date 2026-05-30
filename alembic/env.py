@@ -9,8 +9,10 @@ from alembic import context
 # Добавляем путь к проекту
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from core.database import BookModel  # Импортируем модели
-from core.database import Base
+from core.platform.db.database import Base
+from core.platform.db.init_db import import_all_models
+
+import_all_models()
 
 config = context.config
 

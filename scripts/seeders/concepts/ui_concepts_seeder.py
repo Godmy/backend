@@ -727,10 +727,27 @@ class UIConceptsSeeder(BaseSeeder):
                 f"Missing languages: {missing_langs}. Some translations will be skipped."
             )
 
-        # Этап 1: Создаем все концепты по уровням глубины для правильного parent_id
-        # Сначала сортируем по глубине (количество / в пути)
+        # Этап 1: Генерируем ВСЕ пути (включая промежуточные)
+        def generate_all_paths(translation_paths):
+            """Генерирует все промежуточные пути для создания полной иерархии"""
+            all_paths = set()
+
+            for path in translation_paths:
+                parts = path.split('/')
+                # Создаём все промежуточные пути
+                for i in range(1, len(parts) + 1):
+                    intermediate_path = '/'.join(parts[:i])
+                    all_paths.add(intermediate_path)
+
+            return all_paths
+
+        # Генерируем все пути
+        all_paths = generate_all_paths(UI_TRANSLATIONS.keys())
+        self.logger.info(f"Generated {len(all_paths)} total paths (including intermediate)")
+
+        # Сортируем по глубине (количество / в пути)
         paths_by_depth = {}
-        for path in UI_TRANSLATIONS.keys():
+        for path in all_paths:
             depth = path.count("/")
             if depth not in paths_by_depth:
                 paths_by_depth[depth] = []
@@ -778,23 +795,38 @@ class UIConceptsSeeder(BaseSeeder):
         # Этап 2: Создаем словарные записи (переводы) с batch insert
         dictionaries_data = []
 
-        for path, translations in UI_TRANSLATIONS.items():
+        for path in all_paths:
             concept_id = path_to_id.get(path)
             if not concept_id:
                 self.logger.warning(f"Concept not found for path: {path}")
                 continue
 
-            # Создаем перевод для каждого языка
-            for lang_code, translation_text in translations.items():
-                if lang_code in languages:
-                    dictionaries_data.append(
-                        {
-                            "concept_id": concept_id,
-                            "language_id": languages[lang_code].id,
-                            "name": translation_text,
-                            "description": f"UI translation for {path}",
-                        }
-                    )
+            # Если есть явные переводы - используем их
+            if path in UI_TRANSLATIONS:
+                translations = UI_TRANSLATIONS[path]
+                for lang_code, translation_text in translations.items():
+                    if lang_code in languages:
+                        dictionaries_data.append(
+                            {
+                                "concept_id": concept_id,
+                                "language_id": languages[lang_code].id,
+                                "name": translation_text,
+                                "description": f"UI translation for {path}",
+                            }
+                        )
+            else:
+                # Промежуточный путь - создаём базовый перевод из последней части пути
+                path_name = path.split('/')[-1].replace('_', ' ').title()
+                for lang_code in required_langs:
+                    if lang_code in languages:
+                        dictionaries_data.append(
+                            {
+                                "concept_id": concept_id,
+                                "language_id": languages[lang_code].id,
+                                "name": path_name,
+                                "description": f"Auto-generated name for intermediate path {path}",
+                            }
+                        )
 
         # Batch insert словарей
         if dictionaries_data:

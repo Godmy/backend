@@ -5,7 +5,7 @@ from strawberry.types import Info
 
 from auth.services.auth_service import AuthService
 from auth.services.user_service import UserService
-from core.database import get_db
+from core.platform.db.database import get_db
 
 
 async def get_current_user(info: Info) -> Optional[dict]:

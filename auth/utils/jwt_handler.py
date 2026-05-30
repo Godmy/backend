@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 import jwt
 from dotenv import load_dotenv
 
-from core.structured_logging import get_logger
+from core.platform.logging.structured_logging import get_logger
 
 load_dotenv()
 

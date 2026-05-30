@@ -212,8 +212,8 @@ class TestPeriodicTasks:
         assert "old_files_cleanup" in result
         mock_cleanup_temp.assert_called_once()
 
-    @patch("core.database.engine")
-    @patch("core.redis_client.redis_client")
+    @patch("core.platform.db.database.engine")
+    @patch("core.platform.redis.client.redis_client")
     def test_periodic_health_check_task(self, mock_redis, mock_engine):
         """Test periodic health check"""
         # Mock successful database connection
@@ -238,7 +238,7 @@ class TestCeleryConfiguration:
 
     def test_celery_app_configuration(self):
         """Test that Celery app is properly configured"""
-        from core.celery_app import celery_app
+        from core.platform.celery.app import celery_app
 
         # Check broker URL is set
         assert celery_app.conf.broker_url is not None
@@ -256,14 +256,14 @@ class TestCeleryConfiguration:
 
     def test_celery_beat_schedule(self):
         """Test that Celery Beat schedule is configured"""
-        from core.celery_app import celery_app
+        from core.platform.celery.app import celery_app
 
         # Check beat schedule exists
         assert celery_app.conf.beat_schedule is not None
 
     def test_task_registration(self):
         """Test that tasks are registered"""
-        from core.celery_app import celery_app
+        from core.platform.celery.app import celery_app
 
         # Check that email tasks are registered
         assert "tasks.send_email" in celery_app.tasks
@@ -287,7 +287,7 @@ class TestCeleryHealthCheck:
     @patch("core.celery_app.celery_app")
     def test_celery_health_check_healthy(self, mock_celery_app):
         """Test Celery health check when workers are running"""
-        from core.services.health_service import HealthCheckService
+        from core.domains.health.service import HealthCheckService
 
         # Mock inspect results
         mock_inspect = MagicMock()
@@ -304,7 +304,7 @@ class TestCeleryHealthCheck:
     @patch("core.celery_app.celery_app")
     def test_celery_health_check_no_workers(self, mock_celery_app):
         """Test Celery health check when no workers are running"""
-        from core.services.health_service import HealthCheckService
+        from core.domains.health.service import HealthCheckService
 
         # Mock inspect returns None when no workers
         mock_inspect = MagicMock()

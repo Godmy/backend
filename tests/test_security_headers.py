@@ -10,7 +10,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from core.middleware.security_headers import SecurityHeadersMiddleware
+from core.platform.http.middleware.security_headers import SecurityHeadersMiddleware
 
 
 @pytest.fixture

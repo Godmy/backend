@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from auth.services.user_service import UserService
 from auth.utils.jwt_handler import jwt_handler
-from core.structured_logging import get_logger
+from core.platform.logging.structured_logging import get_logger
 
 logger = get_logger(__name__)
 

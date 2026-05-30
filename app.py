@@ -2,11 +2,11 @@ import os
 
 import uvicorn
 
-from core.graphql import GRAPHQL_PLAYGROUND_ENABLED, SecureGraphQL
+from core.platform.graphql import GRAPHQL_PLAYGROUND_ENABLED, SecureGraphQL
 from core.schemas.schema import schema
-from core.shutdown import setup_graceful_shutdown
-from core.starlette_config import StarletteConfig
-from core.structured_logging import get_logger
+from core.platform.lifecycle.shutdown import setup_graceful_shutdown
+from core.platform.http.starlette_config import StarletteConfig
+from core.platform.logging.structured_logging import get_logger
 
 starlette_config = StarletteConfig()
 starlette_config.setup_logging()
@@ -14,10 +14,10 @@ logger = get_logger(__name__)
 starlette_config.initialize_sentry()
 starlette_config.initialize_database()
 
-# Note: DB session cleanup is handled by DatabaseSessionExtension (core.graphql_extensions).
+# Note: DB session cleanup is handled by DatabaseSessionExtension (core.platform.graphql.extensions).
 graphql_app = SecureGraphQL(
     schema,
-    graphiql=GRAPHQL_PLAYGROUND_ENABLED,
+    graphql_ide="graphiql" if GRAPHQL_PLAYGROUND_ENABLED else None,
 )
 
 app = starlette_config.create_app(graphql_app, logger=logger)

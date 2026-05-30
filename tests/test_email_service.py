@@ -9,7 +9,7 @@ import time
 import httpx
 import pytest
 
-from core.email_service import email_service
+from core.platform.email.email_service import email_service
 
 
 class TestEmailService:

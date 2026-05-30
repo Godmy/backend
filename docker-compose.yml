@@ -1,35 +1,35 @@
-version: '3.8'
+name: vibe-management-pro-backend
 
 services:
   db:
     image: postgres:15
-    container_name: templates_db
+    container_name: vibe_management_pro_backend_db
     environment:
-      POSTGRES_DB: templates
-      POSTGRES_USER: template_user
-      POSTGRES_PASSWORD: template_password
+      POSTGRES_DB: vibe_management
+      POSTGRES_USER: vibe_management_user
+      POSTGRES_PASSWORD: vibe_management_password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - templates_network
+      - vibe_management_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U template_user -d templates"]
+      test: ["CMD-SHELL", "pg_isready -U vibe_management_user -d vibe_management"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: templates_redis
+    container_name: vibe_management_pro_backend_redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - templates_network
+      - vibe_management_network
     command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -40,14 +40,14 @@ services:
 
   app:
     build: .
-    container_name: templates_app
+    container_name: vibe_management_pro_backend_app
     environment:
-      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DATABASE_URL: postgresql://vibe_management_user:vibe_management_password@db:5432/vibe_management
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: templates
-      DB_USER: template_user
-      DB_PASSWORD: template_password
+      DB_NAME: vibe_management
+      DB_USER: vibe_management_user
+      DB_PASSWORD: vibe_management_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0
@@ -61,7 +61,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - templates_network
+      - vibe_management_network
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
@@ -69,14 +69,14 @@ services:
 
   celery_worker:
     build: .
-    container_name: templates_celery_worker
+    container_name: vibe_management_pro_backend_celery_worker
     environment:
-      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DATABASE_URL: postgresql://vibe_management_user:vibe_management_password@db:5432/vibe_management
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: templates
-      DB_USER: template_user
-      DB_PASSWORD: template_password
+      DB_NAME: vibe_management
+      DB_USER: vibe_management_user
+      DB_PASSWORD: vibe_management_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0
@@ -88,7 +88,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - templates_network
+      - vibe_management_network
     volumes:
       - ./uploads:/app/uploads
     restart: unless-stopped
@@ -96,14 +96,14 @@ services:
 
   celery_beat:
     build: .
-    container_name: templates_celery_beat
+    container_name: vibe_management_pro_backend_celery_beat
     environment:
-      DATABASE_URL: postgresql://template_user:template_password@db:5432/templates
+      DATABASE_URL: postgresql://vibe_management_user:vibe_management_password@db:5432/vibe_management
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: templates
-      DB_USER: template_user
-      DB_PASSWORD: template_password
+      DB_NAME: vibe_management
+      DB_USER: vibe_management_user
+      DB_PASSWORD: vibe_management_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0
@@ -113,7 +113,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - templates_network
+      - vibe_management_network
     restart: unless-stopped
     command: celery -A workers.celery_worker beat --loglevel=info
 
@@ -122,5 +122,5 @@ volumes:
   redis_data:
 
 networks:
-  templates_network:
+  vibe_management_network:
     driver: bridge

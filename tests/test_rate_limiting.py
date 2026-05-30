@@ -15,8 +15,8 @@ from starlette.routing import Route
 from starlette.testclient import TestClient
 
 from auth.utils.jwt_handler import jwt_handler
-from core.middleware.rate_limit import RateLimitMiddleware
-from core.redis_client import redis_client
+from core.platform.http.middleware.rate_limit import RateLimitMiddleware
+from core.platform.redis.client import redis_client
 
 
 @pytest.fixture

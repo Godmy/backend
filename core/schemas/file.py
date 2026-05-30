@@ -9,7 +9,7 @@ from strawberry.file_uploads import Upload
 from strawberry.types import Info
 
 from core.models.file import File as FileModel
-from core.services.file_service import FileService
+from core.domains.files.service import FileService
 
 # ============================================================================
 # Types

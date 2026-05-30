@@ -51,9 +51,9 @@ except ModuleNotFoundError:
 from auth.models.user import User
 from auth.models.role import Role
 from auth.services.user_service import UserService
-from core.config import get_settings
-from core.database import get_db
-from core.init_db import init_database
+from core.platform.config import get_settings
+from core.platform.db.database import get_db
+from core.platform.db.init_db import init_database
 
 
 # ==============================================================================
@@ -353,7 +353,7 @@ def backup_advanced(output: Optional[str], compress: bool, upload_s3: bool):
     header("Creating Advanced Backup")
 
     try:
-        from core.services.backup_service import BackupService
+        from core.domains.backup.service import BackupService
 
         backup_service = BackupService()
         metadata = backup_service.create_backup(
@@ -380,7 +380,7 @@ def list_backups():
     header("Available Backups")
 
     try:
-        from core.services.backup_service import BackupService
+        from core.domains.backup.service import BackupService
 
         backup_service = BackupService()
         backups = backup_service.list_backups()
@@ -418,7 +418,7 @@ def apply_retention(daily: int, weekly: int, monthly: int, dry_run: bool):
         warning("DRY RUN MODE - No backups will be deleted")
 
     try:
-        from core.services.backup_service import BackupService
+        from core.domains.backup.service import BackupService
 
         backup_service = BackupService()
         result = backup_service.apply_retention_policy(
@@ -468,7 +468,7 @@ def export_data(entities: str, output: str, format: str, date_from: Optional[str
         db = SessionLocal()
 
         try:
-            from core.services.migration_service import MigrationService, anonymize_emails, anonymize_passwords
+            from core.domains.migration.service import MigrationService, anonymize_emails, anonymize_passwords
 
             # Parse entities
             entity_list = [e.strip() for e in entities.split(",")]
@@ -542,7 +542,7 @@ def import_data(input: str, format: str, entities: Optional[str], snapshot: bool
         db = SessionLocal()
 
         try:
-            from core.services.migration_service import MigrationService
+            from core.domains.migration.service import MigrationService
 
             # Parse entities
             entity_list = None
@@ -588,7 +588,7 @@ def list_snapshots():
         db = SessionLocal()
 
         try:
-            from core.services.migration_service import MigrationService
+            from core.domains.migration.service import MigrationService
 
             migration = MigrationService(db)
             snapshots = migration.list_snapshots()
@@ -633,7 +633,7 @@ def rollback_migration(snapshot_id: str, confirm: bool):
         db = SessionLocal()
 
         try:
-            from core.services.migration_service import MigrationService
+            from core.domains.migration.service import MigrationService
 
             migration = MigrationService(db)
             migration.rollback_to_snapshot(snapshot_id)
@@ -838,7 +838,7 @@ def _invoke_backend_database_hook() -> None:
         return
 
     try:
-        from core.init_db import init_database as legacy_init_database
+        from core.platform.db.init_db import init_database as legacy_init_database
     except Exception:
         return
 

@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import List, Optional
 
 from celery import Task
-from core.celery_app import celery_app
-from core.file_storage import file_storage_service
-from core.structured_logging import get_logger
+from core.platform.celery.app import celery_app
+from core.platform.files.file_storage import file_storage_service
+from core.platform.logging.structured_logging import get_logger
 
 logger = get_logger(__name__)
 

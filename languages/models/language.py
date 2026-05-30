@@ -12,6 +12,7 @@ class LanguageModel(SoftDeleteMixin, BaseModel):
 
     code = Column(String(2), nullable=False, unique=True, index=True, comment="ISO 639-1 код языка")
     name = Column(String(50), nullable=False, comment="Название языка")
+    flag_url = Column(String(255), nullable=True, comment="URL флага языка (emoji или изображение)")
 
     # Связи
     dictionaries = relationship(

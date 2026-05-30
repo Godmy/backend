@@ -4,6 +4,7 @@ GraphQL schemas for authentication, registration, and user session management.
 
 from typing import Optional
 import strawberry
+from strawberry.types import Info
 from auth.dependencies.auth import get_required_user
 
 # ============================================================================
@@ -93,10 +94,10 @@ mutation RegisterUser {
 }
 ```
 """)
-    def register(self, info, input: UserRegistrationInput) -> AuthPayload:
+    def register(self, info: Info, input: UserRegistrationInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
         from auth.services.token_service import token_service
-        from core.email_service import email_service
+        from core.platform.email.email_service import email_service
 
         db = info.context["db"]
         result, error = AuthService.register_user(
@@ -135,7 +136,7 @@ mutation Login {
 }
 ```
 """)
-    def login(self, info, input: UserLoginInput) -> AuthPayload:
+    def login(self, info: Info, input: UserLoginInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
         db = info.context["db"]
         result, error = AuthService.login_user(db, input.username, input.password)
@@ -161,7 +162,7 @@ mutation RefreshToken {
 }
 ```
 """)
-    def refresh_token(self, info, input: RefreshTokenInput) -> AuthPayload:
+    def refresh_token(self, info: Info, input: RefreshTokenInput) -> AuthPayload:
         from auth.services.auth_service import AuthService
         result, error = AuthService.refresh_tokens(input.refresh_token)
         if error:
@@ -186,7 +187,7 @@ mutation VerifyEmail {
 }
 ```
 """)
-    def verify_email(self, info, input: EmailVerificationInput) -> MessageResponse:
+    def verify_email(self, info: Info, input: EmailVerificationInput) -> MessageResponse:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
 
@@ -206,10 +207,10 @@ mutation VerifyEmail {
         return MessageResponse(success=True, message="Email verified successfully")
 
     @strawberry.mutation(description="Resends the email verification link.")
-    def resend_verification_email(self, info, email: str) -> MessageResponse:
+    def resend_verification_email(self, info: Info, email: str) -> MessageResponse:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
-        from core.email_service import email_service
+        from core.platform.email.email_service import email_service
 
         if not token_service.check_rate_limit(email, max_requests=3):
             remaining_time = token_service.get_rate_limit_remaining(email)
@@ -252,10 +253,10 @@ mutation RequestPasswordReset {
 }
 ```
 """)
-    def request_password_reset(self, info, input: PasswordResetRequestInput) -> MessageResponse:
+    def request_password_reset(self, info: Info, input: PasswordResetRequestInput) -> MessageResponse:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
-        from core.email_service import email_service
+        from core.platform.email.email_service import email_service
 
         if not token_service.check_rate_limit(input.email, max_requests=3):
             remaining_time = token_service.get_rate_limit_remaining(input.email)
@@ -297,7 +298,7 @@ mutation ResetPassword {
 }
 ```
 """)
-    def reset_password(self, info, input: PasswordResetInput) -> MessageResponse:
+    def reset_password(self, info: Info, input: PasswordResetInput) -> MessageResponse:
         from auth.services.token_service import token_service
         from auth.services.user_service import UserService
         from auth.utils.security import hash_password
@@ -335,7 +336,7 @@ mutation LoginWithGoogle {
 }
 ```
 """)
-    async def login_with_google(self, info, input: GoogleAuthInput) -> AuthPayload:
+    async def login_with_google(self, info: Info, input: GoogleAuthInput) -> AuthPayload:
         from auth.services.oauth_service import OAuthService
         db = info.context["db"]
         result, error = await OAuthService.authenticate_with_google(db, input.id_token)
@@ -365,7 +366,7 @@ mutation LoginWithTelegram {
 }
 ```
 """)
-    def login_with_telegram(self, info, input: TelegramAuthInput) -> AuthPayload:
+    def login_with_telegram(self, info: Info, input: TelegramAuthInput) -> AuthPayload:
         from auth.services.oauth_service import OAuthService
         telegram_data = {
             "id": input.id,

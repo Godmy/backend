@@ -169,7 +169,7 @@ mutation StartEmailChange {
 """)
     async def request_email_change(self, info: Info, new_email: str, current_password: str) -> SuccessResponse:
         from auth.services.profile_service import ProfileService
-        from core.email_service import email_service
+        from core.platform.email.email_service import email_service
         current_user_dict = await get_required_user(info)
         db = info.context["db"]
         try:

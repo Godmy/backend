@@ -34,7 +34,7 @@ class LanguagesSeeder(BaseSeeder):
             {"code": "ru", "name": "Русский"},
             {"code": "en", "name": "English"},
             {"code": "es", "name": "Español"},
-            {"code": "fr", "name": "Français"},
+            {"code": "fr", "name": "Francais"},
             {"code": "de", "name": "Deutsch"},
             {"code": "zh", "name": "中文"},
             {"code": "ja", "name": "日本語"},

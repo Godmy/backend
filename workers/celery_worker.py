@@ -11,8 +11,8 @@ import sys
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.celery_app import celery_app
-from core.structured_logging import setup_logging, get_logger
+from core.platform.celery.app import celery_app
+from core.platform.logging.structured_logging import setup_logging, get_logger
 
 # Setup structured logging
 setup_logging()

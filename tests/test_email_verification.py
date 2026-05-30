@@ -5,7 +5,7 @@ Tests for email verification and password reset flow
 import pytest
 
 from auth.services.token_service import token_service
-from core.redis_client import redis_client
+from core.platform.redis.client import redis_client
 
 
 class TestTokenService:
@@ -142,7 +142,7 @@ class TestEmailVerificationFlow:
     async def test_registration_sends_verification_email(self):
         """Test that registration sends verification email"""
         from auth.services.token_service import token_service
-        from core.email_service import email_service
+        from core.platform.email.email_service import email_service
 
         # Simulate registration
         user_id = 1001
@@ -163,7 +163,7 @@ class TestEmailVerificationFlow:
     async def test_password_reset_sends_email(self):
         """Test that password reset request sends email"""
         from auth.services.token_service import token_service
-        from core.email_service import email_service
+        from core.platform.email.email_service import email_service
 
         # Simulate password reset request
         user_id = 1002

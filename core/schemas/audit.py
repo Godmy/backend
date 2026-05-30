@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from strawberry.types import Info
 
 from core.models.audit_log import AuditLog as AuditLogModel
-from core.services.audit_service import AuditService
+from core.domains.audit.service import AuditService
 from auth.services.permission_service import PermissionService
 from auth.models.user import UserModel
 

@@ -24,6 +24,8 @@ from languages.schemas import (
     LanguageQuery,
     SearchQuery,
     DashboardQuery,
+    TagConceptQuery,
+    TagConceptMutation,
 )
 
 
@@ -41,6 +43,8 @@ class Query(
     SoftDeleteQuery,
     DashboardQuery,
     AdminQuery,
+    # Добавляем тег-специфичные запросы
+    TagConceptQuery,
 ):
     pass
 
@@ -57,12 +61,14 @@ class Mutation(
     ImportExportMutation,
     SoftDeleteMutation,
     AdminMutation,
+    # Добавляем тег-специфичные мутации
+    TagConceptMutation,
 ):
     pass
 
 
 # Import extensions for DB session management
-from core.graphql_extensions import DatabaseSessionExtension
+from core.platform.graphql.extensions import DatabaseSessionExtension
 
 schema = strawberry.Schema(
     Query,

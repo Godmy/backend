@@ -16,7 +16,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from core.middleware.cache_control import CacheControlMiddleware
+from core.platform.http.middleware.cache_control import CacheControlMiddleware
 
 
 @pytest.fixture

@@ -4,14 +4,15 @@ Periodic tasks configuration
 Defines scheduled tasks to run at regular intervals using Celery Beat.
 """
 
+import logging
 import os
 from datetime import timedelta
 from typing import Optional
 
 from celery import Task
 from celery.schedules import crontab
-from core.celery_app import celery_app
-from core.structured_logging import get_logger
+from core.platform.celery.app import celery_app
+from core.platform.logging.structured_logging import get_logger
 from tasks.file_tasks import cleanup_temporary_files_task, cleanup_old_files_task
 
 logger = get_logger(__name__)
@@ -96,8 +97,8 @@ def periodic_health_check_task(self):
         )
 
         # Import here to avoid circular dependencies
-        from core.database import engine
-        from core.redis_client import redis_client
+        from core.platform.db.database import engine
+        from core.platform.redis.client import redis_client
         from sqlalchemy import text
 
         health_status = {
@@ -123,7 +124,7 @@ def periodic_health_check_task(self):
 
         # Log overall health status
         all_healthy = all(health_status.values())
-        log_level = "info" if all_healthy else "warning"
+        log_level = logging.INFO if all_healthy else logging.WARNING
         logger.log(
             level=log_level,
             msg=f"Health check completed: {'healthy' if all_healthy else 'degraded'}",

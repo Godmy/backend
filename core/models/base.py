@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from core.database import Base
+from core.platform.db.database import Base
 
 
 

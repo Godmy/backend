@@ -33,6 +33,16 @@ class Concept:
         default_factory=list
     )
 
+    @strawberry.field(description="Direct children of this concept (one level deep).")
+    def children(self, info: strawberry.Info) -> List["Concept"]:
+        """Get direct children of this concept"""
+        from languages.services.concept_service import ConceptService
+        db = info.context["db"]
+        service = ConceptService(db)
+        children_db = service.get_children(self.id)
+        from languages.schemas.concept import ConceptQuery
+        return [ConceptQuery._map_concept_to_gql(c) for c in children_db]
+
 # ============================================================================
 # Inputs
 # ============================================================================
@@ -114,6 +124,41 @@ query GetConceptDetails {
         db = info.context["db"]
         service = ConceptService(db)
         concept_db = service.get_by_id(concept_id)
+        return ConceptQuery._map_concept_to_gql(concept_db) if concept_db else None
+
+    @strawberry.field(description="""Get a single concept by its path (e.g., 'site/pages/home').
+
+Example:
+```graphql
+query GetSiteMap {
+  conceptByPath(path: "site/pages") {
+    id
+    path
+    children {
+      id
+      path
+      dictionaries {
+        name
+        description
+      }
+      children {
+        id
+        path
+        dictionaries {
+          name
+          description
+        }
+      }
+    }
+  }
+}
+```
+""")
+    def concept_by_path(self, path: str, info: strawberry.Info) -> Optional[Concept]:
+        from languages.services.concept_service import ConceptService
+        db = info.context["db"]
+        service = ConceptService(db)
+        concept_db = service.get_by_path(path)
         return ConceptQuery._map_concept_to_gql(concept_db) if concept_db else None
 
     @staticmethod
