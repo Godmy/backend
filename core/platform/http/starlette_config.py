@@ -73,7 +73,11 @@ class StarletteConfig:
             Mount("/graphql", graphql_app),
         ]
 
-        app = Starlette(debug=os.getenv("DEBUG", "false").lower() == "true", routes=routes)
+        app = Starlette(
+            debug=os.getenv("DEBUG", "false").lower() == "true",
+            routes=routes,
+            on_startup=[self.initialize_database],
+        )
         app.add_middleware(
             CORSMiddleware,
             allow_origins=[
@@ -86,4 +90,3 @@ class StarletteConfig:
             allow_credentials=True,
         )
         return app
-

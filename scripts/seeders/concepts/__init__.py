@@ -1,6 +1,5 @@
-"""Сидеры для концептов (UI и Domain)"""
+"""Seeders for concept trees."""
 
-from scripts.seeders.concepts.domain_concepts_seeder import DomainConceptsSeeder
 from scripts.seeders.concepts.ui_concepts_seeder import UIConceptsSeeder
 
-__all__ = ["UIConceptsSeeder", "DomainConceptsSeeder"]
+__all__ = ["UIConceptsSeeder"]

@@ -22,7 +22,6 @@ from scripts.seeders.base import BaseSeeder, SeederMetadata, registry
 from scripts.seeders.auth.roles_seeder import RolesSeeder
 from scripts.seeders.auth.users_seeder import UsersSeeder
 from scripts.seeders.concepts.db_concepts_seeder import DbConceptsSeeder
-from scripts.seeders.concepts.domain_concepts_seeder import DomainConceptsSeeder
 from scripts.seeders.concepts.map_concepts_seeder import MapConceptsSeeder
 from scripts.seeders.concepts.ui_concepts_seeder import UIConceptsSeeder
 from scripts.seeders.languages.languages_seeder import LanguagesSeeder

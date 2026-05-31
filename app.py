@@ -12,7 +12,6 @@ starlette_config = StarletteConfig()
 starlette_config.setup_logging()
 logger = get_logger(__name__)
 starlette_config.initialize_sentry()
-starlette_config.initialize_database()
 
 # Note: DB session cleanup is handled by DatabaseSessionExtension (core.platform.graphql.extensions).
 graphql_app = SecureGraphQL(
