@@ -17,6 +17,7 @@ PyJWT
 
 # Email
 jinja2
+resend>=2.0.0
 
 # Redis
 redis

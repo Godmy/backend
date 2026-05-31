@@ -26,5 +26,7 @@ RUN mkdir -p uploads logs exports
 # Expose port
 EXPOSE 8000
 
-# Run with hot reload using watchfiles for better performance
+# Run with hot reload.
+# In Docker bind mounts, native watchfiles can exhaust inotify/memory limits,
+# so compose enables polling via WATCHFILES_FORCE_POLLING.
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app"]
