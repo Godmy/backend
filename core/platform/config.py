@@ -14,6 +14,7 @@ class Settings:
     app_port: int
     allowed_origins: list[str]
     graphql_playground_enabled: bool
+    whisper_gateway_url: str
 
 
 def _to_bool(value: str | None, default: bool = False) -> bool:
@@ -55,5 +56,6 @@ def get_settings() -> Settings:
         app_port=int(os.getenv("APP_PORT", "8000")),
         allowed_origins=allowed_origins,
         graphql_playground_enabled=playground_enabled,
+        whisper_gateway_url=os.getenv("WHISPER_GATEWAY_URL", "http://gateway-whisper:8010"),
     )
 

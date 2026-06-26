@@ -4,6 +4,7 @@ strawberry-graphql[cli]==0.315.3
 
 sqlalchemy
 alembic
+pgvector
 
 uvicorn==0.41.0
 

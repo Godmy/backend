@@ -14,6 +14,9 @@ from core.schemas.import_export import ImportExportMutation, ImportExportQuery
 # Импортируем схемы для soft delete
 from core.schemas.soft_delete import SoftDeleteMutation, SoftDeleteQuery
 
+# Импортируем схемы RAG
+from core.schemas.rag import RagMutation, RagQuery
+
 # Импортируем схемы из модуля languages
 from languages.schemas import (
     ConceptMutation,
@@ -43,8 +46,8 @@ class Query(
     SoftDeleteQuery,
     DashboardQuery,
     AdminQuery,
-    # Добавляем тег-специфичные запросы
     TagConceptQuery,
+    RagQuery,
 ):
     pass
 
@@ -61,8 +64,8 @@ class Mutation(
     ImportExportMutation,
     SoftDeleteMutation,
     AdminMutation,
-    # Добавляем тег-специфичные мутации
     TagConceptMutation,
+    RagMutation,
 ):
     pass
 

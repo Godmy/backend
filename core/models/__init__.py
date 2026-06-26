@@ -12,6 +12,7 @@ from .import_export_job import (
     ExportFormat,
     EntityType,
 )
+from .rag import DocumentStatus, RagChunk, RagDocument, RagProject, SourceType
 
 __all__ = [
     "BaseModel",
@@ -22,4 +23,9 @@ __all__ = [
     "JobType",
     "ExportFormat",
     "EntityType",
+    "RagProject",
+    "RagDocument",
+    "RagChunk",
+    "SourceType",
+    "DocumentStatus",
 ]

@@ -22,6 +22,9 @@ def import_all_models() -> None:
 
 def create_tables() -> None:
     import_all_models()
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
     Base.metadata.create_all(bind=engine)
 
 

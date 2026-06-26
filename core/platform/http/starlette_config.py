@@ -23,8 +23,23 @@ class StarletteConfig:
         init_database(stage="app")
 
     def create_app(self, graphql_app, logger=None) -> Starlette:
-        async def health(_request):
+        from core.domains.health import HealthCheckService
+
+        async def health_live(_request):
+            """Liveness: приложение запущено."""
             return JSONResponse({"status": "ok"})
+
+        async def health_ready(_request):
+            """Readiness: обязательные зависимости (DB + Redis) доступны."""
+            result = HealthCheckService.readiness_check()
+            code = 200 if result["status"] == "healthy" else 503
+            return JSONResponse(result, status_code=code)
+
+        async def health(_request):
+            """Full health: все сервисы с латентностью и статусом."""
+            result = HealthCheckService.full_check()
+            codes = {"healthy": 200, "degraded": 207, "unhealthy": 503}
+            return JSONResponse(result, status_code=codes.get(result["status"], 503))
 
         async def graphql_examples(_request):
             return JSONResponse(
@@ -68,6 +83,8 @@ class StarletteConfig:
 
         routes = [
             Route("/health", health),
+            Route("/health/live", health_live),
+            Route("/health/ready", health_ready),
             Route("/graphql/examples", graphql_examples),
             Route("/graphql/test-user-login", test_user_login),
             Mount("/graphql", graphql_app),
