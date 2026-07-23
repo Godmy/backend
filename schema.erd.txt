@@ -1,0 +1,220 @@
+# Auto-generated from backend SQLAlchemy models by scripts/gen_erd.py.
+# Do not edit by hand -- regenerate after model changes.
+
+table audit_logs {
+  id int pk
+  user_id int -> users.id
+  action varchar required
+  entity_type varchar
+  entity_id int
+  old_data json
+  new_data json
+  ip_address varchar
+  user_agent text
+  description text
+  status varchar
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table concept_tags {
+  id int pk
+  concept_id int required -> concepts.id
+  tag_id int required -> tags.id
+  deleted_at timestamp
+  deleted_by_id int -> users.id
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table concepts {
+  id int pk
+  parent_id int -> concepts.id
+  path varchar required
+  depth int required
+  deleted_at timestamp
+  deleted_by_id int -> users.id
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table dictionaries {
+  id int pk
+  concept_id int required -> concepts.id
+  language_id int required -> languages.id
+  name varchar required
+  description text
+  image varchar
+  deleted_at timestamp
+  deleted_by_id int -> users.id
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table files {
+  id int pk
+  filename varchar required
+  stored_filename varchar unique required
+  filepath varchar required
+  mime_type varchar required
+  size bigint required
+  file_type varchar required
+  width int
+  height int
+  has_thumbnail bool
+  thumbnail_path varchar
+  uploaded_by int required -> users.id
+  entity_type varchar
+  entity_id int
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table import_export_jobs {
+  id int pk
+  user_id int required -> users.id
+  job_type enum required
+  entity_type enum required
+  status enum required
+  format enum
+  file_url varchar
+  expires_at int
+  total_count int
+  processed_count int
+  error_count int
+  errors json
+  filters json
+  options json
+  error_message text
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table languages {
+  id int pk
+  code varchar unique required
+  name varchar required
+  flag_url varchar
+  deleted_at timestamp
+  deleted_by_id int -> users.id
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table oauth_connections {
+  id int pk
+  user_id int required -> users.id
+  provider varchar required
+  provider_user_id varchar required
+  provider_username varchar
+  provider_email varchar
+  access_token varchar
+  refresh_token varchar
+  extra_data json
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table permissions {
+  id int pk
+  role_id int required -> roles.id
+  resource varchar required
+  action varchar required
+  scope varchar
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table rag_chunk {
+  id int pk
+  document_id int required -> rag_document.id
+  project_id int required -> rag_project.id
+  content text required
+  embedding vector
+  chunk_index int required
+  chunk_metadata json
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table rag_document {
+  id int pk
+  project_id int required -> rag_project.id
+  source_type varchar required
+  source_uri text required
+  title varchar
+  status varchar required
+  error_message text
+  chunk_count int required
+  indexed_at timestamp
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table rag_project {
+  id int pk
+  name varchar unique required
+  description text
+  embedding_model varchar required
+  embedding_dim int required
+  chunk_size int required
+  chunk_overlap int required
+  is_active bool required
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table roles {
+  id int pk
+  name varchar unique required
+  description varchar
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table tags {
+  id int pk
+  name varchar unique required
+  color varchar
+  deleted_at timestamp
+  deleted_by_id int -> users.id
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table user_profiles {
+  id int pk
+  user_id int required -> users.id
+  first_name varchar
+  last_name varchar
+  bio varchar
+  avatar varchar
+  avatar_file_id int -> files.id
+  language varchar
+  timezone varchar
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table user_roles {
+  id int pk
+  user_id int required -> users.id
+  role_id int required -> roles.id
+  deleted_at timestamp
+  deleted_by_id int -> users.id
+  created_at timestamp required
+  updated_at timestamp required
+}
+
+table users {
+  id int pk
+  username varchar unique required
+  email varchar unique required
+  password_hash varchar required
+  is_active bool
+  is_verified bool
+  deleted_at timestamp
+  deleted_by_id int -> users.id
+  created_at timestamp required
+  updated_at timestamp required
+}
