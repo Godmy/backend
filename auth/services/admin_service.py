@@ -154,7 +154,8 @@ class AdminService:
 
         if role_name:
             query = query.join(UserRoleModel).join(RoleModel).filter(
-                RoleModel.name == role_name
+                RoleModel.name == role_name,
+                UserRoleModel.deleted_at.is_(None),
             )
 
         # Get total count
@@ -206,6 +207,7 @@ class AdminService:
         role_stats = (
             db.query(RoleModel.name, func.count(UserRoleModel.user_id))
             .join(UserRoleModel, RoleModel.id == UserRoleModel.role_id)
+            .filter(UserRoleModel.deleted_at.is_(None))
             .group_by(RoleModel.name)
             .all()
         )
@@ -308,11 +310,13 @@ class AdminService:
                 logger.warning(f"User {user_id} not found, skipping")
                 continue
 
-            # Check if user already has this role
+            # Check if user already has this role (active assignment only —
+            # a previously revoked one doesn't count, re-assigning creates new history)
             existing = db.query(UserRoleModel).filter(
                 and_(
                     UserRoleModel.user_id == user_id,
-                    UserRoleModel.role_id == role.id
+                    UserRoleModel.role_id == role.id,
+                    UserRoleModel.deleted_at.is_(None),
                 )
             ).first()
 
@@ -357,12 +361,17 @@ class AdminService:
         if not role:
             raise ValueError(f"Role '{role_name}' not found")
 
+        # Мягкое удаление — сохраняет историю выдачи/отзыва роли
         count = db.query(UserRoleModel).filter(
             and_(
                 UserRoleModel.user_id.in_(user_ids),
-                UserRoleModel.role_id == role.id
+                UserRoleModel.role_id == role.id,
+                UserRoleModel.deleted_at.is_(None),
             )
-        ).delete(synchronize_session=False)
+        ).update(
+            {"deleted_at": datetime.utcnow(), "deleted_by_id": admin_user.id},
+            synchronize_session=False,
+        )
 
         db.commit()
 

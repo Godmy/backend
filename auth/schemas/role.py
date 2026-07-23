@@ -99,7 +99,7 @@ class RoleQuery:
         db = info.context["db"]
         user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
         if not user: raise Exception("User not found")
-        return [_map_role_to_gql(user_role.role) for user_role in user.roles if user_role.role is not None]
+        return [_map_role_to_gql(user_role.role) for user_role in user.active_roles() if user_role.role is not None]
 
 # ============================================================================ 
 # Mutations
@@ -211,10 +211,11 @@ class RoleMutation:
         if not user_to_modify or not role_to_remove: return False
 
         user_role = db.query(UserRoleModel).filter(
-            UserRoleModel.user_id == user_id, UserRoleModel.role_id == role_to_remove.id
+            UserRoleModel.user_id == user_id,
+            UserRoleModel.role_id == role_to_remove.id,
+            UserRoleModel.deleted_at.is_(None),
         ).first()
 
         if user_role:
-            db.delete(user_role)
-            db.commit()
+            user_role.soft_delete(db, deleted_by_user_id=user.id)
         return True

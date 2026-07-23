@@ -23,6 +23,12 @@ class UserModel(SoftDeleteMixin, BaseModel):
     )
 
     # Связи
-    roles = relationship("UserRoleModel", back_populates="user")
+    roles = relationship(
+        "UserRoleModel", back_populates="user", foreign_keys="UserRoleModel.user_id"
+    )
     profile = relationship("UserProfileModel", back_populates="user", uselist=False)
     oauth_connections = relationship("OAuthConnectionModel", back_populates="user")
+
+    def active_roles(self) -> list:
+        """Назначения ролей, которые сейчас в силе (без отозванных/исторических записей)."""
+        return [user_role for user_role in self.roles if user_role.deleted_at is None]

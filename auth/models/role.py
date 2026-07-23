@@ -1,8 +1,8 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import relationship
 
 from core.models.base import BaseModel
-from core.platform.db.database import Base
+from core.models.mixins.soft_delete import SoftDeleteMixin
 
 
 class RoleModel(BaseModel):
@@ -16,13 +16,34 @@ class RoleModel(BaseModel):
     user_roles = relationship("UserRoleModel", back_populates="role")
 
 
-class UserRoleModel(Base):
-    """Association table for many-to-many User-Role relationship"""
-    __tablename__ = "user_roles_association"
+class UserRoleModel(SoftDeleteMixin, BaseModel):
+    """Назначение роли пользователю.
 
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    role_id = Column(Integer, ForeignKey("roles.id"), primary_key=True)
+    Полноценная сущность (не голая association-таблица): created_at/deleted_at
+    хранят историю выдачи и отзыва роли. Уникальность обеспечивается частичным
+    индексом только среди активных строк, поэтому одну и ту же роль можно
+    выдать повторно после отзыва — это создаёт новую запись, а не переиспользует
+    старую, сохраняя полную хронологию.
+    """
+
+    __tablename__ = "user_roles"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Связи
-    user = relationship("UserModel", back_populates="roles")
-    role = relationship("RoleModel")
+    user = relationship("UserModel", back_populates="roles", foreign_keys=[user_id])
+    role = relationship("RoleModel", back_populates="user_roles")
+
+    __table_args__ = (
+        Index(
+            "uq_user_roles_active_user_role",
+            "user_id",
+            "role_id",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
+
+    def __repr__(self):
+        return f"<UserRole(user_id={self.user_id}, role_id={self.role_id})>"

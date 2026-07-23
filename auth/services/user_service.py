@@ -83,10 +83,11 @@ class UserService:
         if not user or not role:
             return False
 
-        # Проверяем, есть ли уже эта роль у пользователя
+        # Проверяем, есть ли уже эта роль у пользователя (активная)
         existing = db.query(UserRoleModel).filter(
             UserRoleModel.user_id == user_id,
-            UserRoleModel.role_id == role.id
+            UserRoleModel.role_id == role.id,
+            UserRoleModel.deleted_at.is_(None),
         ).first()
 
         if not existing:

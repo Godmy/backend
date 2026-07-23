@@ -26,11 +26,13 @@ class ConceptModel(SoftDeleteMixin, BaseModel):
     dictionaries = relationship(
         "DictionaryModel", back_populates="concept", cascade="all, delete-orphan"
     )
-    tags = relationship(
-        "TagModel",
-        secondary="concept_tags",
-        back_populates="concepts"
+    concept_tags = relationship(
+        "ConceptTagModel", back_populates="concept", cascade="all, delete-orphan"
     )
+
+    def active_tags(self) -> list:
+        """Теги, привязанные к концепции сейчас (без отвязанных/исторических записей)."""
+        return [ct.tag for ct in self.concept_tags if ct.deleted_at is None and ct.tag is not None]
 
     def __repr__(self):
         return f"<Concept(id={self.id}, path={self.path}, depth={self.depth})>"

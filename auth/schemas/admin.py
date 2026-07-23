@@ -11,7 +11,7 @@ from strawberry.types import Info
 from auth.services.admin_service import AdminService
 from auth.services.permission_service import PermissionService
 from core.domains.audit.service import AuditService
-from core.domains.admin.table_service import TableService
+from core.route.admin.table_service import TableService
 from auth.dependencies.auth import get_required_user
 from auth.models.user import UserModel
 
@@ -167,7 +167,7 @@ query GetAllUsers {
                 updated_at=u.updated_at.isoformat() if u.updated_at else None,
                 first_name=u.profile.first_name if u.profile else None,
                 last_name=u.profile.last_name if u.profile else None,
-                roles=[ur.role.name for ur in u.roles if ur.role]
+                roles=[ur.role.name for ur in u.active_roles() if ur.role]
             )
             for u in users
         ]
@@ -363,7 +363,7 @@ mutation BanUser {
             updated_at=user.updated_at.isoformat() if user.updated_at else None,
             first_name=user.profile.first_name if user.profile else None,
             last_name=user.profile.last_name if user.profile else None,
-            roles=[ur.role.name for ur in user.roles if ur.role]
+            roles=[ur.role.name for ur in user.active_roles() if ur.role]
         )
 
     @strawberry.mutation(description="""Unbans a user, setting their `isActive` status to `true`.
@@ -401,7 +401,7 @@ mutation UnbanUser {
             updated_at=user.updated_at.isoformat() if user.updated_at else None,
             first_name=user.profile.first_name if user.profile else None,
             last_name=user.profile.last_name if user.profile else None,
-            roles=[ur.role.name for ur in user.roles if ur.role]
+            roles=[ur.role.name for ur in user.active_roles() if ur.role]
         )
 
     @strawberry.mutation(description="""Permanently deletes a user from the database. This action is irreversible.

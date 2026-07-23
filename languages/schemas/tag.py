@@ -57,13 +57,19 @@ class ConceptQuery:
     def concept_tags(self, concept_id: int) -> List[Tag]:
         """Получить теги для конкретной концепции"""
         from core.platform.db.database import SessionLocal
-        from languages.models.concept import ConceptModel
+        from languages.models.tag import ConceptTagModel, TagModel
 
         with SessionLocal() as db:
-            concept = db.query(ConceptModel).filter(ConceptModel.id == concept_id).first()
-            if concept:
-                return [Tag(id=tag.id, name=tag.name, color=tag.color) for tag in concept.tags]
-            return []
+            tags = (
+                db.query(TagModel)
+                .join(ConceptTagModel, ConceptTagModel.tag_id == TagModel.id)
+                .filter(
+                    ConceptTagModel.concept_id == concept_id,
+                    ConceptTagModel.deleted_at.is_(None),
+                )
+                .all()
+            )
+            return [Tag(id=tag.id, name=tag.name, color=tag.color) for tag in tags]
 
     @strawberry.field
     def tags_by_name(self, name: str) -> List[Tag]:
@@ -82,8 +88,8 @@ class ConceptQuery:
         from languages.models.tag import TagModel
 
         with SessionLocal() as db:
-            tags = db.query(TagModel).all()
-            return [Tag(id=tag.id, name=tag.name, color=tag.color) for tag in tags if not tag.is_deleted]
+            tags = db.query(TagModel).filter(TagModel.deleted_at.is_(None)).all()
+            return [Tag(id=tag.id, name=tag.name, color=tag.color) for tag in tags]
 
 
 @strawberry.type
@@ -121,7 +127,7 @@ class ConceptMutation:
         """Добавить тег к концепции"""
         from core.platform.db.database import SessionLocal
         from languages.models.concept import ConceptModel
-        from languages.models.tag import TagModel
+        from languages.models.tag import ConceptTagModel, TagModel
 
         with SessionLocal() as db:
             concept = db.query(ConceptModel).filter(ConceptModel.id == input.concept_id).first()
@@ -139,9 +145,18 @@ class ConceptMutation:
                     message=f"Tag with id {input.tag_id} not found"
                 )
 
-            # Проверяем, что тег не привязан к концепции уже
-            if tag not in concept.tags:
-                concept.tags.append(tag)
+            # Проверяем, что тег не привязан к концепции уже (активной связью)
+            existing = (
+                db.query(ConceptTagModel)
+                .filter(
+                    ConceptTagModel.concept_id == concept.id,
+                    ConceptTagModel.tag_id == tag.id,
+                    ConceptTagModel.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if not existing:
+                db.add(ConceptTagModel(concept_id=concept.id, tag_id=tag.id))
                 db.commit()
 
             return TagMutationResult(
@@ -151,10 +166,10 @@ class ConceptMutation:
 
     @strawberry.mutation
     def remove_tag_from_concept(self, input: RemoveTagFromConceptInput) -> TagMutationResult:
-        """Удалить тег из концепции"""
+        """Удалить тег из концепции (мягкое удаление связи, сохраняет историю)"""
         from core.platform.db.database import SessionLocal
         from languages.models.concept import ConceptModel
-        from languages.models.tag import TagModel
+        from languages.models.tag import ConceptTagModel, TagModel
 
         with SessionLocal() as db:
             concept = db.query(ConceptModel).filter(ConceptModel.id == input.concept_id).first()
@@ -172,10 +187,17 @@ class ConceptMutation:
                     message=f"Tag with id {input.tag_id} not found"
                 )
 
-            # Проверяем, что тег привязан к концепции
-            if tag in concept.tags:
-                concept.tags.remove(tag)
-                db.commit()
+            concept_tag = (
+                db.query(ConceptTagModel)
+                .filter(
+                    ConceptTagModel.concept_id == concept.id,
+                    ConceptTagModel.tag_id == tag.id,
+                    ConceptTagModel.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if concept_tag:
+                concept_tag.soft_delete(db)
 
             return TagMutationResult(
                 success=True,
@@ -197,9 +219,7 @@ class ConceptMutation:
                     message=f"Tag with id {tag_id} not found"
                 )
 
-            # Мягкое удаление
-            tag.is_deleted = True
-            db.commit()
+            tag.soft_delete(db)
 
             return TagMutationResult(
                 success=True,
