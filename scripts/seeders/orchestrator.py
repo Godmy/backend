@@ -25,6 +25,7 @@ from scripts.seeders.concepts.db_concepts_seeder import DbConceptsSeeder
 from scripts.seeders.concepts.map_concepts_seeder import MapConceptsSeeder
 from scripts.seeders.concepts.ui_concepts_seeder import UIConceptsSeeder
 from scripts.seeders.languages.languages_seeder import LanguagesSeeder
+from scripts.seeders.science.literature_sources_seeder import LiteratureSourcesSeeder
 
 logger = logging.getLogger(__name__)
 

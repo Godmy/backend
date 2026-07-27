@@ -18,6 +18,7 @@ def import_all_models() -> None:
     import auth.models  # noqa: F401
     import core.models  # noqa: F401
     import languages.models  # noqa: F401
+    import science.models  # noqa: F401
 
 
 def create_tables() -> None:

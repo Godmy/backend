@@ -11,6 +11,7 @@ from strawberry.types import Info
 from auth.services.admin_service import AdminService
 from auth.services.permission_service import PermissionService
 from core.domains.audit.service import AuditService
+from core.route.admin.erd_service import generate_erd_schema_text
 from core.route.admin.table_service import TableService
 from auth.dependencies.auth import get_required_user
 from auth.models.user import UserModel
@@ -319,6 +320,29 @@ query GetTableData {
             total=data["total"],
             has_more=data["has_more"]
         )
+
+    @strawberry.field(description="""Get an ER-diagram schema description, generated live from the current SQLAlchemy models.
+
+Returns the native ERD DSL consumed by the `erd` schema-diagram widget
+(`table <name> { <column> <type> [pk] [unique] [required] [-> target.col] }`).
+
+**Required permissions:** `admin:read:tables`
+
+Example:
+```graphql
+query GetErdSchema {
+  erdSchema
+}
+```
+""")
+    async def erd_schema(self, info: Info) -> str:
+        current_user_dict = await get_required_user(info)
+        db = info.context["db"]
+        user = db.query(UserModel).filter(UserModel.id == current_user_dict["id"]).first()
+        if not PermissionService.check_permission(user, "admin", "read", "tables"):
+            raise Exception("Permission denied: admin:read:tables required")
+
+        return generate_erd_schema_text()
 
 # ============================================================================
 # Mutations

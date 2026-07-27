@@ -20,7 +20,7 @@ class RolesSeeder(BaseSeeder):
         return SeederMetadata(
             name="roles",
             version="1.0.0",
-            description="Инициализация системы ролей и прав доступа (5 ролей)",
+            description="Инициализация системы ролей и прав доступа (7 ролей)",
             dependencies=[],  # Не зависит от языков
         )
 
@@ -52,6 +52,14 @@ class RolesSeeder(BaseSeeder):
             {
                 "name": "admin",
                 "description": "Administrator - full system access",
+            },
+            {
+                "name": "architect",
+                "description": "Database Architect - manages table schema via the admin table browser",
+            },
+            {
+                "name": "manager",
+                "description": "Manager - manages project portfolio",
             },
         ]
 
@@ -278,6 +286,67 @@ class RolesSeeder(BaseSeeder):
                     "role_id": roles["admin"].id,
                     "resource": "*",
                     "action": "*",
+                    "scope": "all",
+                },
+            ]
+        )
+
+        # Database Architect - полный доступ к таблицам через admin table browser,
+        # без прав на пользователей/систему (не совпадает по объёму с admin)
+        permissions_data.extend(
+            [
+                {
+                    "role_id": roles["architect"].id,
+                    "resource": "admin",
+                    "action": "read",
+                    "scope": "tables",
+                },
+                {
+                    "role_id": roles["architect"].id,
+                    "resource": "admin",
+                    "action": "create",
+                    "scope": "tables",
+                },
+                {
+                    "role_id": roles["architect"].id,
+                    "resource": "admin",
+                    "action": "update",
+                    "scope": "tables",
+                },
+                {
+                    "role_id": roles["architect"].id,
+                    "resource": "admin",
+                    "action": "delete",
+                    "scope": "tables",
+                },
+            ]
+        )
+
+        # Manager - управление портфелем проектов
+        permissions_data.extend(
+            [
+                {
+                    "role_id": roles["manager"].id,
+                    "resource": "projects",
+                    "action": "read",
+                    "scope": "all",
+                },
+                {
+                    "role_id": roles["manager"].id,
+                    "resource": "projects",
+                    "action": "create",
+                    "scope": "all",
+                },
+                {
+                    "role_id": roles["manager"].id,
+                    "resource": "projects",
+                    "action": "update",
+                    "scope": "all",
+                },
+                {
+                    "role_id": roles["manager"].id,
+                    "resource": "projects",
+                    "action": "delete",
                     "scope": "all",
                 },
             ]

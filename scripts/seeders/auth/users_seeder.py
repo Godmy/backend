@@ -22,7 +22,7 @@ class UsersSeeder(BaseSeeder):
         return SeederMetadata(
             name="users",
             version="1.0.0",
-            description="Создание тестовых пользователей (5 пользователей)",
+            description="Создание тестовых пользователей (7 пользователей)",
             dependencies=["roles"],  # Зависит от ролей
         )
 
@@ -100,6 +100,32 @@ class UsersSeeder(BaseSeeder):
                     "first_name": "John",
                     "last_name": "Doe",
                     "bio": "Learning multiple languages",
+                },
+            },
+            {
+                "username": "Architect",
+                "email": "architect@multipult.dev",
+                "password": "12345",
+                "is_active": True,
+                "is_verified": True,
+                "role": "architect",
+                "profile": {
+                    "first_name": "Database",
+                    "last_name": "Architect",
+                    "bio": "Manages table schema via the admin table browser",
+                },
+            },
+            {
+                "username": "manager",
+                "email": "manager@multipult.dev",
+                "password": "Manager123!",
+                "is_active": True,
+                "is_verified": True,
+                "role": "manager",
+                "profile": {
+                    "first_name": "Менеджер",
+                    "last_name": "Проектов",
+                    "bio": "Manages project portfolio",
                 },
             },
         ]
